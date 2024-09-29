@@ -1,5 +1,7 @@
-# mern-stack-example
-Mern Stack code for the [Mern Tutorial](https://www.mongodb.com/languages/mern-stack-tutorial)
+# med-zk server (under construction)
+- Todo: Implement ZK proof and verifier.
+
+## This was designed to test OpenAPI on Google Agent builder.
 
 [![CI](https://github.com/mongodb-developer/mern-stack-example/actions/workflows/main.yaml/badge.svg)](https://github.com/mongodb-developer/mern-stack-example/actions/workflows/main.yaml)
 
