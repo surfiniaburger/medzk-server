@@ -1,7 +1,5 @@
-# med-zk server (under construction)
-- Todo: Implement ZK proof and verifier.
+# med-zk server 
 
-## This was designed to test OpenAPI on Google Agent builder.
 
 [![CI](https://github.com/mongodb-developer/mern-stack-example/actions/workflows/main.yaml/badge.svg)](https://github.com/mongodb-developer/mern-stack-example/actions/workflows/main.yaml)
 
