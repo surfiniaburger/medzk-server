@@ -25,7 +25,3 @@ cd mern/client
 npm install
 npm run dev
 ```
-
-## Disclaimer
-
-Use at your own risk; not a supported MongoDB product
