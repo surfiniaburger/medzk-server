@@ -1,0 +1,5 @@
+1,1,0,main.isValid
+2,2,0,main.recordHash
+3,3,0,main.criteriaHash
+4,-1,0,main.diff
+5,-1,0,main.isNonZero
