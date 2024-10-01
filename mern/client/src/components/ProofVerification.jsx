@@ -1,7 +1,8 @@
-// ProofVerification.jsx
+// src/ProofVerification.jsx
 
 import { useState } from 'react';
 import * as snarkjs from 'snarkjs';
+import './ProofVerification.css'; // Import the CSS file
 
 const ProofVerification = () => {
     // State for medical report inputs
@@ -27,6 +28,7 @@ const ProofVerification = () => {
     const [proofResult, setProofResult] = useState(null);
     const [verificationResult, setVerificationResult] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [submissionStatus, setSubmissionStatus] = useState('');
 
     // Function to handle changes in medical report inputs
     const handleMedicalReportChange = (e) => {
@@ -101,12 +103,41 @@ const ProofVerification = () => {
         return await response.arrayBuffer();
     };
 
+    // Function to send data to the server
+    const sendDataToServer = async (patientId, recordHash, criteriaHash, proof) => {
+        try {
+            const response = await fetch('http://localhost:5050/record', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    patientId,
+                    recordHash,
+                    criteriaHash,
+                    proof
+                }),
+            });
+
+            if (response.ok) {
+                setSubmissionStatus('Record successfully saved to the database.');
+            } else {
+                const errorData = await response.json();
+                setSubmissionStatus(`Failed to save record: ${errorData.error}`);
+            }
+        } catch (error) {
+            console.error('Error sending data to server:', error);
+            setSubmissionStatus('Error sending data to server.');
+        }
+    };
+
     // Main function to handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         setProofResult(null);
         setVerificationResult(null);
+        setSubmissionStatus('');
 
         try {
             // Step 1: Generate hashes
@@ -142,20 +173,24 @@ const ProofVerification = () => {
 
             setVerificationResult(isValid ? 'Verification OK' : 'Invalid proof');
             console.log(isValid ? 'Verification OK' : 'Invalid proof');
+
+            // Step 5: Send data to the server
+            await sendDataToServer(medicalReport.patientId, generatedRecordHash, generatedCriteriaHash, JSON.stringify(proof));
         } catch (err) {
             console.error('Error running proof verification:', err);
             setVerificationResult('Error running proof verification.');
+            setSubmissionStatus('Error running proof verification.');
         }
 
         setIsLoading(false);
     };
 
     return (
-        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+        <div className="container">
             <h1>Health Record Proof Verification</h1>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="form">
                 <h2>Medical Report</h2>
-                <div>
+                <div className="form-group">
                     <label>Patient ID:</label>
                     <input
                         type="text"
@@ -163,9 +198,10 @@ const ProofVerification = () => {
                         value={medicalReport.patientId}
                         onChange={handleMedicalReportChange}
                         required
+                        placeholder="Enter Patient ID"
                     />
                 </div>
-                <div>
+                <div className="form-group">
                     <label>Date of Visit:</label>
                     <input
                         type="date"
@@ -175,7 +211,7 @@ const ProofVerification = () => {
                         required
                     />
                 </div>
-                <div>
+                <div className="form-group">
                     <label>Diagnosis:</label>
                     <input
                         type="text"
@@ -183,9 +219,10 @@ const ProofVerification = () => {
                         value={medicalReport.diagnosis}
                         onChange={handleMedicalReportChange}
                         required
+                        placeholder="Enter Diagnosis"
                     />
                 </div>
-                <div>
+                <div className="form-group">
                     <label>Prescribed Medications:</label>
                     {medicalReport.prescribedMedications.map((med, index) => (
                         <input
@@ -196,13 +233,14 @@ const ProofVerification = () => {
                             value={med}
                             onChange={handleMedicalReportChange}
                             required
+                            placeholder={`Medication ${index + 1}`}
                         />
                     ))}
-                    <button type="button" onClick={addMedication}>Add Medication</button>
+                    <button type="button" onClick={addMedication} className="add-button">Add Medication</button>
                 </div>
-                <div>
+                <div className="form-group">
                     <label>Test Results:</label>
-                    <div>
+                    <div className="nested-group">
                         <label>Blood Pressure:</label>
                         <input
                             type="text"
@@ -210,9 +248,10 @@ const ProofVerification = () => {
                             value={medicalReport.testResults.bloodPressure}
                             onChange={handleMedicalReportChange}
                             required
+                            placeholder="e.g., 140/90"
                         />
                     </div>
-                    <div>
+                    <div className="nested-group">
                         <label>Cholesterol Level:</label>
                         <input
                             type="text"
@@ -220,10 +259,11 @@ const ProofVerification = () => {
                             value={medicalReport.testResults.cholesterolLevel}
                             onChange={handleMedicalReportChange}
                             required
+                            placeholder="e.g., 200 mg/dL"
                         />
                     </div>
                 </div>
-                <div>
+                <div className="form-group">
                     <label>Doctor ID:</label>
                     <input
                         type="text"
@@ -231,11 +271,12 @@ const ProofVerification = () => {
                         value={medicalReport.doctorId}
                         onChange={handleMedicalReportChange}
                         required
+                        placeholder="Enter Doctor ID"
                     />
                 </div>
 
                 <h2>Criteria</h2>
-                <div>
+                <div className="form-group">
                     <label>Required Diagnosis:</label>
                     <input
                         type="text"
@@ -243,9 +284,10 @@ const ProofVerification = () => {
                         value={criteria.requiredDiagnosis}
                         onChange={handleCriteriaChange}
                         required
+                        placeholder="Enter Required Diagnosis"
                     />
                 </div>
-                <div>
+                <div className="form-group">
                     <label>Required Medications:</label>
                     {criteria.requiredMedications.map((med, index) => (
                         <input
@@ -256,13 +298,14 @@ const ProofVerification = () => {
                             value={med}
                             onChange={handleCriteriaChange}
                             required
+                            placeholder={`Required Medication ${index + 1}`}
                         />
                     ))}
-                    <button type="button" onClick={addRequiredMedication}>Add Required Medication</button>
+                    <button type="button" onClick={addRequiredMedication} className="add-button">Add Required Medication</button>
                 </div>
-                <div>
+                <div className="form-group">
                     <label>Test Thresholds:</label>
-                    <div>
+                    <div className="nested-group">
                         <label>Blood Pressure:</label>
                         <input
                             type="text"
@@ -274,13 +317,13 @@ const ProofVerification = () => {
                         />
                     </div>
                 </div>
-                <button type="submit" disabled={isLoading} style={{ marginTop: '20px' }}>
+                <button type="submit" disabled={isLoading} className="submit-button">
                     {isLoading ? 'Generating Proof...' : 'Generate Proof and Verify'}
                 </button>
             </form>
 
             {recordHash && criteriaHash && (
-                <div style={{ marginTop: '20px' }}>
+                <div className="result-section">
                     <h2>Generated Hashes</h2>
                     <p><strong>Record Hash:</strong> {recordHash}</p>
                     <p><strong>Criteria Hash:</strong> {criteriaHash}</p>
@@ -288,16 +331,23 @@ const ProofVerification = () => {
             )}
 
             {proofResult && (
-                <div style={{ marginTop: '20px' }}>
+                <div className="result-section">
                     <h2>Proof</h2>
                     <pre>{proofResult}</pre>
                 </div>
             )}
 
             {verificationResult && (
-                <div style={{ marginTop: '20px' }}>
+                <div className="result-section">
                     <h2>Verification Result</h2>
                     <p>{verificationResult}</p>
+                </div>
+            )}
+
+            {submissionStatus && (
+                <div className="result-section">
+                    <h2>Submission Status</h2>
+                    <p>{submissionStatus}</p>
                 </div>
             )}
         </div>
