@@ -3,8 +3,20 @@
 import express from "express";
 import db from "../db/connection.js";
 import { ObjectId } from "mongodb";
+import { encrypt, decrypt } from "../utils/encryption.js";
+import { verifyProof } from "../utils/verification.js";
 
 const router = express.Router();
+
+// Helper function to generate SHA-256 hash
+const cryptoHash = async (data) => {
+  const encoder = new TextEncoder();
+  const dataBytes = encoder.encode(JSON.stringify(data));
+  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBytes);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+};
 
 // Get all records
 router.get("/", async (req, res) => {
@@ -39,21 +51,42 @@ router.get("/:id", async (req, res) => {
 // Create a new record
 router.post("/", async (req, res) => {
   try {
-    const { patientId, recordHash, criteriaHash, proof } = req.body;
+    const { patientId, recordHash, criteriaHash, proof, recordData } = req.body;
 
-    if (!patientId || !recordHash || !criteriaHash || !proof) {
+    if (!patientId || !recordHash || !criteriaHash || !proof || !recordData) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+
+    // Ensure allergies is an array before using join()
+    const allergies = Array.isArray(recordData.allergies) 
+    ? recordData.allergies.join(',') 
+    : recordData.allergies;
+
+    // Encrypt the fields (using a suitable encryption method)
+    const encryptedRecordData = {
+      name: encrypt(recordData.name),
+      age: encrypt(recordData.age.toString()),  // Convert number to string for encryption
+      bloodType: encrypt(recordData.bloodType),
+      allergies: encrypt(allergies), // Join allergies array as a string
+      riskScore: encrypt(recordData.riskScore.toString()) // Convert number to string for encryption
+    };
+
+    console.log("Encrypted Record Data:", encryptedRecordData);
+
 
     const newDocument = {
       patientId,
       recordHash,
       criteriaHash,
       proof,
+      encryptedData: encryptedRecordData,
       createdAt: new Date()
     };
 
+    console.log("New Document to be inserted:", newDocument);
+
     const collection = await db.collection("records");
+    console.log("New Document to be inserted:", newDocument);
     const result = await collection.insertOne(newDocument);
 
     res.status(201).json({ message: "Record saved successfully", recordId: result.insertedId });
