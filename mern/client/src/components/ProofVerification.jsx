@@ -15,6 +15,15 @@ const ProofVerification = () => {
         doctorId: ''
     });
 
+    const [recordData, setRecordData] = useState({
+        name: '',
+        age: '',
+        bloodType: '',
+        allergies: '',
+        riskScore: ''
+    });
+    
+
     // State for criteria inputs
     const [criteria, setCriteria] = useState({
         requiredDiagnosis: '',
@@ -68,6 +77,12 @@ const ProofVerification = () => {
         }
     };
 
+    const handleRecordDataChange = (e) => {
+        const { name, value } = e.target;
+        setRecordData({ ...recordData, [name]: value });
+    };
+    
+
     // Function to add a new medication field in medical report
     const addMedication = () => {
         setMedicalReport({
@@ -104,7 +119,7 @@ const ProofVerification = () => {
     };
 
     // Function to send data to the server
-    const sendDataToServer = async (patientId, recordHash, criteriaHash, proof) => {
+    const sendDataToServer = async (patientId, recordHash, criteriaHash, proof, recordData) => {
         try {
             const response = await fetch('http://localhost:5050/record', {
                 method: 'POST',
@@ -115,7 +130,8 @@ const ProofVerification = () => {
                     patientId,
                     recordHash,
                     criteriaHash,
-                    proof
+                    proof, 
+                    recordData
                 }),
             });
 
@@ -175,7 +191,7 @@ const ProofVerification = () => {
             console.log(isValid ? 'Verification OK' : 'Invalid proof');
 
             // Step 5: Send data to the server
-            await sendDataToServer(medicalReport.patientId, generatedRecordHash, generatedCriteriaHash, JSON.stringify(proof));
+            await sendDataToServer(medicalReport.patientId, generatedRecordHash, generatedCriteriaHash, JSON.stringify(proof), recordData);
         } catch (err) {
             console.error('Error running proof verification:', err);
             setVerificationResult('Error running proof verification.');
@@ -190,6 +206,62 @@ const ProofVerification = () => {
             <h1>Health Record Proof Verification</h1>
             <form onSubmit={handleSubmit} className="form">
                 <h2>Medical Report</h2>
+
+                <div className="form-group">
+    <label>Name:</label>
+    <input
+        type="text"
+        name="name"
+        value={recordData.name}
+        onChange={handleRecordDataChange}
+        required
+        placeholder="Enter name"
+    />
+</div>
+<div className="form-group">
+    <label>Age:</label>
+    <input
+        type="number"
+        name="age"
+        value={recordData.age}
+        onChange={handleRecordDataChange}
+        required
+        placeholder="Enter age"
+    />
+</div>
+<div className="form-group">
+    <label>Blood Type:</label>
+    <input
+        type="text"
+        name="bloodType"
+        value={recordData.bloodType}
+        onChange={handleRecordDataChange}
+        required
+        placeholder="Enter blood type"
+    />
+</div>
+<div className="form-group">
+    <label>Allergies (comma-separated):</label>
+    <input
+        type="text"
+        name="allergies"
+        value={recordData.allergies}
+        onChange={handleRecordDataChange}
+        required
+        placeholder="Enter allergies"
+    />
+</div>
+<div className="form-group">
+    <label>Risk Score:</label>
+    <input
+        type="number"
+        name="riskScore"
+        value={recordData.riskScore}
+        onChange={handleRecordDataChange}
+        required
+        placeholder="Enter risk score"
+    />
+</div>
                 <div className="form-group">
                     <label>Patient ID:</label>
                     <input

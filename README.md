@@ -8,6 +8,12 @@ Create the file `mern/server/config.env` with your Atlas URI and the server port
 ```
 ATLAS_URI=mongodb+srv://<username>:<password>@sandbox.jadwj.mongodb.net/
 PORT=5050
+ENCRYPTION_KEY=your_64_character_hex_key_here_32byteshexkey1234567890abcdef
+```
+
+Using WSL you can generate encryption key by running the command below in your terminal.
+```bash
+openssl rand -hex 32
 ```
 
 Start server:
