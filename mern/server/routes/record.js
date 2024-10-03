@@ -65,16 +65,11 @@ router.post("/", async (req, res) => {
     if (!patientId || !recordHash || !criteriaHash || !recordData) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-
-    const allergies = Array.isArray(recordData.allergies) 
-      ? recordData.allergies.join(',') 
-      : recordData.allergies;
-
     const encryptedRecordData = {
       name: encrypt(recordData.name),
       age: encrypt(recordData.age.toString()),
       bloodType: encrypt(recordData.bloodType),
-      allergies: encrypt(allergies),
+      diagnosis: encrypt(recordData.diagnosis),
       riskScore: encrypt(recordData.riskScore.toString())
     };
 
@@ -243,38 +238,83 @@ router.get("/recommendations/:condition", async (req, res) => {
   }
 });
 
-router.get("/retrieve", async (req, res) => {
-  try {
-    console.log("Received request for record retrieval");
-    const { patientId, verification_key } = req.query;
-    console.log(`patientId: ${patientId}, verification_key: ${verification_key}`);
 
-    if (!patientId || !verification_key) {
-      console.warn("Missing required parameters:", { patientId, verification_key });
-      return res.status(400).json({ error: "Missing required parameters: patientId and verification_key" });
+
+router.get("/decrypt/:patientId", async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    if (!patientId) {
+      return res.status(400).json({ error: "Missing required parameter: patientId" });
     }
 
     // Retrieve the record from the database based on patientId
     const collection = await db.collection("records");
-    console.log("Fetching record for patientId:", patientId);
     const record = await collection.findOne({ patientId });
 
     if (!record) {
-      console.warn("Record not found for patientId:", patientId);
+      return res.status(404).json({ error: "Record not found" });
+    }
+
+    const { encryptedData } = record;
+
+    // Log the encrypted data to verify
+    console.log("Encrypted Data:", encryptedData);
+
+    // Check if encryptedData is an object
+    if (typeof encryptedData !== 'object' || !encryptedData) {
+      return res.status(400).json({ error: "Invalid encrypted data format" });
+    }
+
+    // Decrypt each field individually
+    const decryptedData = {};
+    for (const field in encryptedData) {
+      if (encryptedData.hasOwnProperty(field)) {
+        try {
+          decryptedData[field] = decrypt(encryptedData[field]);
+        } catch (err) {
+          return res.status(400).json({ error: `Error decrypting field: ${field}` });
+        }
+      }
+    }
+
+    // Step 2: Return the decrypted data
+    res.status(200).json({
+      patientId,
+      decryptedData // Return the fully decrypted object
+    });
+  } catch (error) {
+    console.error("Error retrieving and decrypting record:", error);
+    
+    // Handle specific decryption errors
+    if (error instanceof TypeError) {
+      return res.status(400).json({ error: "Decryption error: " + error.message });
+    }
+
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+router.get("/search/:patientId", async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    if (!patientId) {
+      return res.status(400).json({ error: "Missing required parameter: patientId" });
+    }
+
+    // Retrieve the record from the database based on patientId
+    const collection = await db.collection("records");
+    const record = await collection.findOne({ patientId });
+
+    if (!record) {
       return res.status(404).json({ error: "Record not found" });
     }
 
     const { verificationKeyHash, encryptedData, criteriaHash, recordHash } = record;
-    console.log("Record retrieved:", { verificationKeyHash, criteriaHash, recordHash });
-
-    // Compare the provided verification_key with the stored verificationKeyHash
-    if (verificationKeyHash !== verification_key) {
-      console.warn("Verification key mismatch for patientId:", patientId);
-      return res.status(400).json({ error: "Verification key hash mismatch" });
-    }
 
     // Step 1: Load verification key, wasm, and zkey files
-    console.log("Loading verification key and snarkjs files...");
     const vKeyResponse = await fs.promises.readFile(
       path.join(__dirname, '../data/verification_key.json'),
       'utf-8'
@@ -289,12 +329,13 @@ router.get("/retrieve", async (req, res) => {
       path.join(__dirname, '../data/circuit_final.zkey')
     );
 
-    // Step 2: Prepare the input to generate the proof
-    const input = { criteriaHash, recordHash };
-    console.log("Prepared input for proof generation:", input);
+    // Step 2: Prepare the input to generate the proof with 0x prefix
+    const input = {
+      recordHash: `0x${recordHash}`,
+      criteriaHash: `0x${criteriaHash}`
+    };
 
     // Step 3: Generate proof using snarkjs
-    console.log("Generating proof...");
     const { proof, publicSignals } = await snarkjs.groth16.fullProve(
       input,
       new Uint8Array(wasmBuffer),
@@ -302,25 +343,35 @@ router.get("/retrieve", async (req, res) => {
     );
 
     // Step 4: Verify the proof
-    console.log("Verifying proof...");
     const isValid = await snarkjs.groth16.verify(vKey, publicSignals, proof);
 
     if (!isValid) {
-      console.warn("Proof verification failed for patientId:", patientId);
       return res.status(400).json({ error: "Proof verification failed" });
     }
 
-    // Step 5: Decrypt the encrypted data
-    console.log("Decrypting data...");
-    const decryptedData = decrypt(encryptedData);
+     // Check if encryptedData is an object
+     if (typeof encryptedData !== 'object' || !encryptedData) {
+      return res.status(400).json({ error: "Invalid encrypted data format" });
+    }
+
+    // Decrypt each field individually
+    const decryptedData = {};
+    for (const field in encryptedData) {
+      if (encryptedData.hasOwnProperty(field)) {
+        try {
+          decryptedData[field] = decrypt(encryptedData[field]);
+        } catch (err) {
+          return res.status(400).json({ error: `Error decrypting field: ${field}` });
+        }
+      }
+    }
 
     // Step 6: Return the decrypted data and verification result
-    console.log("Returning decrypted data for patientId:", patientId);
     res.status(200).json({
       patientId,
       recordHash,
       criteriaHash,
-      decryptedData: JSON.parse(decryptedData),
+      decryptedData,
       isValid
     });
 

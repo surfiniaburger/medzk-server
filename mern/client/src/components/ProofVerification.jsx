@@ -9,7 +9,6 @@ const ProofVerification = () => {
     const [medicalReport, setMedicalReport] = useState({
         patientId: '',
         dateOfVisit: '',
-        diagnosis: '',
         prescribedMedications: [''],
         testResults: { bloodPressure: '', cholesterolLevel: '' },
         doctorId: ''
@@ -19,7 +18,7 @@ const ProofVerification = () => {
         name: '',
         age: '',
         bloodType: '',
-        allergies: '',
+        diagnosis: '',
         riskScore: ''
     });
     
@@ -226,14 +225,14 @@ const ProofVerification = () => {
     />
 </div>
 <div className="form-group">
-    <label>Blood Type:</label>
+    <label>Diagnosis:</label>
     <input
         type="text"
-        name="bloodType"
-        value={recordData.bloodType}
+        name="diagnosis"
+        value={recordData.diagnosis}
         onChange={handleRecordDataChange}
         required
-        placeholder="Enter blood type"
+        placeholder="Enter diagnosis"
     />
 </div>
 <div className="form-group">
@@ -241,8 +240,8 @@ const ProofVerification = () => {
     <input
         type="text"
         name="allergies"
-        value={recordData.allergies}
-        onChange={handleRecordDataChange}
+        value={medicalReport.allergies}
+        onChange={handleMedicalReportChange}
         required
         placeholder="Enter allergies"
     />
@@ -280,14 +279,14 @@ const ProofVerification = () => {
                     />
                 </div>
                 <div className="form-group">
-                    <label>Diagnosis:</label>
+                    <label>BloodType:</label>
                     <input
                         type="text"
-                        name="diagnosis"
-                        value={medicalReport.diagnosis}
-                        onChange={handleMedicalReportChange}
+                        name="bloodType"
+                        value={medicalReport.bloodType}
+                        onChange={handleRecordDataChange}
                         required
-                        placeholder="Enter Diagnosis"
+                        placeholder="Enter Blood Type"
                     />
                 </div>
                 <div className="form-group">

@@ -17,6 +17,9 @@ export const encrypt = (text) => {
 
 // Decrypt data
 export const decrypt = (text) => {
+    if (typeof text !== 'string') {
+        throw new TypeError('Expected a string for decryption');
+    }
     const textParts = text.split(':');
     const iv = Buffer.from(textParts.shift(), 'hex');
     const encryptedText = Buffer.from(textParts.join(':'), 'hex');
