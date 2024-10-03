@@ -5,6 +5,14 @@ import db from "../db/connection.js";
 import { ObjectId } from "mongodb";
 import { encrypt, decrypt } from "../utils/encryption.js";
 import { verifyProof } from "../utils/verification.js";
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import * as snarkjs from 'snarkjs';
+
+// Create __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
@@ -34,13 +42,15 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const collection = await db.collection("records");
-    const query = { _id: new ObjectId(req.params.id) };
+    const query = { patientId: req.params.id };
     const result = await collection.findOne(query);
 
     if (!result) {
       res.status(404).json({ error: "Record not found" });
     } else {
+      console.log(result)
       res.status(200).json(result);
+      console.log(result)
     }
   } catch (error) {
     console.error("Error fetching record:", error);
@@ -48,45 +58,48 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Create a new record
 router.post("/", async (req, res) => {
   try {
-    const { patientId, recordHash, criteriaHash, proof, recordData } = req.body;
+    const { patientId, recordHash, criteriaHash, recordData } = req.body;
 
-    if (!patientId || !recordHash || !criteriaHash || !proof || !recordData) {
+    if (!patientId || !recordHash || !criteriaHash || !recordData) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Ensure allergies is an array before using join()
     const allergies = Array.isArray(recordData.allergies) 
-    ? recordData.allergies.join(',') 
-    : recordData.allergies;
+      ? recordData.allergies.join(',') 
+      : recordData.allergies;
 
-    // Encrypt the fields (using a suitable encryption method)
     const encryptedRecordData = {
       name: encrypt(recordData.name),
-      age: encrypt(recordData.age.toString()),  // Convert number to string for encryption
+      age: encrypt(recordData.age.toString()),
       bloodType: encrypt(recordData.bloodType),
-      allergies: encrypt(allergies), // Join allergies array as a string
-      riskScore: encrypt(recordData.riskScore.toString()) // Convert number to string for encryption
+      allergies: encrypt(allergies),
+      riskScore: encrypt(recordData.riskScore.toString())
     };
 
     console.log("Encrypted Record Data:", encryptedRecordData);
 
+    const vKeyResponse = await fs.promises.readFile(
+      path.join(__dirname, '../data/verification_key.json'),
+      'utf-8'
+    );
+    const vKey = JSON.parse(vKeyResponse);
+
+    // Hash the verification key
+    const verificationKeyHash = await cryptoHash(vKey);
+    console.log("Verification Key Hash:", verificationKeyHash);
 
     const newDocument = {
       patientId,
       recordHash,
       criteriaHash,
-      proof,
+      verificationKeyHash, // store verification key hash instead of proof
       encryptedData: encryptedRecordData,
       createdAt: new Date()
     };
 
-    console.log("New Document to be inserted:", newDocument);
-
     const collection = await db.collection("records");
-    console.log("New Document to be inserted:", newDocument);
     const result = await collection.insertOne(newDocument);
 
     res.status(201).json({ message: "Record saved successfully", recordId: result.insertedId });
@@ -227,6 +240,93 @@ router.get("/recommendations/:condition", async (req, res) => {
     });
   } else {
     res.status(404).json({ error: "Recommendations not found for this condition." });
+  }
+});
+
+router.get("/retrieve", async (req, res) => {
+  try {
+    console.log("Received request for record retrieval");
+    const { patientId, verification_key } = req.query;
+    console.log(`patientId: ${patientId}, verification_key: ${verification_key}`);
+
+    if (!patientId || !verification_key) {
+      console.warn("Missing required parameters:", { patientId, verification_key });
+      return res.status(400).json({ error: "Missing required parameters: patientId and verification_key" });
+    }
+
+    // Retrieve the record from the database based on patientId
+    const collection = await db.collection("records");
+    console.log("Fetching record for patientId:", patientId);
+    const record = await collection.findOne({ patientId });
+
+    if (!record) {
+      console.warn("Record not found for patientId:", patientId);
+      return res.status(404).json({ error: "Record not found" });
+    }
+
+    const { verificationKeyHash, encryptedData, criteriaHash, recordHash } = record;
+    console.log("Record retrieved:", { verificationKeyHash, criteriaHash, recordHash });
+
+    // Compare the provided verification_key with the stored verificationKeyHash
+    if (verificationKeyHash !== verification_key) {
+      console.warn("Verification key mismatch for patientId:", patientId);
+      return res.status(400).json({ error: "Verification key hash mismatch" });
+    }
+
+    // Step 1: Load verification key, wasm, and zkey files
+    console.log("Loading verification key and snarkjs files...");
+    const vKeyResponse = await fs.promises.readFile(
+      path.join(__dirname, '../data/verification_key.json'),
+      'utf-8'
+    );
+    const vKey = JSON.parse(vKeyResponse);
+
+    const wasmBuffer = await fs.promises.readFile(
+      path.join(__dirname, '../data/circuit.wasm')
+    );
+
+    const zkeyBuffer = await fs.promises.readFile(
+      path.join(__dirname, '../data/circuit_final.zkey')
+    );
+
+    // Step 2: Prepare the input to generate the proof
+    const input = { criteriaHash, recordHash };
+    console.log("Prepared input for proof generation:", input);
+
+    // Step 3: Generate proof using snarkjs
+    console.log("Generating proof...");
+    const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+      input,
+      new Uint8Array(wasmBuffer),
+      new Uint8Array(zkeyBuffer)
+    );
+
+    // Step 4: Verify the proof
+    console.log("Verifying proof...");
+    const isValid = await snarkjs.groth16.verify(vKey, publicSignals, proof);
+
+    if (!isValid) {
+      console.warn("Proof verification failed for patientId:", patientId);
+      return res.status(400).json({ error: "Proof verification failed" });
+    }
+
+    // Step 5: Decrypt the encrypted data
+    console.log("Decrypting data...");
+    const decryptedData = decrypt(encryptedData);
+
+    // Step 6: Return the decrypted data and verification result
+    console.log("Returning decrypted data for patientId:", patientId);
+    res.status(200).json({
+      patientId,
+      recordHash,
+      criteriaHash,
+      decryptedData: JSON.parse(decryptedData),
+      isValid
+    });
+
+  } catch (error) {
+    console.error("Error retrieving and verifying record:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
