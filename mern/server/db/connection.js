@@ -1,6 +1,11 @@
+// db/connection.js
+
 import { MongoClient, ServerApiVersion } from "mongodb";
+import dotenv from 'dotenv';
+dotenv.config();
 
 const URI = process.env.ATLAS_URI || "";
+
 const client = new MongoClient(URI, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -9,16 +14,17 @@ const client = new MongoClient(URI, {
   },
 });
 
-try {
-  // Connect the client to the server
-  await client.connect();
-  // Send a ping to confirm a successful connection
-  await client.db("admin").command({ ping: 1 });
-  console.log("Pinged your deployment. You successfully connected to MongoDB!");
-} catch (err) {
-  console.error(err);
-}
+const connectDB = async () => {
+  try {
+    await client.connect();
+    await client.db("admin").command({ ping: 1 });
+    console.log("Connected successfully to MongoDB!");
+    const db = client.db("patients");
+    return db;
+  } catch (err) {
+    console.error("Failed to connect to MongoDB:", err);
+    throw err;
+  }
+};
 
-let db = client.db("patients");
-
-export default db;
+export { connectDB, client };

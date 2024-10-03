@@ -26,6 +26,9 @@ const cryptoHash = async (data) => {
   return hashHex;
 };
 
+// Export a function that takes `db` as a parameter
+const createRecordRoutes = (db) => {
+
 // Get all records
 router.get("/", async (req, res) => {
   try {
@@ -380,5 +383,8 @@ router.get("/search/:patientId", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+return router;
+};
 
 export default router;
