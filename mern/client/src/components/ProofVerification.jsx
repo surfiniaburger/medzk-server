@@ -119,7 +119,7 @@ const ProofVerification = () => {
     };
 
     // Function to send data to the server
-    const sendDataToServer = async (patientId, recordHash, criteriaHash, proof, recordData) => {
+    const sendDataToServer = async (patientId, recordHash, criteriaHash, verificationKeyHash, recordData) => {
         try {
             const response = await fetch('http://localhost:5050/record', {
                 method: 'POST',
@@ -130,7 +130,7 @@ const ProofVerification = () => {
                     patientId,
                     recordHash,
                     criteriaHash,
-                    proof, 
+                    verificationKeyHash, 
                     recordData
                 }),
             });
@@ -174,24 +174,20 @@ const ProofVerification = () => {
             const vKey = await vKeyResponse.json();
 
             // Step 3: Generate proof
-            const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+            const { proof} = await snarkjs.groth16.fullProve(
                 input,
                 new Uint8Array(wasmBuffer),
                 new Uint8Array(zkeyBuffer)
             );
 
             setProofResult(JSON.stringify(proof, null, 2));
-            console.log('Proof generated:', proof);
-            console.log('Public signals:', publicSignals);
+            
 
-            // Step 4: Verify proof
-            const isValid = await snarkjs.groth16.verify(vKey, publicSignals, proof);
+           // Step 4: Hash the verification key and send data to server
+        const verificationKeyHash = await generateHash(vKey);
 
-            setVerificationResult(isValid ? 'Verification OK' : 'Invalid proof');
-            console.log(isValid ? 'Verification OK' : 'Invalid proof');
-
-            // Step 5: Send data to the server
-            await sendDataToServer(medicalReport.patientId, generatedRecordHash, generatedCriteriaHash, JSON.stringify(proof), recordData);
+        // Send data to the server (remove proof)
+        await sendDataToServer(medicalReport.patientId, generatedRecordHash, generatedCriteriaHash, verificationKeyHash, recordData);
         } catch (err) {
             console.error('Error running proof verification:', err);
             setVerificationResult('Error running proof verification.');
