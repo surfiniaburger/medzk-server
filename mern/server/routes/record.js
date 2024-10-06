@@ -4,23 +4,19 @@ import express from "express";
 import db from "../db/connection.js";
 import { ObjectId } from "mongodb";
 import { encrypt, decrypt } from "../utils/encryption.js";
-import { verifyProof } from "../utils/verification.js";
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as snarkjs from 'snarkjs';
 import multer from "multer";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import dotenv from 'dotenv';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold} from "@google/generative-ai";
+import { GoogleAIFileManager } from "@google/generative-ai/server";
 
 // Create __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const router = express.Router();
-
-
-
  // Initialize Google Generative AI
  const gkey = process.env.GEMINI_API_KEY || null;
  if (!gkey) {
@@ -29,7 +25,45 @@ const router = express.Router();
   console.log('API key loaded successfully:');
 }
  const genAI = new GoogleGenerativeAI(gkey);
- const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+ const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-002" });
+ const fileManager = new GoogleAIFileManager(gkey)
+
+ const generationConfig = {
+  temperature: 1,
+  topK: 40,
+  topP: 1,
+  maxOutputTokens: 8192,
+  responseMimeType: "text/plain",
+};
+const safetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+];
+
+async function uploadToGemini(path, mimeType) {
+  const uploadResult = await fileManager.uploadFile(path, {
+    mimeType,
+    displayName: path,
+  });
+  const file = uploadResult.file;
+  console.log(`Uploaded file ${file.displayName} as: ${file.name}`);
+  return file;
+}
+
 
 // Helper function to generate SHA-256 hash
 const cryptoHash = async (data) => {
@@ -385,12 +419,34 @@ router.post("/image", upload.single('image'), async (req, res) => {
 
     const prompt = "Analyze the provided MRI image for any anomalies or indicators of brain tumors. Identify any potential abnormalities, providing insights into possible diagnoses and relevant details from the image data.";
 
-    const imagePart = fileToGenerativePart(imagePath, req.file.mimetype);
+    // Upload image to Gemini for processing
+    const imageFile = await uploadToGemini(imagePath, req.file.mimetype);
+
+    // Start chat session with the model
+    const chatSession = model.startChat({
+      generationConfig,
+      safetySettings,
+      history: [
+        {
+          role: "user",
+          parts: [
+            { text: prompt },
+            {
+              fileData: {
+                mimeType: imageFile.mimeType,
+                fileUri: imageFile.uri,
+              },
+            },
+          ],
+        },
+      ],
+    });
 
     // Generate content using Google Gemini
-    const generatedContent = await model.generateContent([prompt, imagePart]);
+    const generatedContent = await chatSession.sendMessage(prompt);
 
     const diagnosticResult = generatedContent.response.text();
+    
 
     // Save record to MongoDB
     const collection = await db.collection("scan-records");
