@@ -409,14 +409,25 @@ router.get("/search/:patientId", async (req, res) => {
   }
 });
 
-// Modify multer to handle multiple image uploads
 router.post("/image", upload.array('images', 5), async (req, res) => {
   try {
     const { patientId, metadata } = req.body;
     const images = req.files; // Array of uploaded images
-    const parsedMetadata = JSON.parse(metadata);
-    
-    // Prompt for Gemini (can be adjusted to your use case)
+
+    // Validate required fields
+    if (!patientId || !metadata || !images || images.length === 0) {
+      return res.status(400).json({ error: "Missing required fields: patientId, metadata, and at least one image" });
+    }
+
+    // Parse metadata
+    let parsedMetadata;
+    try {
+      parsedMetadata = JSON.parse(metadata);
+    } catch (parseError) {
+      return res.status(400).json({ error: "Invalid metadata format. Must be a valid JSON string." });
+    }
+
+    // Define the prompt for Gemini AI
     const prompt = "Analyze the provided MRI images for any anomalies or indicators of brain tumors. Identify potential abnormalities, providing insights into possible diagnoses and relevant details from the image data.";
 
     // Upload each image to Gemini for processing
@@ -445,28 +456,141 @@ router.post("/image", upload.array('images', 5), async (req, res) => {
       ],
     });
 
+    // Send the prompt and receive diagnostic results
     const generatedContent = await chatSession.sendMessage(prompt);
     const diagnosticResult = generatedContent.response.text();
 
-    // Save record in MongoDB
-    const collection = await db.collection("scan-records");
-    const record = {
-      patientId,
-      metadata: parsedMetadata,
-      imagePaths: images.map(image => image.path), // Store paths for all images
-      diagnosticResult,
-      createdAt: new Date(),
+    // Prepare data for hashing
+    const imagePaths = images.map(image => image.path);
+    const recordDataForHash = {
+      imagePaths,
+      diagnosticResult
     };
 
-    const result = await collection.insertOne(record);
+    // Generate recordHash
+    const recordHash = await cryptoHash(recordDataForHash);
+
+    // Generate criteriaHash from metadata
+    const criteriaHash = await cryptoHash(parsedMetadata);
+
+    // Encrypt diagnosticResult
+    const encryptedDiagnosticResult = encrypt(diagnosticResult);
+
+    // Read and hash verification key
+    const vKeyResponse = await fs.promises.readFile(
+      path.join(__dirname, '../data/verification_key.json'),
+      'utf-8'
+    );
+    const vKey = JSON.parse(vKeyResponse);
+
+    // Hash the verification key
+    const verificationKeyHash = await cryptoHash(vKey);
+
+    // Prepare the new document to be inserted into the database
+    const newDocument = {
+      patientId,
+      criteriaHash,
+      recordHash,
+      verificationKeyHash,
+      encryptedDiagnosticResult,
+      createdAt: new Date()
+    };
+
+    // Insert the new document into the "image-records" collection
+    const collection = await db.collection("image-records");
+    const result = await collection.insertOne(newDocument);
 
     res.status(201).json({
-      message: "Record created successfully",
+      message: "Image record created successfully",
       recordId: result.insertedId,
-      diagnosticResult,
+      // Optionally omit returning encryptedDiagnosticResult to the client
     });
   } catch (error) {
-    console.error("Error creating record:", error);
+    console.error("Error creating image record:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/image/search/:patientId", async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    if (!patientId) {
+      return res.status(400).json({ error: "Missing required parameter: patientId" });
+    }
+
+    // Retrieve the record from the database based on patientId
+    const collection = await db.collection("image-records");
+    const record = await collection.findOne({ patientId });
+
+    if (!record) {
+      return res.status(404).json({ error: "Image record not found" });
+    }
+
+    const { verificationKeyHash, encryptedDiagnosticResult, criteriaHash, recordHash } = record;
+
+    // Step 1: Load the verification key
+    const vKeyResponse = await fs.promises.readFile(
+      path.join(__dirname, '../data/verification_key.json'),
+      'utf-8'
+    );
+    const vKey = JSON.parse(vKeyResponse);
+
+    // Step 2: Hash the loaded verification key
+    const vKeyHash = await cryptoHash(vKey);
+
+    // Step 3: Compare the generated hash with the stored verificationKeyHash
+    if (vKeyHash !== verificationKeyHash) {
+      return res.status(400).json({ error: "Verification key hash mismatch. Aborting process." });
+    }
+
+    // Step 4: Load wasm and zkey files
+    const wasmBuffer = await fs.promises.readFile(
+      path.join(__dirname, '../data/circuit.wasm')
+    );
+    const zkeyBuffer = await fs.promises.readFile(
+      path.join(__dirname, '../data/circuit_final.zkey')
+    );
+
+    // Step 5: Prepare the input to generate the proof with 0x prefix
+    const input = {
+      recordHash: `0x${recordHash}`,
+      criteriaHash: `0x${criteriaHash}`
+    };
+
+    // Step 6: Generate proof using snarkjs
+    const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+      input,
+      new Uint8Array(wasmBuffer),
+      new Uint8Array(zkeyBuffer)
+    );
+
+    // Step 7: Verify the proof
+    const isValid = await snarkjs.groth16.verify(vKey, publicSignals, proof);
+
+    if (!isValid) {
+      return res.status(400).json({ error: "Proof verification failed" });
+    }
+
+    // Step 8: Decrypt diagnostic result
+    let decryptedDiagnosticResult;
+    try {
+      decryptedDiagnosticResult = decrypt(encryptedDiagnosticResult);
+    } catch (decryptError) {
+      return res.status(400).json({ error: "Error decrypting diagnostic results" });
+    }
+
+    // Step 9: Return the decrypted data and verification result
+    res.status(200).json({
+      patientId,
+      recordHash,
+      criteriaHash,
+      diagnosticResult: decryptedDiagnosticResult,
+      isValid
+    });
+
+  } catch (error) {
+    console.error("Error retrieving and verifying image record:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
