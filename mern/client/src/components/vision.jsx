@@ -1,50 +1,61 @@
 import { useState } from 'react';
-
+import './Vision.css'; // Assuming you have a separate CSS file for styling
 
 const Vision = () => {
   const [patientId, setPatientId] = useState('');
   const [metadata, setMetadata] = useState('');
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
   const [diagnosticResult, setDiagnosticResult] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Handle image upload and preview
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setImages((prevImages) => [...prevImages, ...files]);
+  };
+
+  // Remove an image from the list (unstaging)
+  const handleRemoveImage = (indexToRemove) => {
+    setImages(images.filter((_, index) => index !== indexToRemove));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
   
-    if (!patientId || !image) {
-      alert("Patient ID and Image are required.");
+    if (!patientId || images.length === 0) {
+      alert("Patient ID and at least one image are required.");
       return;
     }
   
     const formData = new FormData();
     formData.append('patientId', patientId);
     formData.append('metadata', JSON.stringify({ info: metadata }));
-    formData.append('image', image);
+    
+    // Append all images
+    images.forEach((image) => {
+      formData.append('images', image); // Use 'images' as the key for all uploaded files
+    });
   
     try {
       setLoading(true);
   
-      // Send form data to the server without setting 'Content-Type'
       const response = await fetch('http://localhost:5050/record/image', {
         method: 'POST',
-        body: formData, // Send FormData directly
+        body: formData,
       });
   
-      // Check if the response is OK
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
   
-      // Parse JSON response
       const data = await response.json();
-      
       setDiagnosticResult(data.diagnosticResult);
       alert("Record submitted successfully!");
   
       // Reset form
       setPatientId('');
       setMetadata('');
-      setImage(null);
+      setImages([]);
     } catch (error) {
       console.error("Error submitting form:", error);
       alert("Failed to submit the record.");
@@ -54,42 +65,61 @@ const Vision = () => {
   };
 
   return (
-    <div>
+    <div className="vision-container">
       <h2>Submit Medical Record</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
+      <form onSubmit={handleSubmit} className="vision-form">
+        <div className="form-group">
           <label>Patient ID:</label>
           <input
             type="text"
             value={patientId}
             onChange={(e) => setPatientId(e.target.value)}
             required
+            className="input-field"
           />
         </div>
-        <div>
+        <div className="form-group">
           <label>Metadata:</label>
           <textarea
             value={metadata}
             onChange={(e) => setMetadata(e.target.value)}
             placeholder="Additional information..."
+            className="textarea-field"
           />
         </div>
-        <div>
-          <label>Medical Image:</label>
+        <div className="form-group">
+          <label>Medical Images:</label>
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setImage(e.target.files[0])}
-            required
+            multiple
+            onChange={handleImageChange}
+            className="input-file"
           />
+          {images.length > 0 && (
+            <div className="image-preview-container">
+              {images.map((image, index) => (
+                <div key={index} className="image-preview">
+                  <img src={URL.createObjectURL(image)} alt={`preview ${index}`} />
+                  <button
+                    type="button"
+                    className="remove-image-button"
+                    onClick={() => handleRemoveImage(index)}
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className="submit-button">
           {loading ? "Submitting..." : "Submit"}
         </button>
       </form>
 
       {diagnosticResult && (
-        <div>
+        <div className="result-container">
           <h3>Diagnostic Result:</h3>
           <p>{diagnosticResult}</p>
         </div>

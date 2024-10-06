@@ -409,20 +409,22 @@ router.get("/search/:patientId", async (req, res) => {
   }
 });
 
-router.post("/image", upload.single('image'), async (req, res) => {
+// Modify multer to handle multiple image uploads
+router.post("/image", upload.array('images', 5), async (req, res) => {
   try {
     const { patientId, metadata } = req.body;
-    const imagePath = req.file.path;
-    // Ensure that metadata is correctly parsed if it's in JSON format
+    const images = req.files; // Array of uploaded images
     const parsedMetadata = JSON.parse(metadata);
-   
+    
+    // Prompt for Gemini (can be adjusted to your use case)
+    const prompt = "Analyze the provided MRI images for any anomalies or indicators of brain tumors. Identify potential abnormalities, providing insights into possible diagnoses and relevant details from the image data.";
 
-    const prompt = "Analyze the provided MRI image for any anomalies or indicators of brain tumors. Identify any potential abnormalities, providing insights into possible diagnoses and relevant details from the image data.";
+    // Upload each image to Gemini for processing
+    const uploadedImages = await Promise.all(
+      images.map(image => uploadToGemini(image.path, image.mimetype))
+    );
 
-    // Upload image to Gemini for processing
-    const imageFile = await uploadToGemini(imagePath, req.file.mimetype);
-
-    // Start chat session with the model
+    // Start chat session with the model, passing the image data for analysis
     const chatSession = model.startChat({
       generationConfig,
       safetySettings,
@@ -431,36 +433,38 @@ router.post("/image", upload.single('image'), async (req, res) => {
           role: "user",
           parts: [
             { text: prompt },
-            {
+            // Add the uploaded images to the chat session
+            ...uploadedImages.map(imageFile => ({
               fileData: {
                 mimeType: imageFile.mimeType,
                 fileUri: imageFile.uri,
               },
-            },
+            })),
           ],
         },
       ],
     });
 
-    // Generate content using Google Gemini
     const generatedContent = await chatSession.sendMessage(prompt);
-
     const diagnosticResult = generatedContent.response.text();
-    
 
-    // Save record to MongoDB
+    // Save record in MongoDB
     const collection = await db.collection("scan-records");
     const record = {
       patientId,
       metadata: parsedMetadata,
-      imagePath,
+      imagePaths: images.map(image => image.path), // Store paths for all images
       diagnosticResult,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     const result = await collection.insertOne(record);
 
-    res.status(201).json({ message: "Record created successfully", recordId: result.insertedId, diagnosticResult });
+    res.status(201).json({
+      message: "Record created successfully",
+      recordId: result.insertedId,
+      diagnosticResult,
+    });
   } catch (error) {
     console.error("Error creating record:", error);
     res.status(500).json({ error: "Internal server error" });
