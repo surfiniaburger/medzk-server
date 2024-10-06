@@ -11,12 +11,25 @@ import { fileURLToPath } from 'url';
 import * as snarkjs from 'snarkjs';
 import multer from "multer";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import dotenv from 'dotenv';
 
 // Create __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const router = express.Router();
+
+
+
+ // Initialize Google Generative AI
+ const gkey = process.env.GEMINI_API_KEY || null;
+ if (!gkey) {
+  console.error('API key is not valid or not found in the config.env file');
+} else {
+  console.log('API key loaded successfully:');
+}
+ const genAI = new GoogleGenerativeAI(gkey);
+ const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
 // Helper function to generate SHA-256 hash
 const cryptoHash = async (data) => {
@@ -358,6 +371,42 @@ router.get("/search/:patientId", async (req, res) => {
 
   } catch (error) {
     console.error("Error retrieving and verifying record:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/image", upload.single('image'), async (req, res) => {
+  try {
+    const { patientId, metadata } = req.body;
+    const imagePath = req.file.path;
+    // Ensure that metadata is correctly parsed if it's in JSON format
+    const parsedMetadata = JSON.parse(metadata);
+   
+
+    const prompt = "Analyze the provided MRI image for any anomalies or indicators of brain tumors. Identify any potential abnormalities, providing insights into possible diagnoses and relevant details from the image data.";
+
+    const imagePart = fileToGenerativePart(imagePath, req.file.mimetype);
+
+    // Generate content using Google Gemini
+    const generatedContent = await model.generateContent([prompt, imagePart]);
+
+    const diagnosticResult = generatedContent.response.text();
+
+    // Save record to MongoDB
+    const collection = await db.collection("scan-records");
+    const record = {
+      patientId,
+      metadata: parsedMetadata,
+      imagePath,
+      diagnosticResult,
+      createdAt: new Date()
+    };
+
+    const result = await collection.insertOne(record);
+
+    res.status(201).json({ message: "Record created successfully", recordId: result.insertedId, diagnosticResult });
+  } catch (error) {
+    console.error("Error creating record:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
