@@ -631,7 +631,7 @@ router.post("/video", upload.single('video'), async (req, res) => {
     }
 
     // Define the prompt for Gemini AI
-    const prompt = "Analyze the provided video for any medical anomalies or indicators related to brain health. Provide detailed diagnostic insights.";
+    const prompt = "Analyze the provided video for any medical anomalies as related to healthcare. Provide detailed diagnostic insights.";
 
     // Upload the video to Gemini for processing
     const uploadedVideo = await uploadToGemini(video.path, video.mimetype);
