@@ -20,8 +20,8 @@ openssl rand -hex 32
 Start server:
 ```
 cd mern/server
-npm install
-npm start
+yarn
+yarn start
 ```
 
 Start Web server
