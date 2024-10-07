@@ -2,6 +2,7 @@
 // import Navbar from "./components/Navbar";
 //import HealthRiskAssessment from "./components/HealthRiskAssessment";
 import ProofVerification from "./components/ProofVerification";
+import VideoUpload from "./components/VideoUpload";
 import Vision from "./components/vision";
 
 
@@ -11,6 +12,7 @@ const App = () => {
       
 <ProofVerification/>
 <Vision/>
+<VideoUpload/>
 
 
 
