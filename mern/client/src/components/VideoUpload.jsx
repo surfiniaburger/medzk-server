@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import axios from 'axios';
+import styles from './VideoUpload.module.css'
 
 const VideoUpload = () => {
   const [patientId, setPatientId] = useState('');
@@ -147,166 +148,165 @@ const VideoUpload = () => {
   };
 
   return (
-    <div className="container">
-      <h2>Upload Video Record</h2>
-      <form onSubmit={handleSubmit}>
+    <div className={styles.container}>
+    <h2>Upload Video Record</h2>
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label>Patient ID:</label>
+        <input
+          type="text"
+          value={patientId}
+          onChange={(e) => setPatientId(e.target.value)}
+          required
+        />
+      </div>
+      <fieldset>
+        <legend>Metadata</legend>
+        {/* Study Information */}
         <div>
-          <label>Patient ID:</label>
+          <label>Study Date:</label>
           <input
-            type="text"
-            value={patientId}
-            onChange={(e) => setPatientId(e.target.value)}
-            required
+            type="date"
+            name="studyDate"
+            value={metadata.studyDate}
+            onChange={handleMetadataChange}
           />
         </div>
+        <div>
+          <label>Study Time:</label>
+          <input
+            type="time"
+            name="studyTime"
+            value={metadata.studyTime}
+            onChange={handleMetadataChange}
+          />
+        </div>
+        <div>
+          <label>Modality:</label>
+          <input
+            type="text"
+            name="modality"
+            value={metadata.modality}
+            onChange={handleMetadataChange}
+          />
+        </div>
+        <div>
+          <label>Study Description:</label>
+          <input
+            type="text"
+            name="studyDescription"
+            value={metadata.studyDescription}
+            onChange={handleMetadataChange}
+          />
+        </div>
+        {/* Scanner Details */}
         <fieldset>
-          <legend>Metadata</legend>
-          {/* Study Information */}
+          <legend>Scanner Details</legend>
           <div>
-            <label>Study Date:</label>
-            <input
-              type="date"
-              name="studyDate"
-              value={metadata.studyDate}
-              onChange={handleMetadataChange}
-            />
-          </div>
-          <div>
-            <label>Study Time:</label>
-            <input
-              type="time"
-              name="studyTime"
-              value={metadata.studyTime}
-              onChange={handleMetadataChange}
-            />
-          </div>
-          <div>
-            <label>Modality:</label>
+            <label>Manufacturer:</label>
             <input
               type="text"
-              name="modality"
-              value={metadata.modality}
+              name="scannerDetails.manufacturer"
+              value={metadata.scannerDetails.manufacturer}
               onChange={handleMetadataChange}
             />
           </div>
           <div>
-            <label>Study Description:</label>
+            <label>Model:</label>
             <input
               type="text"
-              name="studyDescription"
-              value={metadata.studyDescription}
+              name="scannerDetails.model"
+              value={metadata.scannerDetails.model}
               onChange={handleMetadataChange}
             />
           </div>
-          {/* Add more metadata fields as needed */}
-          {/* Scanner Details */}
-          <fieldset>
-            <legend>Scanner Details</legend>
-            <div>
-              <label>Manufacturer:</label>
-              <input
-                type="text"
-                name="scannerDetails.manufacturer"
-                value={metadata.scannerDetails.manufacturer}
-                onChange={handleMetadataChange}
-              />
-            </div>
-            <div>
-              <label>Model:</label>
-              <input
-                type="text"
-                name="scannerDetails.model"
-                value={metadata.scannerDetails.model}
-                onChange={handleMetadataChange}
-              />
-            </div>
-            <div>
-              <label>Serial Number:</label>
-              <input
-                type="text"
-                name="scannerDetails.serialNumber"
-                value={metadata.scannerDetails.serialNumber}
-                onChange={handleMetadataChange}
-              />
-            </div>
-            <div>
-              <label>Software Version:</label>
-              <input
-                type="text"
-                name="scannerDetails.softwareVersion"
-                value={metadata.scannerDetails.softwareVersion}
-                onChange={handleMetadataChange}
-              />
-            </div>
-          </fieldset>
-          {/* Image Acquisition Parameters */}
-          <fieldset>
-            <legend>Image Acquisition Parameters</legend>
-            <div>
-              <label>Repetition Time:</label>
-              <input
-                type="text"
-                name="imageAcquisitionParameters.repetitionTime"
-                value={metadata.imageAcquisitionParameters.repetitionTime}
-                onChange={handleMetadataChange}
-              />
-            </div>
-            <div>
-              <label>Echo Time:</label>
-              <input
-                type="text"
-                name="imageAcquisitionParameters.echoTime"
-                value={metadata.imageAcquisitionParameters.echoTime}
-                onChange={handleMetadataChange}
-              />
-            </div>
-            {/* Add more acquisition parameters as needed */}
-          </fieldset>
-          {/* Contrast Agent Details */}
-          <fieldset>
-            <legend>Contrast Agent</legend>
-            <div>
-              <label>Type:</label>
-              <input
-                type="text"
-                name="contrastAgent.type"
-                value={metadata.contrastAgent.type}
-                onChange={handleMetadataChange}
-              />
-            </div>
-            <div>
-              <label>Dose:</label>
-              <input
-                type="text"
-                name="contrastAgent.dose"
-                value={metadata.contrastAgent.dose}
-                onChange={handleMetadataChange}
-              />
-            </div>
-            {/* Add more contrast agent details as needed */}
-          </fieldset>
           <div>
-            <label>Notes:</label>
-            <textarea
-              name="notes"
-              value={metadata.notes}
+            <label>Serial Number:</label>
+            <input
+              type="text"
+              name="scannerDetails.serialNumber"
+              value={metadata.scannerDetails.serialNumber}
+              onChange={handleMetadataChange}
+            />
+          </div>
+          <div>
+            <label>Software Version:</label>
+            <input
+              type="text"
+              name="scannerDetails.softwareVersion"
+              value={metadata.scannerDetails.softwareVersion}
               onChange={handleMetadataChange}
             />
           </div>
         </fieldset>
+        {/* Image Acquisition Parameters */}
+        <fieldset>
+          <legend>Image Acquisition Parameters</legend>
+          <div>
+            <label>Repetition Time:</label>
+            <input
+              type="text"
+              name="imageAcquisitionParameters.repetitionTime"
+              value={metadata.imageAcquisitionParameters.repetitionTime}
+              onChange={handleMetadataChange}
+            />
+          </div>
+          <div>
+            <label>Echo Time:</label>
+            <input
+              type="text"
+              name="imageAcquisitionParameters.echoTime"
+              value={metadata.imageAcquisitionParameters.echoTime}
+              onChange={handleMetadataChange}
+            />
+          </div>
+          {/* Add more acquisition parameters as needed */}
+        </fieldset>
+        {/* Contrast Agent Details */}
+        <fieldset>
+          <legend>Contrast Agent</legend>
+          <div>
+            <label>Type:</label>
+            <input
+              type="text"
+              name="contrastAgent.type"
+              value={metadata.contrastAgent.type}
+              onChange={handleMetadataChange}
+            />
+          </div>
+          <div>
+            <label>Dose:</label>
+            <input
+              type="text"
+              name="contrastAgent.dose"
+              value={metadata.contrastAgent.dose}
+              onChange={handleMetadataChange}
+            />
+          </div>
+          {/* Add more contrast agent details as needed */}
+        </fieldset>
         <div>
-          <label>Video File:</label>
-          <input
-            type="file"
-            accept="video/*"
-            onChange={(e) => setVideoFile(e.target.files[0])}
-            required
+          <label>Notes:</label>
+          <textarea
+            name="notes"
+            value={metadata.notes}
+            onChange={handleMetadataChange}
           />
         </div>
-        <button type="submit">Upload Video</button>
-      </form>
-      {status && <p>{status}</p>}
-    </div>
+      </fieldset>
+      <div>
+        <label>Video File:</label>
+        <input
+          type="file"
+          accept="video/*"
+          onChange={(e) => setVideoFile(e.target.files[0])}
+          required
+        />
+      </div>
+      <button type="submit">Upload Video</button>
+    </form>
+    {status && <p className={styles.statusMessage}>{status}</p>}
+  </div>
   );
 };
 
