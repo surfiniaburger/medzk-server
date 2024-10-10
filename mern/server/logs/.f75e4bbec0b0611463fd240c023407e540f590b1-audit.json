@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\logs\\.f75e4bbec0b0611463fd240c023407e540f590b1-audit.json",
+    "files": [
+        {
+            "date": 1728585627227,
+            "name": "C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\logs\\application-2024-10-10.log",
+            "hash": "c1f7fce53a88eb9295a7e401349696080ab37b4df2a25cdb7cf05e7030c575e9"
+        }
+    ],
+    "hashType": "sha256"
+}
