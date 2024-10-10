@@ -1,4 +1,4 @@
-// server/routes/recordRoutes.js
+// server/routes/record.js
 
 import express from "express";
 import db from "../db/connection.js";
@@ -11,6 +11,7 @@ import * as snarkjs from 'snarkjs';
 import multer from "multer";
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold} from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
+import logger from '../utils/logger.js'; 
 
 // Create __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -20,9 +21,9 @@ const router = express.Router();
  // Initialize Google Generative AI
  const gkey = process.env.GEMINI_API_KEY || null;
  if (!gkey) {
-  console.error('API key is not valid or not found in the config.env file');
+  logger.error('API key is not valid or not found in the config.env file');
 } else {
-  console.log('API key loaded successfully:');
+  logger.info('API key loaded successfully:');
 }
  const genAI = new GoogleGenerativeAI(gkey);
  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-002" });
@@ -60,13 +61,13 @@ async function uploadToGemini(path, mimeType) {
     displayName: path,
   });
   const file = uploadResult.file;
-  console.log(`Uploaded file ${file.displayName} as: ${file.name}`);
+  logger.info(`Uploaded file ${file.displayName} as: ${file.name}`);
   return file;
 }
 
 // Function to wait for the file to become ACTIVE
 async function waitForFilesActive(file) {
-  console.log("Waiting for file processing...");
+  logger.info("Waiting for file processing...");
   let currentFile = await fileManager.getFile(file.name);
   while (currentFile.state === "PROCESSING") {
     process.stdout.write(".");
@@ -76,7 +77,7 @@ async function waitForFilesActive(file) {
   if (currentFile.state !== "ACTIVE") {
     throw new Error(`File ${currentFile.name} failed to process`);
   }
-  console.log("\nFile is ready for use.");
+  logger.info("\nFile is ready for use.");
   return currentFile;
 }
 
@@ -124,8 +125,9 @@ router.get("/", async (req, res) => {
     const collection = await db.collection("records");
     const results = await collection.find({}).toArray();
     res.status(200).json(results);
+    logger.info("Fetched all records")
   } catch (error) {
-    console.error("Error fetching records:", error);
+    logger.error("Error fetching records:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -140,9 +142,9 @@ router.get("/:id", async (req, res) => {
     if (!result) {
       res.status(404).json({ error: "Record not found" });
     } else {
-      console.log(result)
+      logger.info(result)
       res.status(200).json(result);
-      console.log(result)
+      logger.info(result)
     }
   } catch (error) {
     console.error("Error fetching record:", error);
@@ -165,7 +167,7 @@ router.post("/", async (req, res) => {
       riskScore: encrypt(recordData.riskScore.toString())
     };
 
-    console.log("Encrypted Record Data:", encryptedRecordData);
+    logger.info("Encrypted Record Data:", encryptedRecordData);
 
     const vKeyResponse = await fs.promises.readFile(
       path.join(__dirname, '../data/verification_key.json'),
@@ -175,7 +177,7 @@ router.post("/", async (req, res) => {
 
     // Hash the verification key
     const verificationKeyHash = await cryptoHash(vKey);
-    console.log("Verification Key Hash:", verificationKeyHash);
+    logger.info("Verification Key Hash:", verificationKeyHash);
 
     const newDocument = {
       patientId,
@@ -191,7 +193,7 @@ router.post("/", async (req, res) => {
 
     res.status(201).json({ message: "Record saved successfully", recordId: result.insertedId });
   } catch (err) {
-    console.error("Error adding record:", err);
+    logger.error("Error adding record:", err);
     res.status(500).json({ error: "Error adding record" });
   }
 });
@@ -221,7 +223,7 @@ router.patch("/:id", async (req, res) => {
 
     res.status(200).json({ message: "Record updated successfully" });
   } catch (err) {
-    console.error("Error updating record:", err);
+    logger.error("Error updating record:", err);
     res.status(500).json({ error: "Error updating record" });
   }
 });
@@ -240,7 +242,7 @@ router.delete("/:id", async (req, res) => {
 
     res.status(200).json({ message: "Record deleted successfully" });
   } catch (err) {
-    console.error("Error deleting record:", err);
+    logger.error("Error deleting record:", err);
     res.status(500).json({ error: "Error deleting record" });
   }
 });
@@ -420,7 +422,7 @@ router.get("/search/:patientId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error retrieving and verifying record:", error);
+    logger.error("Error retrieving and verifying record:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -522,7 +524,7 @@ router.post("/image", upload.array('images', 5), async (req, res) => {
       // Optionally omit returning encryptedDiagnosticResult to the client
     });
   } catch (error) {
-    console.error("Error creating image record:", error);
+    logger.error("Error creating image record:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -640,7 +642,7 @@ router.post("/video", upload.single('video'), async (req, res) => {
     const activeFile = await waitForFilesActive(uploadedVideo);
 
     // Proceed with further processing once the file is ACTIVE
-    console.log("File is ready:", activeFile);
+    logger.info("File is ready:", activeFile);
 
     // Start chat session with the model, passing the video for analysis
     const chatSession = model.startChat({
@@ -710,7 +712,7 @@ router.post("/video", upload.single('video'), async (req, res) => {
       recordId: result.insertedId,
     });
   } catch (error) {
-    console.error("Error creating video record:", error);
+    logger.error("Error creating video record:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -793,7 +795,7 @@ router.get("/video/search/:patientId", async (req, res) => {
       isValid,
     });
   } catch (error) {
-    console.error("Error retrieving and verifying video record:", error);
+    logger.error("Error retrieving and verifying video record:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
