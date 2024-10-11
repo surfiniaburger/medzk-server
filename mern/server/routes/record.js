@@ -12,6 +12,8 @@ import multer from "multer";
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold} from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import logger from '../utils/logger.js'; 
+import "../utils/instrument.js" 
+import * as Sentry from "@sentry/node"
 
 // Create __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -127,7 +129,7 @@ router.get("/", async (req, res) => {
     res.status(200).json(results);
     logger.info("Fetched all records")
   } catch (error) {
-    logger.error("Error fetching records:", error);
+    Sentry.setupExpressErrorHandler(router)
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -608,7 +610,7 @@ router.get("/image/search/:patientId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error retrieving and verifying image record:", error);
+    Sentry.setupExpressErrorHandler(router)
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -795,7 +797,7 @@ router.get("/video/search/:patientId", async (req, res) => {
       isValid,
     });
   } catch (error) {
-    logger.error("Error retrieving and verifying video record:", error);
+    Sentry.setupExpressErrorHandler(router)
     res.status(500).json({ error: "Internal server error" });
   }
 });
