@@ -89,7 +89,7 @@ const VideoUpload = () => {
     try {
       setStatus('Uploading video...');
       const response = await axios.post(
-        'https://qtwn9xgb-5050.uks1.devtunnels.ms/record/video',
+        'http://localhost:5050/record/video',
         formData,
         {
           headers: {
