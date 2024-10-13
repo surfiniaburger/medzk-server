@@ -12,8 +12,10 @@ import multer from "multer";
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold} from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import logger from '../utils/logger.js'; 
-import "../utils/instrument.js" 
-import * as Sentry from "@sentry/node"
+import crypto from 'crypto';
+
+
+
 
 // Create __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -84,14 +86,10 @@ async function waitForFilesActive(file) {
 }
 
 
-// Helper function to generate SHA-256 hash
-const cryptoHash = async (data) => {
-  const encoder = new TextEncoder();
-  const dataBytes = encoder.encode(JSON.stringify(data));
-  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBytes);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex;
+const cryptoHash = (data) => {
+  const hash = crypto.createHash('sha256');
+  hash.update(JSON.stringify(data));
+  return hash.digest('hex');
 };
 
 // Setup Multer for file uploads
@@ -120,6 +118,11 @@ function fileToGenerativePart(path, mimeType) {
   };
 }
 
+// Health check route
+router.get('/health', (req, res) => {
+  res.status(200).send('Server is healthy');
+});
+
 
 // Get all records
 router.get("/", async (req, res) => {
@@ -129,7 +132,6 @@ router.get("/", async (req, res) => {
     res.status(200).json(results);
     logger.info("Fetched all records")
   } catch (error) {
-    Sentry.setupExpressErrorHandler(router)
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -178,7 +180,7 @@ router.post("/", async (req, res) => {
     const vKey = JSON.parse(vKeyResponse);
 
     // Hash the verification key
-    const verificationKeyHash = await cryptoHash(vKey);
+    const verificationKeyHash = cryptoHash(vKey);
     logger.info("Verification Key Hash:", verificationKeyHash);
 
     const newDocument = {
@@ -362,7 +364,7 @@ router.get("/search/:patientId", async (req, res) => {
     const vKey = JSON.parse(vKeyResponse);
 
     // Step 2: Hash the loaded verification key
-    const vKeyHash = await cryptoHash(vKey);
+    const vKeyHash =  cryptoHash(vKey);
 
     // Step 3: Compare the generated hash with the stored verificationKeyHash
     if (vKeyHash !== verificationKeyHash) {
@@ -488,10 +490,10 @@ router.post("/image", upload.array('images', 5), async (req, res) => {
     };
 
     // Generate recordHash
-    const recordHash = await cryptoHash(recordDataForHash);
+    const recordHash =  cryptoHash(recordDataForHash);
 
     // Generate criteriaHash from metadata
-    const criteriaHash = await cryptoHash(parsedMetadata);
+    const criteriaHash =  cryptoHash(parsedMetadata);
 
     // Encrypt diagnosticResult
     const encryptedDiagnosticResult = encrypt(diagnosticResult);
@@ -504,7 +506,7 @@ router.post("/image", upload.array('images', 5), async (req, res) => {
     const vKey = JSON.parse(vKeyResponse);
 
     // Hash the verification key
-    const verificationKeyHash = await cryptoHash(vKey);
+    const verificationKeyHash =  cryptoHash(vKey);
 
     // Prepare the new document to be inserted into the database
     const newDocument = {
@@ -557,7 +559,7 @@ router.get("/image/search/:patientId", async (req, res) => {
     const vKey = JSON.parse(vKeyResponse);
 
     // Step 2: Hash the loaded verification key
-    const vKeyHash = await cryptoHash(vKey);
+    const vKeyHash =  cryptoHash(vKey);
 
     // Step 3: Compare the generated hash with the stored verificationKeyHash
     if (vKeyHash !== verificationKeyHash) {
@@ -610,7 +612,6 @@ router.get("/image/search/:patientId", async (req, res) => {
     });
 
   } catch (error) {
-    Sentry.setupExpressErrorHandler(router)
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -677,10 +678,10 @@ router.post("/video", upload.single('video'), async (req, res) => {
     };
 
     // Generate recordHash
-    const recordHash = await cryptoHash(recordDataForHash);
+    const recordHash =  cryptoHash(recordDataForHash);
 
     // Generate criteriaHash from metadata
-    const criteriaHash = await cryptoHash(parsedMetadata);
+    const criteriaHash =  cryptoHash(parsedMetadata);
 
     // Encrypt diagnosticResult
     const encryptedDiagnosticResult = encrypt(diagnosticResult);
@@ -693,7 +694,7 @@ router.post("/video", upload.single('video'), async (req, res) => {
     const vKey = JSON.parse(vKeyResponse);
 
     // Hash the verification key
-    const verificationKeyHash = await cryptoHash(vKey);
+    const verificationKeyHash =  cryptoHash(vKey);
 
     // Prepare the new document to be inserted into the database
     const newDocument = {
@@ -745,7 +746,7 @@ router.get("/video/search/:patientId", async (req, res) => {
     const vKey = JSON.parse(vKeyResponse);
 
     // Step 2: Hash the loaded verification key
-    const vKeyHash = await cryptoHash(vKey);
+    const vKeyHash =  cryptoHash(vKey);
 
     // Step 3: Compare the generated hash with the stored verificationKeyHash
     if (vKeyHash !== verificationKeyHash) {
@@ -797,7 +798,6 @@ router.get("/video/search/:patientId", async (req, res) => {
       isValid,
     });
   } catch (error) {
-    Sentry.setupExpressErrorHandler(router)
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -1,0 +1,79 @@
+
+services:
+  server:
+    build:
+      context: ./mern/server
+      dockerfile: Dockerfile
+    container_name: mern_server
+    restart: unless-stopped
+    env_file:
+      - ./mern/server/config.env
+    ports:
+      - "5050:5050"
+    depends_on:
+      - mongo
+    networks:
+      - mern-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5050/record/health"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512M'
+        reservations:
+          cpus: '0.25'
+          memory: '256M'
+
+  client:
+    build:
+      context: ./mern/client
+      dockerfile: Dockerfile
+    container_name: mern_client
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+    networks:
+      - mern-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512M'
+        reservations:
+          cpus: '0.25'
+          memory: '256M'
+
+  mongo:
+    image: mongo:6.0
+    container_name: mern_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: your_mongo_username
+      MONGO_INITDB_ROOT_PASSWORD: your_mongo_password
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - mern-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1G'
+        reservations:
+          cpus: '0.5'
+          memory: '512M'
+
+networks:
+  mern-network:
+    driver: bridge
+
+volumes:
+  mongo-data:

@@ -18,6 +18,41 @@ Using WSL you can generate encryption key by running the command below in your t
 openssl rand -hex 32
 ```
 
+Using docker, build the containers
+
+```bash
+docker-compose build
+```
+
+then run the containers
+
+```bash
+docker-compose up -d
+```
+
+Verify containers are running
+
+```bash
+docker-compose ps
+```
+
+To view the server logs run
+
+```bash
+docker-compose logs server
+```
+
+
+
+change the script in the server package.json to
+```bash
+"scripts": {
+    "start": "nodemon --env-file=config.env server", 
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+```
+If you're not running with docker.
+
 Start server:
 ```
 cd mern/server
@@ -28,6 +63,6 @@ yarn start
 Start Web server
 ```
 cd mern/client
-npm install
-npm run dev
+yarn
+yarn dev
 ```
