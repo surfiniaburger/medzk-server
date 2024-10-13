@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import records from "./routes/record.js";
 
+
 const PORT = process.env.PORT || 5050;
 const app = express();
 
@@ -13,3 +14,6 @@ app.use("/record", records);
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
+
+

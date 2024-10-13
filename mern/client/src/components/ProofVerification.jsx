@@ -1,7 +1,6 @@
 // src/ProofVerification.jsx
 
 import { useState } from 'react';
-import * as snarkjs from 'snarkjs';
 import './ProofVerification.css'; // Import the CSS file
 
 const ProofVerification = () => {
@@ -108,14 +107,7 @@ const ProofVerification = () => {
         return hashHex;
     };
 
-    // Function to fetch files from public directory
-    const fetchFile = async (url) => {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch ${url}`);
-        }
-        return await response.arrayBuffer();
-    };
+    
 
     // Function to send data to the server
     const sendDataToServer = async (patientId, recordHash, criteriaHash, verificationKeyHash, recordData) => {
@@ -161,25 +153,14 @@ const ProofVerification = () => {
             setRecordHash(generatedRecordHash);
             setCriteriaHash(generatedCriteriaHash);
 
-            const input = {
-                recordHash: `0x${generatedRecordHash}`,
-                criteriaHash: `0x${generatedCriteriaHash}`
-            };
+           
 
-            // Step 2: Fetch necessary files
-            const wasmBuffer = await fetchFile('/circuit.wasm');
-            const zkeyBuffer = await fetchFile('/circuit_final.zkey');
+            
             const vKeyResponse = await fetch('/verification_key.json');
             const vKey = await vKeyResponse.json();
 
-            // Step 3: Generate proof
-            const { proof} = await snarkjs.groth16.fullProve(
-                input,
-                new Uint8Array(wasmBuffer),
-                new Uint8Array(zkeyBuffer)
-            );
-
-            setProofResult(JSON.stringify(proof, null, 2));
+           
+          
             
 
            // Step 4: Hash the verification key and send data to server
