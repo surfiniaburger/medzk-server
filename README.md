@@ -10,7 +10,6 @@ ATLAS_URI=mongodb+srv://<username>:<password>@sandbox.jadwj.mongodb.net/
 PORT=5050
 ENCRYPTION_KEY=your_64_character_hex_key_here_32byteshexkey1234567890abcdef
 GEMINI_API_KEY=your_gemini_api_key
-SENTRY_DSN=your_sentry_dsn
 ```
 
 Using WSL you can generate encryption key by running the command below in your terminal.
@@ -18,7 +17,7 @@ Using WSL you can generate encryption key by running the command below in your t
 openssl rand -hex 32
 ```
 
-Using docker, build the containers
+Using docker, build the containers from the source directory where you find docker-compose.yml file.
 
 ```bash
 docker-compose build
