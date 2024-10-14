@@ -1,9 +1,7 @@
 
 services:
   server:
-    build:
-      context: ./mern/server
-      dockerfile: Dockerfile
+    image: surfiniaburger/mern-server
     container_name: mern_server
     restart: unless-stopped
     env_file:
@@ -29,9 +27,7 @@ services:
           memory: '256M'
 
   client:
-    build:
-      context: ./mern/client
-      dockerfile: Dockerfile
+    image: surfiniaburger/mern-client
     container_name: mern_client
     restart: unless-stopped
     ports:
