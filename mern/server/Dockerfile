@@ -17,6 +17,8 @@ COPY . .
 # Set permissions for the 'data' directory
 RUN chmod -R 755 /app/data
 
-EXPOSE 5050
+EXPOSE 8080
 
+# Use an environment variable for the port, defaulting to 5050 if not set
 CMD ["yarn", "start"]
+
