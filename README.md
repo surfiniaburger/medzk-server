@@ -20,7 +20,7 @@ openssl rand -hex 32
 Using docker, build the containers from the source directory where you find docker-compose.yml file.
 
 ```bash
-docker-compose build
+docker-compose pull
 ```
 
 then run the containers
