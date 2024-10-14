@@ -7,13 +7,13 @@ services:
     env_file:
       - ./mern/server/config.env
     ports:
-      - "${PORT:-8080}:8080"
+      - "${PORT:-5050}:5050"
     depends_on:
       - mongo
     networks:
       - mern-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-8080}/record/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-5050}/record/health"]
       interval: 1m30s
       timeout: 10s
       retries: 3
