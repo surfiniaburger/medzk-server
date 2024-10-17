@@ -1,27 +1,10 @@
-steps:
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/mern-server', './mern/server']
-    id: 'build-mern-server'
-
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/mern-client', './mern/client']
-    id: 'build-mern-client'
-
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/mern-server']
-    waitFor: ['build-mern-server']
-
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/mern-client']
-    waitFor: ['build-mern-client']
-
-  - name: 'gcr.io/cloud-builders/docker-compose'
-    args: ['-f', 'docker-compose.yaml', 'up', '--build', '-d']
-    id: 'deploy-mern-stack'
-
-images:
-  - 'gcr.io/$PROJECT_ID/mern-server'
-  - 'gcr.io/$PROJECT_ID/mern-client'
-
 options:
-  logging: CLOUD_LOGGING_ONLY  # Use Cloud Logging only
+  logging: CLOUD_LOGGING_ONLY
+projectId: gem-creation
+steps:
+  - name: 'gcr.io/cloudbuild/docker'
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/gem-creation/buildpacks-docker-repo/mern-server:latest', '.']
+  - name: 'gcr.io/cloudbuild/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/gem-creation/buildpacks-docker-repo/mern-server:latest']
+images:
+  - us-central1-docker.pkg.dev/gem-creation/buildpacks-docker-repo/mern-server:latest
