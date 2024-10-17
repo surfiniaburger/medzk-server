@@ -1,0 +1,8 @@
+build:
+  image: gcr.io/buildpacks/builder
+  env:
+    GOOGLE_APPLICATION_CREDENTIALS: gem-creation.json
+  run:
+    command: yarn build && yarn dev
+  publish:
+    image: us-central1-docker.pkg.dev/gem-creation/zero-kare/mern-client:latest
