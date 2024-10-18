@@ -11,49 +11,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      # Step 2: Setup Node.js environment
       - name: Setup Node
         uses: actions/setup-node@v3
-        with:
-          node-version: '16' # Specify the Node.js version you want to use
 
-      # Step 3: Install server dependencies
-      - name: Install dependencies (server)
-        run: yarn
-        working-directory: ./mern/server
+      - name: Install dependencies
+        run: npm install
 
-      # Step 4: Install client dependencies
-      - name: Install dependencies (client)
-        run: yarn
-        working-directory: ./mern/client
+      - name: Build project
+        run: npm run build
 
-      # Step 5: Build the server project
-      - name: Build server
-        run: yarn build
-        working-directory: ./mern/server
-
-      # Step 6: Build the client project
-      - name: Build client
-        run: yarn build
-        working-directory: ./mern/client
-
-      # Step 7: Upload server build files
-      - name: Upload server build files
+      - name: Upload production-ready build files
         uses: actions/upload-artifact@v3
         with:
-          name: server-production-files
-          path: ./mern/server/dist
-
-      # Step 8: Upload client build files
-      - name: Upload client build files
-        uses: actions/upload-artifact@v3
-        with:
-          name: client-production-files
-          path: ./mern/client/build
+          name: production-files
+          path: ./dist
 
   deploy:
     name: Deploy
@@ -62,24 +36,15 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      # Step 1: Download server artifact (if needed for deployment)
-      - name: Download server artifact
+      - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: server-production-files
-          path: ./dist/server
+          name: production-files
+          path: ./dist
 
-      # Step 2: Download client artifact (needed for GitHub Pages deployment)
-      - name: Download client artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: client-production-files
-          path: ./dist/client
-
-      # Step 3: Deploy client to GitHub Pages (for front-end)
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist/client # Adjust this if necessary
+          publish_dir: ./dist
 
