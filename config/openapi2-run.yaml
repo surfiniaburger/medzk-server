@@ -1,0 +1,152 @@
+swagger: '2.0'
+
+info:
+  title: record "Health Records API"
+  description: API Gateway for Cloud Run backend handling health records and media uploads
+  version: 1.0.0
+
+schemes:
+  - https
+
+produces:
+  - application/json
+
+x-google-backend:
+  address: https://zero-kare5-837262597425.us-central1.run.app
+
+paths:
+  record/health:
+    get:
+      summary: Health Check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server health status
+          schema:
+            type: string
+
+  record/:
+    post:
+      summary: Create Record
+      operationId: createRecord
+      responses:
+        '201':
+          description: Record created successfully
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              recordId:
+                type: string
+
+  record/search/{patientId}:
+    get:
+      summary: Search Patient Record
+      parameters:
+        - in: path
+          name: patientId
+          type: string
+          required: true
+          description: The ID of the patient.
+      operationId: searchPatientRecord
+      responses:
+        '200':
+          description: Patient record found
+          schema:
+            type: object
+            properties:
+              patientId:
+                type: string
+              recordHash:
+                type: string
+              criteriaHash:
+                type: string
+              decryptedData:
+                type: string
+              isValid:
+                type: boolean
+
+  record/image:
+    post:
+      summary: Upload Image
+      operationId: uploadImage
+      responses:
+        '201':
+          description: Image record created successfully
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              recordId:
+                type: string
+
+  record/image/search/{patientId}:
+    get:
+      summary: Search Image Record by Patient ID
+      parameters:
+        - in: path
+          name: patientId
+          type: string
+          required: true
+          description: The ID of the patient.
+      operationId: searchImageRecord
+      responses:
+        '200':
+          description: Image record found
+          schema:
+            type: object
+            properties:
+              patientId:
+                type: string
+              recordHash:
+                type: string
+              criteriaHash:
+                type: string
+              diagnosticResult:
+                type: string
+              isValid:
+                type: boolean
+
+  record/video:
+    post:
+      summary: Upload Video
+      operationId: uploadVideo
+      responses:
+        '201':
+          description: Video record created successfully
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              recordId:
+                type: string
+
+  record/video/search/{patientId}:
+    get:
+      summary: Search Video Record by Patient ID
+      parameters:
+        - in: path
+          name: patientId
+          type: string
+          required: true
+          description: The ID of the patient.
+      operationId: searchVideoRecord
+      responses:
+        '200':
+          description: Video record found
+          schema:
+            type: object
+            properties:
+              patientId:
+                type: string
+              recordHash:
+                type: string
+              criteriaHash:
+                type: string
+              diagnosticResult:
+                type: string
+              isValid:
+                type: boolean
