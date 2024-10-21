@@ -450,7 +450,22 @@ router.post("/image", upload.array('images', 5), async (req, res) => {
     }
 
     // Define the prompt for Gemini AI
-    const prompt = "Analyze the provided MRI images for any anomalies or indicators of brain tumors. Identify potential abnormalities, providing insights into possible diagnoses and relevant details from the image data.";
+     const prompt = `
+    Analyze the following MRI images for any potential brain abnormalities, particularly focusing on identifying signs of brain tumors, lesions, or other neurological anomalies. Provide a detailed medical analysis covering the following aspects:
+    
+    1. Diagnosis: Based on the image data, suggest potential diagnoses and explain the reasoning behind each possibility. Focus on identifying structural changes, unusual masses, or tissue irregularities.
+       
+    2. Key Indicators: Highlight specific features in the MRI, such as abnormal tissue density, irregular growths, or unusual shapes, that could indicate the presence of a tumor or anomaly.
+       
+    3. Severity and Staging: If applicable, estimate the size, location, and severity of any detected tumors or abnormalities. Indicate whether the findings suggest early-stage or advanced disease.
+    
+    4. Differential Diagnosis: List possible conditions or diseases that could be considered based on the image data and describe how these could be differentiated from one another.
+    
+    5. Recommendations: Provide insights on next steps for further medical investigation, such as additional imaging or tests, and recommend potential treatment options based on the findings.
+       
+    Structure your response with clear headings for each section, and ensure that your analysis is thorough and evidence-based.
+    `;
+    
 
     // Upload each image to Gemini for processing
     const uploadedImages = await Promise.all(
@@ -636,7 +651,14 @@ router.post("/video", upload.single('video'), async (req, res) => {
     }
 
     // Define the prompt for Gemini AI
-    const prompt = "Analyze the provided video for any medical anomalies as related to healthcare. Provide detailed diagnostic insights.";
+    const prompt = `
+      Carefully analyze the provided video footage for any healthcare-related abnormalities. Specifically, look for signs of potential physical ailments, mobility issues, or behavioral anomalies. Your analysis should cover:
+      1. A comprehensive review of any visible medical symptoms and their significance.
+      2. Differential diagnoses based on observed clinical indicators.
+      3. Suggestions for appropriate follow-up tests or imaging studies.
+      4. Insights into the urgency of medical intervention, if applicable, and potential care pathways.
+    `;
+
 
     // Upload the video to Gemini for processing
     const uploadedVideo = await uploadToGemini(video.path, video.mimetype);
