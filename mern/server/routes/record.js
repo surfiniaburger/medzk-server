@@ -657,6 +657,7 @@ router.post("/video", upload.single('video'), async (req, res) => {
       2. Differential diagnoses based on observed clinical indicators.
       3. Suggestions for appropriate follow-up tests or imaging studies.
       4. Insights into the urgency of medical intervention, if applicable, and potential care pathways.
+      Structure your response with clear headings for each section, and ensure that your analysis is thorough and evidence-based.
     `;
 
 
