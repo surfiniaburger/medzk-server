@@ -1,7 +1,7 @@
 swagger: '2.0'
 
 info:
-  title: record "Health Records API"
+  title: "Health Records API"
   description: API Gateway for Cloud Run backend handling health records and media uploads
   version: 1.0.0
 
@@ -15,7 +15,7 @@ x-google-backend:
   address: https://zero-kare5-837262597425.us-central1.run.app
 
 paths:
-  record/health:
+  /record/health:
     get:
       summary: Health Check
       operationId: healthCheck
@@ -25,7 +25,7 @@ paths:
           schema:
             type: string
 
-  record/:
+  /record:
     post:
       summary: Create Record
       operationId: createRecord
@@ -40,7 +40,7 @@ paths:
               recordId:
                 type: string
 
-  record/search/{patientId}:
+  /record/search/{patientId}:
     get:
       summary: Search Patient Record
       parameters:
@@ -67,7 +67,7 @@ paths:
               isValid:
                 type: boolean
 
-  record/image:
+  /record/image:
     post:
       summary: Upload Image
       operationId: uploadImage
@@ -82,7 +82,7 @@ paths:
               recordId:
                 type: string
 
-  record/image/search/{patientId}:
+  /record/image/search/{patientId}:
     get:
       summary: Search Image Record by Patient ID
       parameters:
@@ -109,7 +109,7 @@ paths:
               isValid:
                 type: boolean
 
-  record/video:
+  /record/video:
     post:
       summary: Upload Video
       operationId: uploadVideo
@@ -124,7 +124,7 @@ paths:
               recordId:
                 type: string
 
-  record/video/search/{patientId}:
+  /record/video/search/{patientId}:
     get:
       summary: Search Video Record by Patient ID
       parameters:
