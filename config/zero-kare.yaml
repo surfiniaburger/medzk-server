@@ -1,0 +1,172 @@
+openapi: 3.0.0
+info:
+  title: Health Records API
+  description: API Gateway for Cloud Run backend handling health records and media uploads.
+  version: 1.0.0
+
+servers:
+  - url: https://zero-kare5-837262597425.us-central1.run.app
+
+paths:
+  /record/health:
+    get:
+      summary: Health Check
+      operationId: healthCheck
+      description: Check the health status of the server.
+      responses:
+        '200':
+          description: Server is healthy.
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /record/:
+    post:
+      summary: Create Record
+      operationId: createRecord
+      description: Create a new health record in the system.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Record'
+        description: The health record to create.
+      responses:
+        '201':
+          description: Record created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  recordId:
+                    type: string
+
+  /record/search/{patientId}:
+    get:
+      summary: Search Patient Record
+      operationId: searchPatientRecord
+      description: Retrieve a health record by patient ID.
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the patient whose record is being searched.
+      responses:
+        '200':
+          description: Patient record found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  patientId:
+                    type: string
+                  recordHash:
+                    type: string
+                  criteriaHash:
+                    type: string
+                  decryptedData:
+                    type: string
+                  isValid:
+                    type: boolean
+
+  /record/image:
+    post:
+      summary: Upload Image
+      operationId: uploadImage
+      description: Upload an image as part of the health record.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageRecord'
+        description: The image record to upload.
+      responses:
+        '201':
+          description: Image record created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  recordId:
+                    type: string
+
+  /record/video:
+    post:
+      summary: Upload Video
+      operationId: uploadVideo
+      description: Upload a video as part of the health record.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VideoRecord'
+        description: The video record to upload.
+      responses:
+        '201':
+          description: Video record created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  recordId:
+                    type: string
+
+components:
+  schemas:
+    Record:
+      type: object
+      properties:
+        patientId:
+          type: string
+        doctorId:
+          type: string
+        symptoms:
+          type: string
+        diagnosis:
+          type: string
+        treatment:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ImageRecord:
+      type: object
+      properties:
+        patientId:
+          type: string
+        imageHash:
+          type: string
+        criteriaHash:
+          type: string
+        diagnosticResult:
+          type: string
+        isValid:
+          type: boolean
+
+    VideoRecord:
+      type: object
+      properties:
+        patientId:
+          type: string
+        videoHash:
+          type: string
+        criteriaHash:
+          type: string
+        diagnosticResult:
+          type: string
+        isValid:
+          type: boolean
