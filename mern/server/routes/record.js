@@ -13,8 +13,9 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold} from "@google/gen
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import logger from '../utils/logger.js'; 
 import crypto from 'crypto';
+import { body, param, validationResult } from 'express-validator'; // Import validation middleware
 
-
+ // Load environment variables from .env
 
 
 // Create __dirname equivalent
@@ -73,14 +74,23 @@ async function uploadToGemini(path, mimeType) {
 async function waitForFilesActive(file) {
   logger.info("Waiting for file processing...");
   let currentFile = await fileManager.getFile(file.name);
+
   while (currentFile.state === "PROCESSING") {
-    process.stdout.write(".");
-    await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait for 10 seconds
-    currentFile = await fileManager.getFile(file.name);
+    try {
+      process.stdout.write(".");
+      await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait for 10 seconds
+      currentFile = await fileManager.getFile(file.name);
+    } catch (loopError) {
+      logger.error("Error during file processing:", loopError);
+      // Re-throw the error to be caught by the outer catch block
+      throw loopError; 
+    }
   }
+
   if (currentFile.state !== "ACTIVE") {
     throw new Error(`File ${currentFile.name} failed to process`);
   }
+
   logger.info("\nFile is ready for use.");
   return currentFile;
 }
@@ -156,100 +166,130 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
-  try {
-    const { patientId, recordHash, criteriaHash, recordData } = req.body;
-
-    if (!patientId || !recordHash || !criteriaHash || !recordData) {
-      return res.status(400).json({ error: "Missing required fields" });
+router.post("/", 
+  body('patientId').isString().notEmpty().withMessage('Patient ID is required'),
+  body('recordHash').isString().notEmpty().withMessage('Record hash is required'),
+  body('criteriaHash').isString().notEmpty().withMessage('Criteria hash is required'),
+  body('recordData').isObject().withMessage('Record data is required'),
+  // Add more specific validation for recordData fields as needed
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
-    const encryptedRecordData = {
-      name: encrypt(recordData.name),
-      age: encrypt(recordData.age.toString()),
-      bloodType: encrypt(recordData.bloodType),
-      diagnosis: encrypt(recordData.diagnosis),
-      riskScore: encrypt(recordData.riskScore.toString())
-    };
 
-    logger.info("Encrypted Record Data:", encryptedRecordData);
+    try {
+      const { patientId, recordHash, criteriaHash, recordData } = req.body;
 
-    const vKeyResponse = await fs.promises.readFile(
-      path.join(__dirname, '../data/verification_key.json'),
-      'utf-8'
-    );
-    const vKey = JSON.parse(vKeyResponse);
+      const encryptedRecordData = {
+        name: encrypt(recordData.name),
+        age: encrypt(recordData.age.toString()),
+        bloodType: encrypt(recordData.bloodType),
+        diagnosis: encrypt(recordData.diagnosis),
+        riskScore: encrypt(recordData.riskScore.toString())
+      };
 
-    // Hash the verification key
-    const verificationKeyHash = cryptoHash(vKey);
-    logger.info("Verification Key Hash:", verificationKeyHash);
+      logger.info("Encrypted Record Data:", encryptedRecordData);
 
-    const newDocument = {
-      patientId,
-      recordHash,
-      criteriaHash,
-      verificationKeyHash, // store verification key hash instead of proof
-      encryptedData: encryptedRecordData,
-      createdAt: new Date()
-    };
+      const vKeyResponse = await fs.promises.readFile(
+        path.join(__dirname, '../data/verification_key.json'),
+        'utf-8'
+      );
+      const vKey = JSON.parse(vKeyResponse);
 
-    const collection = await db.collection("records");
-    const result = await collection.insertOne(newDocument);
+      // Hash the verification key
+      const verificationKeyHash = cryptoHash(vKey);
+      logger.info("Verification Key Hash:", verificationKeyHash);
 
-    res.status(201).json({ message: "Record saved successfully", recordId: result.insertedId });
-  } catch (err) {
-    logger.error("Error adding record:", err);
-    res.status(500).json({ error: "Error adding record" });
+      const newDocument = {
+        patientId,
+        recordHash,
+        criteriaHash,
+        verificationKeyHash, // store verification key hash instead of proof
+        encryptedData: encryptedRecordData,
+        createdAt: new Date()
+      };
+
+      const collection = await db.collection("records");
+      const result = await collection.insertOne(newDocument);
+
+      res.status(201).json({ message: "Record saved successfully", recordId: result.insertedId });
+    } catch (err) {
+      logger.error("Error adding record:", err);
+      res.status(500).json({ error: "Error adding record" });
+    }
   }
-});
+);
 
 // Update a record by ID
-router.patch("/:id", async (req, res) => {
-  try {
-    const { patientId, recordHash, criteriaHash, proof } = req.body;
-    const query = { _id: new ObjectId(req.params.id) };
-
-    const updates = {};
-    if (patientId) updates.patientId = patientId;
-    if (recordHash) updates.recordHash = recordHash;
-    if (criteriaHash) updates.criteriaHash = criteriaHash;
-    if (proof) updates.proof = proof;
-
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ error: "No fields to update" });
+router.patch("/:id", 
+  param('id').isMongoId().withMessage('Invalid record ID'),
+  body('patientId').optional().isString().notEmpty(),
+  body('recordHash').optional().isString().notEmpty(),
+  body('criteriaHash').optional().isString().notEmpty(),
+  // Add validation for 'proof' if needed
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
 
-    const collection = await db.collection("records");
-    const result = await collection.updateOne(query, { $set: updates });
+    try {
+      const { patientId, recordHash, criteriaHash, proof } = req.body;
+      const query = { _id: new ObjectId(req.params.id) };
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ error: "Record not found" });
+      const updates = {};
+      if (patientId) updates.patientId = patientId;
+      if (recordHash) updates.recordHash = recordHash;
+      if (criteriaHash) updates.criteriaHash = criteriaHash;
+      if (proof) updates.proof = proof;
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: "No fields to update" });
+      }
+
+      const collection = await db.collection("records");
+      const result = await collection.updateOne(query, { $set: updates });
+
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ error: "Record not found" });
+      }
+
+      res.status(200).json({ message: "Record updated successfully" });
+    } catch (err) {
+      logger.error("Error updating record:", err);
+      res.status(500).json({ error: "Error updating record" });
     }
-
-    res.status(200).json({ message: "Record updated successfully" });
-  } catch (err) {
-    logger.error("Error updating record:", err);
-    res.status(500).json({ error: "Error updating record" });
   }
-});
+);
+
 
 // Delete a record by ID
-router.delete("/:id", async (req, res) => {
-  try {
-    const query = { _id: new ObjectId(req.params.id) };
-
-    const collection = await db.collection("records");
-    const result = await collection.deleteOne(query);
-
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ error: "Record not found" });
+router.delete("/:id", 
+  param('id').isMongoId().withMessage('Invalid record ID'),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
 
-    res.status(200).json({ message: "Record deleted successfully" });
-  } catch (err) {
-    logger.error("Error deleting record:", err);
-    res.status(500).json({ error: "Error deleting record" });
+    try {
+      const query = { _id: new ObjectId(req.params.id) };
+
+      const collection = await db.collection("records");
+      const result = await collection.deleteOne(query);
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ error: "Record not found" });
+      }
+
+      res.status(200).json({ message: "Record deleted successfully" });
+    } catch (err) {
+      logger.error("Error deleting record:", err);
+      res.status(500).json({ error: "Error deleting record" });
+    }
   }
-});
+);
 
 // Get recommendations based on condition
 router.get("/recommendations/:condition", async (req, res) => {
@@ -431,15 +471,29 @@ router.get("/search/:patientId", async (req, res) => {
   }
 });
 
-router.post("/image", upload.array('images', 5), async (req, res) => {
+router.post("/image", upload.array('images', 5), 
+  // Validation for image upload
+  [
+    body('patientId').isString().notEmpty().withMessage('Patient ID is required'),
+    body('metadata').isString().notEmpty().withMessage('Metadata is required').custom(value => {
+      try {
+        JSON.parse(value); // Attempt to parse the metadata as JSON
+        return true; // Valid JSON
+      } catch (error) {
+        throw new Error('Invalid JSON format for metadata'); 
+      }
+    }),
+  ],
+ 
+async (req, res) => {
+  // Validation result check
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
   try {
     const { patientId, metadata } = req.body;
     const images = req.files; // Array of uploaded images
-
-    // Validate required fields
-    if (!patientId || !metadata || !images || images.length === 0) {
-      return res.status(400).json({ error: "Missing required fields: patientId, metadata, and at least one image" });
-    }
 
     // Parse metadata
     let parsedMetadata;
@@ -451,20 +505,23 @@ router.post("/image", upload.array('images', 5), async (req, res) => {
 
     // Define the prompt for Gemini AI
      const prompt = `
-    Analyze the following MRI images for any potential brain abnormalities, particularly focusing on identifying signs of brain tumors, lesions, or other neurological anomalies. Provide a detailed medical analysis covering the following aspects:
-    
-    1. Diagnosis: Based on the image data, suggest potential diagnoses and explain the reasoning behind each possibility. Focus on identifying structural changes, unusual masses, or tissue irregularities.
-       
-    2. Key Indicators: Highlight specific features in the MRI, such as abnormal tissue density, irregular growths, or unusual shapes, that could indicate the presence of a tumor or anomaly.
-       
-    3. Severity and Staging: If applicable, estimate the size, location, and severity of any detected tumors or abnormalities. Indicate whether the findings suggest early-stage or advanced disease.
-    
-    4. Differential Diagnosis: List possible conditions or diseases that could be considered based on the image data and describe how these could be differentiated from one another.
-    
-    5. Recommendations: Provide insights on next steps for further medical investigation, such as additional imaging or tests, and recommend potential treatment options based on the findings.
-       
-    Structure your response with clear headings for each section, and ensure that your analysis is thorough and evidence-based.
-    `;
+    Analyze this T2-weighted brain MRI for signs of multiple sclerosis. 
+    Specifically, examine the white matter of the brain, particularly the periventricular regions, 
+    the corpus callosum, and the optic nerves, for hyperintense lesions. 
+
+    Provide a differential diagnosis, considering and ranking the likelihood of:
+ 
+    * Multiple Sclerosis
+    * Stroke
+    * Migraine with Aura
+
+    Estimate the number and size of any lesions detected. 
+    Format your response with clear headings for each section.
+
+    **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
+    It is not a substitute for professional medical advice, diagnosis, or treatment. 
+    Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
+    `;  // Thanks to Gemini code assist
     
 
     // Upload each image to Gemini for processing
@@ -632,15 +689,30 @@ router.get("/image/search/:patientId", async (req, res) => {
 });
 
 
-router.post("/video", upload.single('video'), async (req, res) => {
+router.post("/video", upload.single('video'),
+   // Validation for video upload
+  [
+    body('patientId').isString().notEmpty().withMessage('Patient ID is required'),
+    body('metadata').isString().notEmpty().withMessage('Metadata is required').custom(value => {
+      try {
+        JSON.parse(value); // Attempt to parse the metadata as JSON
+        return true; // Valid JSON
+      } catch (error) {
+        throw new Error('Invalid JSON format for metadata'); 
+      }
+    }),
+  ],
+
+async (req, res) => {
+  // Validation result check
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   try {
     const { patientId, metadata } = req.body;
     const video = req.file; // The uploaded video
-
-    // Validate required fields
-    if (!patientId || !metadata || !video) {
-      return res.status(400).json({ error: "Missing required fields: patientId, metadata, or video" });
-    }
 
     // Parse metadata
     let parsedMetadata;
@@ -658,6 +730,10 @@ router.post("/video", upload.single('video'), async (req, res) => {
       3. Suggestions for appropriate follow-up tests or imaging studies.
       4. Insights into the urgency of medical intervention, if applicable, and potential care pathways.
       Structure your response with clear headings for each section, and ensure that your analysis is thorough and evidence-based.
+
+      **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
+      It is not a substitute for professional medical advice, diagnosis, or treatment. 
+      Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
     `;
 
 

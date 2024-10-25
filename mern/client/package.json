@@ -3,7 +3,6 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "homepage": "https://github.com/surfiniaburger/medzk-server",
   "scripts": {
     "start": "vite",
     "build": "vite build",
