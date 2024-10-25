@@ -178,7 +178,7 @@ const ProofVerification = () => {
     };
 
     return (
-        <div className="container">
+        <div className="new-container">
             <h1>Health Record Proof Verification</h1>
             <form onSubmit={handleSubmit} className="form">
                 <h2>Medical Report</h2>
@@ -366,7 +366,7 @@ const ProofVerification = () => {
                     </div>
                 </div>
                 <button type="submit" disabled={isLoading} className="submit-button">
-                    {isLoading ? 'Generating Proof...' : 'Generate Proof and Verify'}
+                    {isLoading ? 'Generating Proof...' : 'Submit'}
                 </button>
             </form>
 

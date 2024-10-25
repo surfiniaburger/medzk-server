@@ -4,143 +4,155 @@ body {
     margin: 0;
     padding: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f4f6f8;
+    background-color: #f9f9f9; /* Match vision-container background */
+    color: #333; /* Match vision-container text color */
 }
 
 .container {
-    padding: 40px;
-    max-width: 900px;
-    margin: 0 auto;
-    background-color: #ffffff;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-    margin-top: 50px;
-    margin-bottom: 50px;
+    min-width: 400px; 
+    margin: 100px auto; /* Use auto for horizontal centering */
+    padding: 2rem; /* Match vision-container padding */
+    background-color: #f9f9f9; /* Match vision-container background */
+    border-radius: 8px; /* Match vision-container border-radius */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Match vision-container shadow */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: box-shadow 0.3s ease; /* Simplified transition */
 }
 
-h1 {
+.container:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Adjusted hover shadow */
+}
+
+h1, h2 { 
     text-align: center;
-    color: #333333;
-    margin-bottom: 30px;
+    color: #333; /* Match vision-container heading color */
+    margin-bottom: 1.5rem; /* Match vision-container margin */
 }
 
 h2 {
-    color: #555555;
-    margin-top: 30px;
-    margin-bottom: 15px;
-    border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 5px;
+    border-bottom: none; /* Remove the line under h2 */
+    padding-bottom: 0; /* Remove extra padding */
 }
 
 .form {
     display: flex;
     flex-direction: column;
+    gap: 1.5rem; /* Increased gap for better spacing */
 }
 
-.form-group {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #444444;
-}
-
-.form-group input {
-    padding: 10px;
-    border: 1px solid #cccccc;
-    border-radius: 5px;
-    font-size: 16px;
-}
-
+.form-group,
 .nested-group {
     display: flex;
     flex-direction: column;
-    margin-top: 10px;
+    margin-bottom: 1.5rem; /* Match vision-container form-group margin */
 }
 
+.form-group label,
 .nested-group label {
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #444444;
+    margin-bottom: 0.5rem; /* Reduced margin */
+    font-weight: 500; /* Slightly lighter font weight */
+    color: #4a5568; /* Adjusted label color */
 }
 
+.form-group input,
 .nested-group input {
-    padding: 10px;
-    border: 1px solid #cccccc;
-    border-radius: 5px;
-    font-size: 16px;
+    width: auto; /* Inputs fill container width */
+    max-width: 350px;
+    padding: 0.75rem; /* Match vision-container input padding */
+    border: 1px solid #ccc; /* Match vision-container input border */
+    border-radius: 4px; /* Match vision-container input border-radius */
+    font-size: 1rem;
+    background-color: #fff; /* White input background */
+    color: #333; /* Darker input text color */
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.add-button {
-    margin-top: 10px;
-    padding: 8px 12px;
-    background-color: #007bff;
-    color: #ffffff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    width: fit-content;
-    font-size: 14px;
-    transition: background-color 0.3s ease;
+.form-group input:focus,
+.nested-group input:focus {
+    border-color: #007bff; /* Blue focus color */
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.25); /* Blue focus shadow */
 }
 
-.add-button:hover {
-    background-color: #0056b3;
-}
-
+.add-button,
 .submit-button {
-    padding: 12px 20px;
-    background-color: #28a745;
+    padding: 0.75rem 1.5rem; /* Match vision-container button padding */
+    background-color: #007bff; /* Blue button background */
     color: #ffffff;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px; /* Match vision-container button border-radius */
     cursor: pointer;
-    font-size: 16px;
-    align-self: center;
+    font-size: 1rem;
+    align-self: flex-start; /* Align buttons to the left */
     transition: background-color 0.3s ease;
+    font-weight: 600;
+    box-shadow: none; /* Removed button box-shadow */
+}
+
+.add-button:hover,
+.submit-button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
 }
 
 .submit-button:disabled {
-    background-color: #94d3a2;
+    background-color: #ccc; /* Match vision-container disabled button */
     cursor: not-allowed;
 }
 
-.submit-button:hover:not(:disabled) {
-    background-color: #218838;
-}
-
 .result-section {
-    margin-top: 30px;
-    padding: 20px;
-    background-color: #f1f3f5;
+    margin-top: 2rem; /* Increased margin */
+    padding: 1rem;
+    background-color: #e9f7e9; /* Light green background */
     border-radius: 8px;
+    color: #333; /* Darker text color */
+    border-left: 4px solid #28a745; /* Green border left */
 }
 
 .result-section h2 {
     margin-top: 0;
+    color: #333; /* Match other heading colors */
 }
 
 .result-section pre {
-    background-color: #e9ecef;
+    background-color: #f5f5f5; /* Light gray background for code */
     padding: 15px;
     border-radius: 5px;
     overflow-x: auto;
+    color: #333; /* Darker code text color */
 }
 
-@media (max-width: 600px) {
-    .container {
-        padding: 20px;
-    }
 
-    .form-group, .nested-group {
-        flex-direction: column;
-    }
-
-    .add-button, .submit-button {
-        width: 100%;
+.new-container {
+    max-width: 500px;
+    margin: 50px auto;
+    padding: 40px;
+    background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    align-items: center; /* Centers children horizontally */
+    justify-content: center; /* Centers children vertically */
+  }
+  
+  .new-container:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+  }
+  
+  @media (min-width: 400px) {
+    .new-container {
+        max-width: 300px;
     }
 }
+
+@media (min-width: 400px) {
+    .new-container {
+        max-width: 400px;
+    }
+}
+
+.new-container {
+    width: 100%;
+}
+
