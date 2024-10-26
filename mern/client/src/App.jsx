@@ -1,5 +1,4 @@
 // src/App.jsx
-
 import { Routes, Route } from 'react-router-dom';
 import PrivateRoute from './components/PrivateRoute';
 import Profile from './components/Profile';
