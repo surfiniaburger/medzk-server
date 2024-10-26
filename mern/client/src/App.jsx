@@ -3,7 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import PrivateRoute from './components/PrivateRoute';
 import Profile from './components/Profile';
 import ProofVerification from './components/ProofVerification';
-import Vision from './components/Vision';
+import Vision from './components/vision';
 import VideoUpload from './components/VideoUpload';
 import LoginButton from './components/LoginButton';
 import LogoutButton from './components/LogoutButton';
