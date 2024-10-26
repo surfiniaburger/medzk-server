@@ -26,6 +26,7 @@ const Vision = () => {
       alert("Patient ID and at least one image are required.");
       return;
     }
+    
   
     const formData = new FormData();
     formData.append('patientId', patientId);
