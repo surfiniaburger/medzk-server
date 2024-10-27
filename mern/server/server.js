@@ -25,8 +25,6 @@ app.use(cors({
     credentials: true
 }));
 
-// Apply CORS middleware to all routes
-app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use("/record", records);
