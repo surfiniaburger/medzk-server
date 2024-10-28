@@ -2,7 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Auth0Provider } from '@auth0/auth0-react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom'; // Keep BrowserRouter here
 import App from './App';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -14,11 +14,12 @@ root.render(
       authorizationParams={{
         redirect_uri: window.location.origin,
       }}
-      audience="YOUR_API_IDENTIFIER" // Optional: If using Auth0 for API authorization
+      audience="YOUR_API_IDENTIFIER"
     >
-      <BrowserRouter>
-        <App />
+      <BrowserRouter> {/* BrowserRouter remains in index.jsx */}
+        <App /> 
       </BrowserRouter>
     </Auth0Provider>
   </React.StrictMode>
 );
+

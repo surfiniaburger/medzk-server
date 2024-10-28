@@ -2,6 +2,7 @@
 
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
+import LoginButton from '../login';
 
 // eslint-disable-next-line react/prop-types
 const PrivateRoute = ({ children }) => {
@@ -9,7 +10,11 @@ const PrivateRoute = ({ children }) => {
   const location = useLocation();
 
   if (isLoading) {
-    return <div>Loading...</div>; 
+    return <div>
+    Loading...
+    <LoginButton/>
+
+    </div>; 
   }
 
   if (!isAuthenticated) {

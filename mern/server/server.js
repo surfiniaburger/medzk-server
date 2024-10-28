@@ -5,25 +5,8 @@ import records from "./routes/record.js";
 const PORT = process.env.PORT || 5050;
 const app = express();
 
-const allowedOrigins = [
-    'http://localhost:3000',
-    'https://medzk-server.vercel.app',
-    'https://upgraded-palm-tree.vercel.app'
-];
-
-// Configure CORS with specific origins
-app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-}));
+// Configure CORS 
+app.use(cors());
 
 
 app.use(express.json());
