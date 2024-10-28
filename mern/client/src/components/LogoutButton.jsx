@@ -1,11 +1,15 @@
-// src/components/LoginButton.jsx
+// src/components/LogoutButton.jsx
+import { useAuth0 } from "@auth0/auth0-react";
 
-import { useAuth0 } from '@auth0/auth0-react';
+const LogoutButton = () => {
+  const { logout, isAuthenticated } = useAuth0(); // Get isAuthenticated
 
-const LoginButton = () => {
-  const { loginWithRedirect } = useAuth0();
-
-  return <button onClick={() => loginWithRedirect()}>Log In</button>;
+  // Only render the button if authenticated
+  return isAuthenticated ? ( 
+    <button onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
+      Log Out
+    </button>
+  ) : null; // Or render something else while not authenticated
 };
 
-export default LoginButton;
+export default LogoutButton;

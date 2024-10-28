@@ -189,6 +189,7 @@ router.post("/",
         riskScore: encrypt(recordData.riskScore.toString())
       };
 
+      logger.info(diagnosis)
       logger.info("Encrypted Record Data:", encryptedRecordData);
 
       const vKeyResponse = await fs.promises.readFile(
