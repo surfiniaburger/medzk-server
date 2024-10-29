@@ -12,7 +12,7 @@ produces:
   - application/json
 
 x-google-backend:
-  address: https://zero-kare5-837262597425.us-central1.run.app
+  address: https://34.49.13.123.nip.io/zk/v1
 
 paths:
   /record/health:

@@ -180,7 +180,7 @@ router.post("/",
 
     try {
       const { patientId, recordHash, criteriaHash, recordData } = req.body;
-
+      logger.info(req.body)
       const encryptedRecordData = {
         name: encrypt(recordData.name),
         age: encrypt(recordData.age.toString()),
@@ -188,8 +188,6 @@ router.post("/",
         diagnosis: encrypt(recordData.diagnosis),
         riskScore: encrypt(recordData.riskScore.toString())
       };
-
-      logger.info(diagnosis)
       logger.info("Encrypted Record Data:", encryptedRecordData);
 
       const vKeyResponse = await fs.promises.readFile(
