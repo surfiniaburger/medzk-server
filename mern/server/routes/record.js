@@ -180,7 +180,7 @@ router.post("/",
 
     try {
       const { patientId, recordHash, criteriaHash, recordData } = req.body;
-      logger.info(req.body)
+      logger.info(recordData.stringify)
       const encryptedRecordData = {
         name: encrypt(recordData.name),
         age: encrypt(recordData.age.toString()),
