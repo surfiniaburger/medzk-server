@@ -112,10 +112,15 @@ const ProofVerification = () => {
     // Function to send data to the server
     const sendDataToServer = async (patientId, recordHash, criteriaHash, verificationKeyHash, recordData) => {
         try {
-            const response = await fetch('http://localhost:5050/record', {
+            const apiKey = import.meta.env.VITE_API_KEY;
+            if (!apiKey) {
+              console.error(" no key")
+            }
+            const response = await fetch('https://34.49.13.123.nip.io/zk/v1/record', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'apikey': apiKey ,
                 },
                 body: JSON.stringify({
                     patientId,
