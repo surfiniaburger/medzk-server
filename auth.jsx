@@ -1,34 +1,45 @@
-const redirectUri = 'https://your-app.com/callback'; // Replace with your app's redirect URI
-const scopes = ['profile', 'email']; // Request user's profile and email
-const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes.join(' ')}&response_type=code`;
-window.location.href = authUrl;
+import * as React from "react";
+import * as ReactDOM from "react-dom/client";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Outlet,
+} from "react-router-dom";
+import ProofVerification from "./components/ProofVerification";
+import Vision from "./components/vision";
+import VideoUpload from "./components/VideoUpload";
+import "./index.css";
+import App from "./App";
 
+// Define routes without authentication
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Outlet />,
+    children: [
+      {
+        path: "/", 
+        element: <ProofVerification />, 
+      },
+      {
+        path: "/login",
+        element: <App />, 
+      },
+      {
+        path: "/vision",
+        element: <Vision />,
+      },
+      {
+        path: "/video-upload",
+        element: <VideoUpload />,
+      },
+    ],
+  },
+]);
 
-const tokenUrl = 'https://oauth2.googleapis.com/token';
-const params = new URLSearchParams({
-  client_id: clientId,
-  client_secret: clientSecret,
-  code: authorizationCode,
-  redirect_uri: redirectUri,
-  grant_type: 'authorization_code',
-});
-fetch(tokenUrl, {
-  method: 'POST',
-  body: params,
-})
-  .then(response => response.json())
-  .then(data => {
-    // Store the access token (data.access_token)
-  });
-
-
-  fetch('https://your-api.com/protected-resource', {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  })
-    .then(response => response.json())
-    .then(data => {
-      // Handle the API response
-    });
-  
+// Render application
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <RouterProvider router={router} />
+  </React.StrictMode>
+);
