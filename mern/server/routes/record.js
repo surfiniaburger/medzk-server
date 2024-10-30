@@ -899,4 +899,142 @@ router.get("/video/search/:patientId", async (req, res) => {
   }
 });
 
+// server/routes/record.js (updated section)
+
+// ... (other imports and routes)
+
+// Route to get predictions and recommendations
+router.post("/predict", async (req, res) => {
+  try {
+    const { patientId } = req.body; // Assuming patientId is sent in the request
+
+    // 1. Data Gathering & Enrichment:
+    //   - Fetch existing record from database based on patientId
+    const existingRecord = await db.collection("records").findOne({ patientId });
+    if (!existingRecord) {
+      return res.status(404).json({ error: "Record not found" });
+    }
+
+    //   - Extract medical history from unstructured text (e.g., 'notes' field)
+    const extractedMedicalHistory = await extractMedicalHistoryFromText(existingRecord.notes); // Implement this function
+
+    //   - Analyze SDOH data (if available, handle different input types)
+    const sdohAnalysis = await analyzeSDOHData(req.body.sdohImageData); // Use sdohImageData from request
+
+    //   - Get existing image/video analysis result (if applicable)
+    const existingDiagnosticResult = await getExistingAnalysisResult(patientId); // Implement this function
+
+    // 2. Gemini Multimodal Analysis:
+    const prompt = `
+      Patient: ${patientId}
+      Medical History: ${extractedMedicalHistory}
+      SDOH Insights: ${sdohAnalysis}
+      Image/Video Analysis: ${existingDiagnosticResult}
+
+      Based on this information, provide a personalized risk assessment for:
+        - Diabetes
+        - Heart Disease
+        - ... (other relevant conditions)
+
+      Include specific recommendations for preventative measures, considering the patient's context.
+      Explain your reasoning for each risk assessment and recommendation.
+    `;
+
+    const chatSession = model.startChat({ 
+      generationConfig,
+      safetySettings 
+    });
+    const response = await chatSession.sendMessage(prompt);
+    const predictionOutput = response.response.text(); // Get text output from Gemini
+
+    // 3. Process & Return Results:
+    //   - Extract risk scores and recommendations from Gemini's response
+    const { riskScores, recommendations, explanations } = processGeminiPrediction(predictionOutput); // Implement this function
+
+    res.status(200).json({ 
+      riskScores, 
+      recommendations, 
+      explanations 
+    });
+
+  } catch (error) {
+    logger.error("Error generating prediction:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ... (Other helper functions)
+
+async function analyzeSDOHData(imageData) {
+  if (imageData) {
+    // 1. Call Google Cloud Vision API (LABEL_DETECTION, TEXT_DETECTION)
+    const visionApiResponse = await callVisionAPI(imageData); 
+
+    // 2. Extract relevant labels and text from the response
+    const labels = visionApiResponse.labels; 
+    const extractedText = visionApiResponse.text;
+
+    // 3. Construct the Gemini prompt 
+    const prompt = `
+      Analyze the following information extracted from an image for social determinants of health insights:
+      - Labels: ${labels.join(', ')}
+      - Text: ${extractedText}
+
+      Consider factors like:
+        - Access to healthy food options
+        - Neighborhood safety
+        - Environmental hazards
+        - Access to healthcare facilities
+    `;
+
+    // 4. Get SDOH insights from Gemini
+    const chatSession = model.startChat({ generationConfig, safetySettings });
+    const response = await chatSession.sendMessage(prompt);
+    const sdohInsights = response.response.text();
+
+    return sdohInsights;
+  } else {
+    return "No image data provided."; 
+  }
+}
+
+async function callVisionAPI(imageData) {
+  // TODO: Implement the logic to call Google Cloud Vision API
+  // You'll need to:
+  //   - Send the imageData to the API
+  //   - Handle the API response and extract labels, text, etc.
+  //   - Refer to the Cloud Vision API documentation: https://cloud.google.com/vision/docs/
+}
+
+
+
+
+// Route for user login
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // 1. Find the user by email
+    const user = await db.collection('users').findOne({ email }); 
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid email or password.' });
+    }
+
+    // 2. Compare the provided password with the stored hash
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid email or password.' });
+    }
+
+    // 3. If credentials are valid, create a JWT or session (for simplicity, we'll simulate it here)
+    const token = 'simulated-jwt-token'; // Replace with actual JWT generation
+
+    res.status(200).json({ message: 'Login successful', token });
+
+  } catch (error) {
+    console.error('Error during login:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 export default router;
