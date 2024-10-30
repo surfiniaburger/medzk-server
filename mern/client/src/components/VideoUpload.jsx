@@ -87,13 +87,18 @@ const VideoUpload = () => {
     formData.append('video', videoFile);
 
     try {
+      const apiKey = import.meta.env.VITE_API_KEY;
+    if (!apiKey) {
+      console.error(" no key")
+    }
       setStatus('Uploading video...');
       const response = await axios.post(
-        'http://localhost:5050/record/video',
+        'https://34.49.13.123.nip.io/zk/v1/record/video',
         formData,
         {
           headers: {
             'Content-Type': 'multipart/form-data',
+             'apikey': apiKey ,
           },
         }
       );
