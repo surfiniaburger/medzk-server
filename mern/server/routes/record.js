@@ -1037,4 +1037,63 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// ... other imports
+
+// Route to save initial record (during registration)
+router.post("/register", async (req, res) => {
+  try {
+    const { patientId, basicInfo, medicalHistoryText } = req.body;
+
+    // 1. Validate input data
+    if (!patientId || !basicInfo || !medicalHistoryText) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // 2. Extract medical history from text 
+    const extractedMedicalHistory = await extractMedicalHistoryFromText(medicalHistoryText);
+
+    // 3. Encrypt sensitive data (basicInfo, extractedMedicalHistory)
+    const encryptedBasicInfo = encrypt(JSON.stringify(basicInfo)); 
+    const encryptedMedicalHistory = encrypt(extractedMedicalHistory);
+
+    // 4. Create the new document
+    const newDocument = {
+      patientId,
+      basicInfo: encryptedBasicInfo,
+      medicalHistory: encryptedMedicalHistory,
+      createdAt: new Date()
+    };
+
+    // 5. Insert into the database
+    const collection = await db.collection("records");
+    const result = await collection.insertOne(newDocument);
+
+    res.status(201).json({ 
+      message: "Record saved successfully", 
+      recordId: result.insertedId 
+    });
+  } catch (error) {
+    console.error("Error during registration:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ... (Helper function to extract medical history from text)
+async function extractMedicalHistoryFromText(text) {
+  const prompt = `
+    Extract key medical information relevant to pregnancy from the following text:
+    - History of gestational diabetes
+    - Other pregnancy complications
+    - Relevant pre-existing conditions
+    - Current medications
+
+    Text: ${text}
+  `;
+
+  // Send prompt to Gemini and process response
+  const chatSession = model.startChat({ generationConfig, safetySettings });
+  const response = await chatSession.sendMessage(prompt);
+  return response.response.text(); 
+}
+
 export default router;
