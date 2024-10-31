@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import records from "./routes/record.js";
-import apigeeAuth from "./middleware/apigeeAuth.js";
 const PORT = process.env.PORT || 5050;
 const app = express();
 
@@ -16,8 +15,6 @@ app.use(cors({
 
 app.use(express.json());
 
-// Apply the Apigee API key middleware to registration route
-app.use('/api/register', apigeeAuth);
 
 app.use("/record", records);
 

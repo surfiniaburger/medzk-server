@@ -15,7 +15,6 @@ import logger from '../utils/logger.js';
 import crypto from 'crypto';
 import { body, param, validationResult } from 'express-validator'; // Import validation middleware
 import jwt from 'jsonwebtoken';
-import apigeeAuth from './middleware/apigeeAuth.js';
 
  // Function to generate JWT token
  function generateJWT(payload) {
@@ -1053,13 +1052,13 @@ router.post('/login',
   }
 );
 
-router.post(
-  '/register', 
-  apigeeAuth,  // Apply Apigee API key middleware for secure requests
+// Route to save initial patient record with secure handling
+router.post('/register', 
+  // Validate input fields
   [
     body('patientId').isString().notEmpty().withMessage('Patient ID is required'),
     body('basicInfo').isObject().notEmpty().withMessage('Basic information is required'),
-    body('medicalHistoryText').isString().notEmpty().withMessage('Medical history text is required'),
+    body('medicalHistoryText').isString().notEmpty().withMessage('Medical history text is required')
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -1070,51 +1069,27 @@ router.post(
     try {
       const { patientId, basicInfo, medicalHistoryText } = req.body;
 
-      // Extract and encrypt sensitive medical history data
+      // Extract medical history using the Gemini model
       const extractedMedicalHistory = await extractMedicalHistoryFromText(medicalHistoryText);
+
+      // Encrypt sensitive data
       const encryptedBasicInfo = encrypt(JSON.stringify(basicInfo));
       const encryptedMedicalHistory = encrypt(extractedMedicalHistory);
 
-      // Send data to the Apigee endpoint
-      const apigeeResponse = await fetch('https://34.49.13.123.nip.io/zk/v1/record/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': process.env.APIGEE_API_KEY,
-        },
-        body: JSON.stringify({
-          patientId,
-          basicInfo: encryptedBasicInfo,
-          medicalHistory: encryptedMedicalHistory,
-        }),
-      });
-
-      if (!apigeeResponse.ok) {
-        const errorData = await apigeeResponse.json();
-        return res.status(apigeeResponse.status).json({ error: errorData.error });
-      }
-
-      const data = await apigeeResponse.json();
-
-      // Save the encrypted data in your own database
+      // Prepare and insert document into database
       const newDocument = {
         patientId,
         basicInfo: encryptedBasicInfo,
         medicalHistory: encryptedMedicalHistory,
-        createdAt: new Date(),
+        createdAt: new Date()
       };
 
-      const collection = db.collection('records');
-      const dbResult = await collection.insertOne(newDocument);
+      const collection = await db.collection('records');
+      const result = await collection.insertOne(newDocument);
 
-      // Generate a JWT token upon successful registration
-      const token = jwt.sign({ recordId: data.recordId, dbRecordId: dbResult.insertedId }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-      res.json({
+      res.status(201).json({
         message: 'Registration successful',
-        token,
-        apigeeRecordId: data.recordId,
-        dbRecordId: dbResult.insertedId,
+        recordId: result.insertedId
       });
     } catch (error) {
       console.error('Error during registration:', error);
@@ -1122,7 +1097,6 @@ router.post(
     }
   }
 );
-
 
 router.get('/protected', authenticateToken, (req, res) => {
   res.status(200).json({ message: 'Protected route accessed', user: req.user });

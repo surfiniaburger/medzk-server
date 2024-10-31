@@ -12,6 +12,7 @@ ENCRYPTION_KEY=your_64_character_hex_key_here_32byteshexkey1234567890abcdef
 GEMINI_API_KEY=your_gemini_api_key
 JWT_SECRET=your_super_secret_key
 JWT_EXPIRY=1h # token expiration time
+APIGEE_API_KEY=your_app_api_key
 
 ```
 
