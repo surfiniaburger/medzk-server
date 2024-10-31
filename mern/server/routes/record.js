@@ -14,8 +14,23 @@ import { GoogleAIFileManager } from "@google/generative-ai/server";
 import logger from '../utils/logger.js'; 
 import crypto from 'crypto';
 import { body, param, validationResult } from 'express-validator'; // Import validation middleware
+import jwt from 'jsonwebtoken';
 
- // Load environment variables from .env
+ // Function to generate JWT token
+ function generateJWT(payload) {
+   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRY });
+ }
+
+ function authenticateToken(req, res, next) {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'Access token required' });
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: 'Invalid or expired token' });
+    req.user = user;
+    next();
+  });
+}
 
 
 // Create __dirname equivalent
@@ -1006,77 +1021,88 @@ async function callVisionAPI(imageData) {
   //   - Refer to the Cloud Vision API documentation: https://cloud.google.com/vision/docs/
 }
 
-
-
-
-// Route for user login
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // 1. Find the user by email
-    const user = await db.collection('users').findOne({ email }); 
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password.' });
+router.post('/login', 
+  // Validate patientId field
+  [
+    body('patientId').isString().notEmpty().withMessage('Patient ID is required')
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
 
-    // 2. Compare the provided password with the stored hash
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid email or password.' });
+    try {
+      const { patientId } = req.body;
+
+      // Find the patient record by patientId
+      const patientRecord = await db.collection('records').findOne({ patientId });
+      if (!patientRecord) {
+        return res.status(401).json({ message: 'Invalid patient ID' });
+      }
+
+      // Generate JWT token for session management
+      const token = generateJWT({ patientId });
+
+      res.status(200).json({ message: 'Login successful', token });
+    } catch (error) {
+      console.error('Error during login:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
-
-    // 3. If credentials are valid, create a JWT or session (for simplicity, we'll simulate it here)
-    const token = 'simulated-jwt-token'; // Replace with actual JWT generation
-
-    res.status(200).json({ message: 'Login successful', token });
-
-  } catch (error) {
-    console.error('Error during login:', error);
-    res.status(500).json({ message: 'Internal server error' });
   }
+);
+
+// Route to save initial patient record with secure handling
+router.post('/register', 
+  // Validate input fields
+  [
+    body('patientId').isString().notEmpty().withMessage('Patient ID is required'),
+    body('basicInfo').isObject().notEmpty().withMessage('Basic information is required'),
+    body('medicalHistoryText').isString().notEmpty().withMessage('Medical history text is required')
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { patientId, basicInfo, medicalHistoryText } = req.body;
+
+      // Extract medical history using the Gemini model
+      const extractedMedicalHistory = await extractMedicalHistoryFromText(medicalHistoryText);
+
+      // Encrypt sensitive data
+      const encryptedBasicInfo = encrypt(JSON.stringify(basicInfo));
+      const encryptedMedicalHistory = encrypt(extractedMedicalHistory);
+
+      // Prepare and insert document into database
+      const newDocument = {
+        patientId,
+        basicInfo: encryptedBasicInfo,
+        medicalHistory: encryptedMedicalHistory,
+        createdAt: new Date()
+      };
+
+      const collection = await db.collection('records');
+      const result = await collection.insertOne(newDocument);
+
+      res.status(201).json({
+        message: 'Registration successful',
+        recordId: result.insertedId
+      });
+    } catch (error) {
+      console.error('Error during registration:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+router.get('/protected', authenticateToken, (req, res) => {
+  res.status(200).json({ message: 'Protected route accessed', user: req.user });
 });
 
-// ... other imports
 
-// Route to save initial record (during registration)
-router.post("/register", async (req, res) => {
-  try {
-    const { patientId, basicInfo, medicalHistoryText } = req.body;
-
-    // 1. Validate input data
-    if (!patientId || !basicInfo || !medicalHistoryText) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    // 2. Extract medical history from text 
-    const extractedMedicalHistory = await extractMedicalHistoryFromText(medicalHistoryText);
-
-    // 3. Encrypt sensitive data (basicInfo, extractedMedicalHistory)
-    const encryptedBasicInfo = encrypt(JSON.stringify(basicInfo)); 
-    const encryptedMedicalHistory = encrypt(extractedMedicalHistory);
-
-    // 4. Create the new document
-    const newDocument = {
-      patientId,
-      basicInfo: encryptedBasicInfo,
-      medicalHistory: encryptedMedicalHistory,
-      createdAt: new Date()
-    };
-
-    // 5. Insert into the database
-    const collection = await db.collection("records");
-    const result = await collection.insertOne(newDocument);
-
-    res.status(201).json({ 
-      message: "Record saved successfully", 
-      recordId: result.insertedId 
-    });
-  } catch (error) {
-    console.error("Error during registration:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
 
 // ... (Helper function to extract medical history from text)
 async function extractMedicalHistoryFromText(text) {
