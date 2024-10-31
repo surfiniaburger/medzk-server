@@ -10,6 +10,9 @@ ATLAS_URI=mongodb+srv://<username>:<password>@sandbox.jadwj.mongodb.net/
 PORT=5050
 ENCRYPTION_KEY=your_64_character_hex_key_here_32byteshexkey1234567890abcdef
 GEMINI_API_KEY=your_gemini_api_key
+JWT_SECRET=your_super_secret_key
+JWT_EXPIRY=1h # token expiration time
+
 ```
 
 Using WSL you can generate encryption key by running the command below in your terminal.
