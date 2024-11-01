@@ -9,7 +9,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as snarkjs from 'snarkjs';
 import multer from "multer";
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold} from "@google/generative-ai";
+import { GoogleGenerativeAI, DynamicRetrievalMode, HarmCategory, HarmBlockThreshold} from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import logger from '../utils/logger.js'; 
 import crypto from 'crypto';
@@ -46,7 +46,20 @@ const router = express.Router();
   logger.info('API key loaded successfully:');
 }
  const genAI = new GoogleGenerativeAI(gkey);
- const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-002" });
+ const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-002",
+  tools: [
+    {
+      googleSearchRetrieval: {
+        dynamicRetrievalConfig: {
+          mode: DynamicRetrievalMode.MODE_DYNAMIC,
+          dynamicThreshold: 0.7,
+        },
+      },
+    },
+  ],
+ },
+ {apiVersion: "v1beta"},
+);
  const fileManager = new GoogleAIFileManager(gkey)
 
  const generationConfig = {
