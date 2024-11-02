@@ -5,11 +5,13 @@ import {
   RouterProvider,
   Outlet,
 } from "react-router-dom";
-import ProofVerification from "./components/ProofVerification";
+//import ProofVerification from "./components/ProofVerification";
 import Vision from "./components/vision";
 import VideoUpload from "./components/VideoUpload";
 import "./index.css";
 import App from "./App";
+import PredictForm from "./components/Predict";
+import ProofVerification from "./components/ProofVerification";
 
 // Define routes without authentication
 const router = createBrowserRouter([
@@ -19,7 +21,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/", 
-        element: <ProofVerification />, 
+        element: <PredictForm />, 
       },
       {
         path: "/login",
@@ -32,6 +34,10 @@ const router = createBrowserRouter([
       {
         path: "/video-upload",
         element: <VideoUpload />,
+      },
+      {
+        path: "/proof-verification",
+        element: <ProofVerification />,
       },
     ],
   },

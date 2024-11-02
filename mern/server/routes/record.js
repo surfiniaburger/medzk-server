@@ -9,11 +9,12 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as snarkjs from 'snarkjs';
 import multer from "multer";
-import { GoogleGenerativeAI, DynamicRetrievalMode, HarmCategory, HarmBlockThreshold} from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold} from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import logger from '../utils/logger.js'; 
 import crypto from 'crypto';
 import { body, param, validationResult } from 'express-validator'; // Import validation middleware
+import vision from "@google-cloud/vision"
 import jwt from 'jsonwebtoken';
 
  // Function to generate JWT token
@@ -47,18 +48,9 @@ const router = express.Router();
 }
  const genAI = new GoogleGenerativeAI(gkey);
  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-002",
-  tools: [
-    {
-      googleSearchRetrieval: {
-        dynamicRetrievalConfig: {
-          mode: DynamicRetrievalMode.MODE_DYNAMIC,
-          dynamicThreshold: 0.7,
-        },
-      },
-    },
-  ],
- },
- {apiVersion: "v1beta"},
+ 
+ }
+
 );
  const fileManager = new GoogleAIFileManager(gkey)
 
@@ -631,6 +623,88 @@ async (req, res) => {
   }
 });
 
+
+async function getExistingImageAnalysisResult(patientId) {
+  try {
+    if (!patientId) {
+      return res.status(400).json({ error: "Missing required parameter: patientId" });
+    }
+
+    // Retrieve the record from the database based on patientId
+    const collection = await db.collection("image-records");
+    const record = await collection.findOne({ patientId });
+
+    if (!record) {
+      return res.status(404).json({ error: "Image record not found" });
+    }
+
+    const { verificationKeyHash, encryptedDiagnosticResult, criteriaHash, recordHash } = record;
+
+    // Step 1: Load the verification key
+    const vKeyResponse = await fs.promises.readFile(
+      path.join(__dirname, '../data/verification_key.json'),
+      'utf-8'
+    );
+    const vKey = JSON.parse(vKeyResponse);
+
+    // Step 2: Hash the loaded verification key
+    const vKeyHash =  cryptoHash(vKey);
+
+    // Step 3: Compare the generated hash with the stored verificationKeyHash
+    if (vKeyHash !== verificationKeyHash) {
+      return res.status(400).json({ error: "Verification key hash mismatch. Aborting process." });
+    }
+
+    // Step 4: Load wasm and zkey files
+    const wasmBuffer = await fs.promises.readFile(
+      path.join(__dirname, '../data/circuit.wasm')
+    );
+    const zkeyBuffer = await fs.promises.readFile(
+      path.join(__dirname, '../data/circuit_final.zkey')
+    );
+
+    // Step 5: Prepare the input to generate the proof with 0x prefix
+    const input = {
+      recordHash: `0x${recordHash}`,
+      criteriaHash: `0x${criteriaHash}`
+    };
+
+    // Step 6: Generate proof using snarkjs
+    const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+      input,
+      new Uint8Array(wasmBuffer),
+      new Uint8Array(zkeyBuffer)
+    );
+
+    // Step 7: Verify the proof
+    const isValid = await snarkjs.groth16.verify(vKey, publicSignals, proof);
+
+    if (!isValid) {
+      return res.status(400).json({ error: "Proof verification failed" });
+    }
+
+    // Step 8: Decrypt diagnostic result
+    let decryptedDiagnosticResult;
+    try {
+      decryptedDiagnosticResult = decrypt(encryptedDiagnosticResult);
+    } catch (decryptError) {
+      return res.status(400).json({ error: "Error decrypting diagnostic results" });
+    }
+
+    // Step 9: Return the decrypted data and verification result
+    res.status(200).json({
+      patientId,
+      recordHash,
+      criteriaHash,
+      diagnosticResult: decryptedDiagnosticResult,
+      isValid
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 router.get("/image/search/:patientId", async (req, res) => {
   try {
     const { patientId } = req.params;
@@ -709,11 +783,11 @@ router.get("/image/search/:patientId", async (req, res) => {
       isValid
     });
 
+    
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
 
 router.post("/video", upload.single('video'),
    // Validation for video upload
@@ -845,10 +919,94 @@ async (req, res) => {
   }
 });
 
+
+
+async function getExistingVideoAnalysisResult(patientId) {
+  try {
+
+    if (!patientId) {
+      return res.status(400).json({ error: "Missing required parameter: patientId" });
+    }
+
+    // Retrieve the record from the database based on patientId
+    const collection = await db.collection("video-records");
+    const record = await collection.findOne({ patientId });
+
+    if (!record) {
+      return res.status(404).json({ error: "Video record not found" });
+    }
+
+    const { verificationKeyHash, encryptedDiagnosticResult, criteriaHash, recordHash } = record;
+
+    // Step 1: Load the verification key
+    const vKeyResponse = await fs.promises.readFile(
+      path.join(__dirname, '../data/verification_key.json'),
+      'utf-8'
+    );
+    const vKey = JSON.parse(vKeyResponse);
+
+    // Step 2: Hash the loaded verification key
+    const vKeyHash =  cryptoHash(vKey);
+
+    // Step 3: Compare the generated hash with the stored verificationKeyHash
+    if (vKeyHash !== verificationKeyHash) {
+      return res.status(400).json({ error: "Verification key hash mismatch. Aborting process." });
+    }
+
+    // Step 4: Load wasm and zkey files
+    const wasmBuffer = await fs.promises.readFile(
+      path.join(__dirname, '../data/circuit.wasm')
+    );
+    const zkeyBuffer = await fs.promises.readFile(
+      path.join(__dirname, '../data/circuit_final.zkey')
+    );
+
+    // Step 5: Prepare the input to generate the proof with 0x prefix
+    const input = {
+      recordHash: `0x${recordHash}`,
+      criteriaHash: `0x${criteriaHash}`,
+    };
+
+    // Step 6: Generate proof using snarkjs
+    const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+      input,
+      new Uint8Array(wasmBuffer),
+      new Uint8Array(zkeyBuffer)
+    );
+
+    // Step 7: Verify the proof
+    const isValid = await snarkjs.groth16.verify(vKey, publicSignals, proof);
+
+    if (!isValid) {
+      return res.status(400).json({ error: "Proof verification failed" });
+    }
+
+    // Step 8: Decrypt diagnostic result
+    let decryptedDiagnosticResult;
+    try {
+      decryptedDiagnosticResult = decrypt(encryptedDiagnosticResult);
+    } catch (decryptError) {
+      return res.status(400).json({ error: "Error decrypting diagnostic results" });
+    }
+
+    // Step 9: Return the decrypted data and verification result
+    res.status(200).json({
+      patientId,
+      recordHash,
+      criteriaHash,
+      diagnosticResult: decryptedDiagnosticResult,
+      isValid,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
 router.get("/video/search/:patientId", async (req, res) => {
   try {
     const { patientId } = req.params;
-
+    
     if (!patientId) {
       return res.status(400).json({ error: "Missing required parameter: patientId" });
     }
@@ -927,14 +1085,129 @@ router.get("/video/search/:patientId", async (req, res) => {
   }
 });
 
-// server/routes/record.js (updated section)
+// server/routes/record.js 
 
-// ... (other imports and routes)
+// ... (Your existing imports, constants, and helper functions)
+
+// ... (Your existing routes)
+
+// *** Image Upload Route ***
+router.post("/upload/image", upload.array('images', 5), 
+  // Validation for image upload
+  [
+    body('patientId').isString().notEmpty().withMessage('Patient ID is required'),
+  ],
+  async (req, res) => {
+    // Validation result check
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { patientId } = req.body;
+      const images = req.files; 
+
+      // Upload each image to Gemini for processing
+      const uploadedImages = await Promise.all(
+        images.map(image => uploadToGemini(image.path, image.mimetype))
+      );
+
+      // Wait for all files to become active
+      const activeImageFiles = await Promise.all(
+        uploadedImages.map(file => waitForFilesActive(file))
+      );
+
+      // Store image URIs (or other relevant data) in your database
+      // ... (Logic to associate image URIs with the patientId)
+
+      res.status(201).json({
+        message: "Images uploaded successfully",
+        uploadedImageUrls: activeImageFiles.map(file => file.uri) 
+      });
+
+    } catch (error) {
+      logger.error("Error uploading images:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+// *** Video Upload Route ***
+router.post("/upload/video", upload.single('video'),
+  // Validation for video upload
+  [
+    body('patientId').isString().notEmpty().withMessage('Patient ID is required'),
+  ],
+  async (req, res) => {
+    // Validation result check
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { patientId } = req.body;
+      const video = req.file; 
+
+      // Upload the video to Gemini for processing
+      const uploadedVideo = await uploadToGemini(video.path, video.mimetype);
+
+      // Wait for the file to become ACTIVE
+      const activeFile = await waitForFilesActive(uploadedVideo);
+
+      // Store video URI (or other relevant data) in your database
+      // ... (Logic to associate video URI with the patientId)
+
+      res.status(201).json({
+        message: "Video uploaded successfully",
+        uploadedVideoUrl: activeFile.uri 
+      });
+
+    } catch (error) {
+      logger.error("Error uploading video:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+// *** Predict Route (Modified) ***
+router.post("/predict", async (req, res) => {
+  try {
+    const { patientId, uploadedImageUrls, uploadedVideoUrl } = req.body; 
+    logger.info('Received request for patientId:', patientId);
+
+    // ... (Data Gathering & Enrichment - same as before)
+
+    // Image Analysis (if applicable)
+    if (uploadedImageUrls && uploadedImageUrls.length > 0) {
+      // ... (Process each image URL to get imageAnalysis)
+      // Example (assuming you have a function to analyze a single image URL):
+      const imageAnalysisPromises = uploadedImageUrls.map(imageUrl => analyzeImage(imageUrl));
+      const imageAnalysisResults = await Promise.all(imageAnalysisPromises);
+      // ... (Combine imageAnalysisResults as needed)
+    }
+
+    // Video Analysis (if applicable)
+    if (uploadedVideoUrl) {
+      // ... (Process the video URL to get videoAnalysis)
+    }
+
+    // ... (Rest of your /predict logic - Gemini prompt, response processing, etc.)
+
+  } catch (error) { 
+    // ... (Error handling)
+  }
+});
+
+
+
 
 // Route to get predictions and recommendations
 router.post("/predict", async (req, res) => {
   try {
-    const { patientId } = req.body; // Assuming patientId is sent in the request
+    const { patientId, uploadedImageUrls, uploadedVideoUrl } = req.body;
+    logger.info('Received request for patientId:', patientId);
 
     // 1. Data Gathering & Enrichment:
     //   - Fetch existing record from database based on patientId
@@ -944,20 +1217,102 @@ router.post("/predict", async (req, res) => {
     }
 
     //   - Extract medical history from unstructured text (e.g., 'notes' field)
-    const extractedMedicalHistory = await extractMedicalHistoryFromText(existingRecord.notes); // Implement this function
+    const extractedMedicalHistory = await extractMedicalHistoryFromText(existingRecord); // Implement this function
 
-    //   - Analyze SDOH data (if available, handle different input types)
-    const sdohAnalysis = await analyzeSDOHData(req.body.sdohImageData); // Use sdohImageData from request
+   // Handle image and video uploads (if any)
+   let imageAnalysis = null;
+   let videoAnalysis = null;
+   let sdohAnalysis = "No image data provided for SDOH analysis.";
 
+   if (req.files && req.files.images) {
+    const activeImageFiles = await handleFileUpload(req, res, 'image');
+
+    // Process activeImageFiles to get imageAnalysis
+    if (activeImageFiles && activeImageFiles.length > 0) {
+      const imageAnalysisPromises = activeImageFiles.map(async (imageFile) => {
+        // Construct the image analysis prompt for Gemini (similar to your /image route)
+        const imagePrompt = `
+         Analyze the provided image to identify potential social determinants of health (SDOH) factors that could affect the health of a pregnant woman living in this environment.
+
+          Consider the following aspects:
+            - **Neighborhood Safety:** Are there any visible signs of crime or violence (e.g., graffiti, broken windows, security bars)? Does the environment appear safe for walking or outdoor activities?
+            - **Access to Healthy Food:** Are there grocery stores, farmers' markets, or healthy food options visible in the image? Or are there more fast food restaurants or convenience stores?
+            - **Housing Quality:** What is the condition of the housing in the image? Are there any signs of disrepair, overcrowding, or inadequate sanitation?
+            - **Environmental Hazards:** Are there any visible environmental hazards, such as pollution, industrial sites, or lack of green spaces?
+            - **Transportation:** Are there public transportation options visible? Does the area appear walkable or bike-friendly?
+            - **Social Cohesion:** Does the environment suggest a sense of community (e.g., people interacting, community centers)?
+
+          Provide a concise summary of your observations and highlight any potential SDOH risks or protective factors that could impact the health of a pregnant woman living in this environment.
+
+          **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. It is not a substitute for professional assessment of social determinants of health.
+          `;
+
+
+        const chatSession = model.startChat({ generationConfig, safetySettings });
+        const imageResponse = await chatSession.sendMessage(imagePrompt);
+        return imageResponse.response.text(); // Or process the response as needed
+      });
+
+      const imageAnalysisResults = await Promise.all(imageAnalysisPromises);
+      imageAnalysis = { 
+        diagnosticResult: imageAnalysisResults.join('\n\n') 
+      }; 
+
+      // Analyze SDOH data using the first uploaded image
+      sdohAnalysis = await analyzeSDOHData(req.files.images[0].path); 
+    }
+  }
+
+  if (req.files && req.files.video) {
+    const activeVideoFiles = await handleFileUpload(req, res, 'video');
+  
+    // Process activeVideoFiles to get videoAnalysis (similar to image processing)
+    if (activeVideoFiles && activeVideoFiles.length > 0) {
+      const videoAnalysisPromises = activeVideoFiles.map(async (videoFile) => {
+        // Construct the video analysis prompt for Gemini
+        const videoPrompt = `
+          Analyze the provided video in the context of pregnancy care. 
+          Focus on identifying any potential issues or abnormalities that could affect the health of the mother or the fetus.
+  
+          Specifically, look for:
+          - **Maternal Physical Health:** Assess the mother's posture, gait, and any visible signs of discomfort or distress.
+          - **Fetal Movement:** Observe fetal movements and note if they appear normal, reduced, or excessive.
+          - **Environmental Factors:** Analyze the environment shown in the video for potential hazards or risks to the mother or fetus (e.g., unsafe conditions, lack of support).
+  
+          Provide a concise summary of your findings and highlight any areas of concern.
+  
+          **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
+          It is not a substitute for professional medical advice, diagnosis, or treatment. 
+          Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
+        `;
+  
+        const chatSession = model.startChat({ generationConfig, safetySettings });
+        const videoResponse = await chatSession.sendMessage(videoPrompt);
+        return videoResponse.response.text(); // Or process the response as needed
+      });
+  
+      const videoAnalysisResults = await Promise.all(videoAnalysisPromises);
+      videoAnalysis = { 
+        diagnosticResult: videoAnalysisResults.join('\n\n') 
+      }; 
+    }
+  }
+  
     //   - Get existing image/video analysis result (if applicable)
-    const existingDiagnosticResult = await getExistingAnalysisResult(patientId); // Implement this function
+   
+    const existingImageAnalysis = await getExistingImageAnalysisResult(patientId);
+    const existingVideoAnalysis = await getExistingVideoAnalysisResult(patientId);
+
+    const combinedAnalysis = await combineAnalysisResults(existingImageAnalysis, existingVideoAnalysis)
 
     // 2. Gemini Multimodal Analysis:
     const prompt = `
       Patient: ${patientId}
       Medical History: ${extractedMedicalHistory}
       SDOH Insights: ${sdohAnalysis}
-      Image/Video Analysis: ${existingDiagnosticResult}
+      Image Analysis (New Uploads): ${imageAnalysis ? imageAnalysis.diagnosticResult : "No new image analysis."}
+      Video Analysis (New Uploads): ${videoAnalysis ? videoAnalysis.diagnosticResult : "No new video analysis."}
+      Image/Video Analysis: ${combinedAnalysis}
 
       Based on this information, provide a personalized risk assessment for:
         - Diabetes
@@ -991,11 +1346,62 @@ router.post("/predict", async (req, res) => {
   }
 });
 
-// ... (Other helper functions)
+async function combineAnalysisResults(imageAnalysis, videoAnalysis) {
+  // Fallback function (implement a simpler combination method)
+function combineAnalysesFallback(imageAnalysis, videoAnalysis) {
+  let combinedAnalysis = "No image or video analysis available.";
 
-async function analyzeSDOHData(imageData) {
-  if (imageData) {
-    // 1. Call Google Cloud Vision API (LABEL_DETECTION, TEXT_DETECTION)
+  if (imageAnalysis && videoAnalysis) {
+    combinedAnalysis = `Image Analysis: ${imageAnalysis.diagnosticResult} \n\n Video Analysis: ${videoAnalysis.diagnosticResult}`;
+  } else if (imageAnalysis) {
+    combinedAnalysis = `Image Analysis: ${imageAnalysis.diagnosticResult}`;
+  } else if (videoAnalysis) {
+    combinedAnalysis = `Video Analysis: ${videoAnalysis.diagnosticResult}`;
+  }
+
+  return combinedAnalysis;
+}
+
+  let combinedAnalysis = "No image or video analysis available.";
+
+  if (imageAnalysis || videoAnalysis) {
+    let fusionPrompt = `
+      Combine and analyze the following medical analyses for insights related to pregnancy, focusing on conditions such as gestational diabetes, preeclampsia, preterm labor, fetal development, and maternal health:
+    `;
+
+    if (imageAnalysis) {
+      fusionPrompt += `\nImage Analysis:\n${imageAnalysis.diagnosticResult}\n`;
+    }
+
+    if (videoAnalysis) {
+      fusionPrompt += `\nVideo Analysis:\n${videoAnalysis.diagnosticResult}\n`;
+    }
+
+    fusionPrompt += `\nPay close attention to factors like fetal size and growth, amniotic fluid levels, placental health, maternal blood pressure, and any signs of potential complications.
+    Provide a concise summary of the combined findings and their potential implications for the pregnancy.`;
+
+    // Get insights from Gemini
+    const chatSession = model.startChat({ generationConfig, safetySettings });
+    try {
+      const fusionResponse = await chatSession.sendMessage(fusionPrompt);
+      combinedAnalysis = fusionResponse.response.text();
+    } catch (error) {
+      logger.error("Error during analysis fusion with Gemini:", error);
+      // Consider a fallback mechanism:
+      combinedAnalysis = combineAnalysesFallback(imageAnalysis, videoAnalysis); 
+    }
+  }
+
+  return combinedAnalysis;
+}
+
+
+async function analyzeSDOHData(imagePath) {
+  if (imagePath) {
+    // 1. Read image data from the file path
+    const imageData = fs.readFileSync(imagePath, 'base64'); // Read as base64
+
+    // 2. Call Google Cloud Vision API (LABEL_DETECTION, TEXT_DETECTION)
     const visionApiResponse = await callVisionAPI(imageData); 
 
     // 2. Extract relevant labels and text from the response
@@ -1027,12 +1433,96 @@ async function analyzeSDOHData(imageData) {
 }
 
 async function callVisionAPI(imageData) {
-  // TODO: Implement the logic to call Google Cloud Vision API
-  // You'll need to:
-  //   - Send the imageData to the API
-  //   - Handle the API response and extract labels, text, etc.
-  //   - Refer to the Cloud Vision API documentation: https://cloud.google.com/vision/docs/
+  try {
+    // Creates a client
+    const client = new vision.ImageAnnotatorClient();
+
+    // Convert the base64 imageData to a Buffer
+    const imageBuffer = Buffer.from(imageData, 'base64');
+
+    // Set up the request object
+    const request = {
+      image: {
+        content: imageBuffer,
+      },
+      features: [
+        { type: 'LABEL_DETECTION' },
+        { type: 'TEXT_DETECTION' }, // Add more features if needed
+      ],
+    };
+
+    // Send the request to the Cloud Vision API
+    const [response] = await client.annotateImage(request);
+
+    // Extract labels and text from the response
+    const labels = response.labelAnnotations ? 
+                   response.labelAnnotations.map(label => label.description) : 
+                   [];
+    const extractedText = response.textAnnotations ? 
+                           response.textAnnotations[0]?.description : 
+                           ''; // Taking the first text annotation
+
+    return { labels, text: extractedText };
+
+  } catch (error) {
+    logger.error("Error calling Vision API:", error);
+    throw error; // Re-throw to handle the error appropriately
+  }
 }
+
+// Function to process Gemini's prediction output
+async function processGeminiPrediction(predictionText) {
+  try {
+    // 1. Split the prediction text into lines
+    const lines = predictionText.split('\n');
+
+    // 2. Initialize variables to store extracted data
+    const riskScores = {};
+    const recommendations = [];
+    const explanations = {};
+
+    // 3. Define keywords or patterns to identify sections (adjust as needed)
+    const riskKeyword = "Risk Assessment:";
+    const recommendationKeyword = "Recommendations:";
+    const explanationKeyword = "Explanation:";
+
+    // 4. Iterate through each line to extract information
+    let currentSection = null;
+    lines.forEach(line => {
+      // Find the start of a new section
+      if (line.includes(riskKeyword)) {
+        currentSection = "risk";
+      } else if (line.includes(recommendationKeyword)) {
+        currentSection = "recommendation";
+      } else if (line.includes(explanationKeyword)) {
+        currentSection = "explanation";
+      } else if (currentSection && line.trim() !== "") { // Process lines within a section
+        switch (currentSection) {
+          case "risk":
+            const [condition, score] = line.split(':').map(s => s.trim());
+            riskScores[condition] = parseFloat(score); // Assuming scores are numerical
+            break;
+          case "recommendation":
+            recommendations.push(line.trim());
+            break;
+          case "explanation":
+            // Assuming explanations are in "Condition: Explanation" format
+            const [expCondition, expText] = line.split(':').map(s => s.trim());
+            explanations[expCondition] = expText;
+            break;
+        }
+      }
+    });
+
+    // 5. Return the extracted data
+    return { riskScores, recommendations, explanations };
+
+  } catch (error) {
+    logger.error("Error parsing Gemini prediction:", error);
+    throw new Error("Unable to process prediction results.");
+  }
+}
+
 
 router.post('/login', 
   // Validate patientId field
@@ -1120,11 +1610,13 @@ router.get('/protected', authenticateToken, (req, res) => {
 // ... (Helper function to extract medical history from text)
 async function extractMedicalHistoryFromText(text) {
   const prompt = `
-    Extract key medical information relevant to pregnancy from the following text:
-    - History of gestational diabetes
-    - Other pregnancy complications
-    - Relevant pre-existing conditions
-    - Current medications
+    Extract key medical information relevant to pregnancy from the following text, focusing on:
+    - Gravidity (number of pregnancies)
+    - Parity (number of births)
+    - History of gestational diabetes, preeclampsia, or other pregnancy complications
+    - Family history of pregnancy-related issues
+    - Current medications and allergies
+    - Lifestyle factors (smoking, alcohol, drug use)
 
     Text: ${text}
   `;

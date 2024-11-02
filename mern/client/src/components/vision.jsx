@@ -45,9 +45,8 @@ const Vision = () => {
     }
       setLoading(true);
   
-      const response = await fetch('https://34.49.13.123.nip.io/zk/v1/record/image', {
+      const response = await fetch('http://localhost:5050/record/image', {
         method: 'POST',
-        headers: { 'apikey': apiKey },
         body: formData,
       });
   

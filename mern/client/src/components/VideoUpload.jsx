@@ -93,12 +93,11 @@ const VideoUpload = () => {
     }
       setStatus('Uploading video...');
       const response = await axios.post(
-        'https://34.49.13.123.nip.io/zk/v1/record/video',
+        'http://localhost:5050/record/video',
         formData,
         {
           headers: {
             'Content-Type': 'multipart/form-data',
-             'apikey': apiKey ,
           },
         }
       );
