@@ -1,11 +1,51 @@
 import { useState } from 'react';
-
+import axios from 'axios';
 function PredictForm() {
   const [patientId, setPatientId] = useState('');
   const [medicalHistory, setMedicalHistory] = useState('');
-  const [predictionResult, setPredictionResult] = useState(null);
+  const [geminiAnalysis, setGeminiAnalysis] = useState(null);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState([]);
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState(null);
+  const [predictionResult, setPredictionResults] = useState(null);
+  const [sdohInsights, setSdohInsights] = useState([]);
+  const [geminiInsights, setGeminiInsights] = useState(null);
+
+  const handleImageUpload = async (event) => {
+    const formData = new FormData();
+    for (let i = 0; i < event.target.files.length; i++) {
+      formData.append('images', event.target.files[i]);
+    }
+    formData.append('patientId', patientId);
+
+    try {
+      const response = await axios.post('http://localhost:5050/record/upload/image', formData);
+      setUploadedImageUrls(response.data.uploadedImageUrls);
+      setSdohInsights(response.data.sdohInsights);
+      setGeminiInsights(response.data.geminiInsights)
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      // Handle error (e.g., display error message to the user)
+    }
+  };
+
+  
+
+  const handleVideoUpload = async (event) => {
+    const formData = new FormData();
+    formData.append('video', event.target.files[0]);
+    formData.append('patientId', patientId);
+
+    try {
+      const response = await axios.post('http://localhost:5050/record/upload/video', formData);
+      setUploadedVideoUrl(response.data.uploadedVideoUrl);
+      setGeminiAnalysis(response.data.geminiAnalysis)
+    } catch (error) {
+      console.error('Error uploading video:', error);
+      // Handle error
+    }
+  };
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -18,72 +58,23 @@ function PredictForm() {
     setError(null);
   };
 
-  const handleFileChange = (event) => {
-    const { name, files } = event.target;
-    const file = files[0];
-    
-    if (file) {
-      // Validate file size
-      if (file.size > 50 * 1024 * 1024) { // 50MB
-        setError(`${name} file is too large. Maximum size is 50MB.`);
-        event.target.value = ''; // Clear the input
-        return;
-      }
-      
-      // Validate file type
-      if (name === 'images' && !file.type.startsWith('image/')) {
-        setError('Please select a valid image file.');
-        event.target.value = '';
-        return;
-      }
-      if (name === 'video' && !file.type.startsWith('video/')) {
-        setError('Please select a valid video file.');
-        event.target.value = '';
-        return;
-      }
-    }
-    
-    setError(null);
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError(null);
-    setIsLoading(true);
-
+  const handlePredict = async () => {
     try {
-      const formData = new FormData();
-      formData.append('patientId', patientId);
-      formData.append('medicalHistory', medicalHistory);
+      const response = await axios.post('http://localhost:5050/record/predict', {
+        patientId,
+        uploadedImageUrls,
+        uploadedVideoUrl,
+        medicalHistory,
+        sdohInsights,
+        geminiInsights,
+        geminiAnalysis
 
-      const imageInput = document.getElementById('imageUpload');
-      const videoInput = document.getElementById('videoUpload');
-
-      if (imageInput.files[0]) {
-        formData.append('images', imageInput.files[0]);
-      }
-      if (videoInput.files[0]) {
-        formData.append('video', videoInput.files[0]);
-      }
-
-      const response = await fetch('http://localhost:5050/record/predict', {
-        method: 'POST',
-        body: formData,
       });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP error! Status: ${response.status}`);
-      }
-
-      setPredictionResult(data);
-      
+      setPredictionResults(response.data);
+      setIsLoading()
     } catch (error) {
-      console.error('Error making prediction:', error);
-      setError(error.message || 'An error occurred while making the prediction');
-    } finally {
-      setIsLoading(false);
+      console.error('Error getting prediction:', error);
+      // Handle error
     }
   };
 
@@ -95,7 +86,7 @@ function PredictForm() {
           {error}
         </div>
       )}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handlePredict} className="space-y-4">
         <div>
           <label htmlFor="patientId" className="block mb-1">Patient ID:</label>
           <input
@@ -124,8 +115,9 @@ function PredictForm() {
             type="file"
             id="imageUpload"
             name="images"
+            multiple
             accept="image/*"
-            onChange={handleFileChange}
+            onChange={handleImageUpload}
             className="w-full"
           />
         </div>
@@ -136,7 +128,7 @@ function PredictForm() {
             id="videoUpload"
             name="video"
             accept="video/*"
-            onChange={handleFileChange}
+            onChange={handleVideoUpload}
             className="w-full"
           />
         </div>

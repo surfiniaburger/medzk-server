@@ -3,3 +3,5 @@ config.env
 .env
 gem-creation.json
 /uploads
+uploads**
+*uploads/*
