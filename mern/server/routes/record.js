@@ -15,23 +15,7 @@ import logger from '../utils/logger.js';
 import crypto from 'crypto';
 import { body, param, validationResult } from 'express-validator'; // Import validation middleware
 import vision from "@google-cloud/vision"
-import jwt from 'jsonwebtoken';
-
- // Function to generate JWT token
- function generateJWT(payload) {
-   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRY });
- }
-
- function authenticateToken(req, res, next) {
-  const token = req.headers['authorization']?.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'Access token required' });
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: 'Invalid or expired token' });
-    req.user = user;
-    next();
-  });
-}
+import https from "https"
 
 
 // Create __dirname equivalent
@@ -692,16 +676,16 @@ async function getExistingImageAnalysisResult(patientId) {
     }
 
     // Step 9: Return the decrypted data and verification result
-    res.status(200).json({
+    return {
       patientId,
       recordHash,
       criteriaHash,
       diagnosticResult: decryptedDiagnosticResult,
       isValid
-    });
+    };
 
   } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+    return { error: "Internal server error" };
   }
 };
 
@@ -990,15 +974,15 @@ async function getExistingVideoAnalysisResult(patientId) {
     }
 
     // Step 9: Return the decrypted data and verification result
-    res.status(200).json({
+    return {
       patientId,
       recordHash,
       criteriaHash,
       diagnosticResult: decryptedDiagnosticResult,
       isValid,
-    });
+    };
   } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+    return { error: "Internal server error" };
   }
 };
 
@@ -1108,22 +1092,83 @@ router.post("/upload/image", upload.array('images', 5),
       const { patientId } = req.body;
       const images = req.files; 
 
-      // Upload each image to Gemini for processing
-      const uploadedImages = await Promise.all(
-        images.map(image => uploadToGemini(image.path, image.mimetype))
-      );
 
-      // Wait for all files to become active
-      const activeImageFiles = await Promise.all(
-        uploadedImages.map(file => waitForFilesActive(file))
-      );
+      // Define the prompt for Gemini AI
+     const prompt = `
+     Analyze the provided image to identify potential social determinants of health (SDOH) factors that could affect the health of a pregnant woman living in this environment.
+ 
+          Consider the following aspects:
+            - **Neighborhood Safety:** Are there any visible signs of crime or violence (e.g., graffiti, broken windows, security bars)? Does the environment appear safe for walking or outdoor activities?
+            - **Access to Healthy Food:** Are there grocery stores, farmers' markets, or healthy food options visible in the image? Or are there more fast food restaurants or convenience stores?
+            - **Housing Quality:** What is the condition of the housing in the image? Are there any signs of disrepair, overcrowding, or inadequate sanitation?
+            - **Environmental Hazards:** Are there any visible environmental hazards, such as pollution, industrial sites, or lack of green spaces?
+            - **Transportation:** Are there public transportation options visible? Does the area appear walkable or bike-friendly?
+            - **Social Cohesion:** Does the environment suggest a sense of community (e.g., people interacting, community centers)?
+
+          Provide a concise summary of your observations and highlight any potential SDOH risks or protective factors that could impact the health of a pregnant woman living in this environment.
+
+          **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. It is not a substitute for professional assessment of social determinants of health.
+     `;  // Thanks to Gemini code assist
+
+
+     
+ 
+     // Upload each image to Gemini for processing
+     const uploadedImages = await Promise.all(
+       images.map(image => uploadToGemini(image.path, image.mimetype))
+     );
+ 
+     // Start chat session with the model, passing the image data for analysis
+     const chatSession = model.startChat({
+       generationConfig,
+       safetySettings,
+       history: [
+         {
+           role: "user",
+           parts: [
+             { text: prompt },
+             // Add the uploaded images to the chat session
+             ...uploadedImages.map(imageFile => ({
+               fileData: {
+                 mimeType: imageFile.mimeType,
+                 fileUri: imageFile.uri,
+               },
+             })),
+           ],
+         },
+       ],
+     });
+
+     // Perform SDOH analysis for each image
+     const sdohInsightsArray = await Promise.all(
+      uploadedImages.map(async (imageFile) => {
+        const imageUrl = imageFile.uri; // Get the image URL from Gemini
+        const imageName = imageUrl.split('/').pop(); 
+        const localImagePath = path.join(__dirname, '..', 'uploads', imageName);
+        await downloadImage(imageUrl, localImagePath); 
+
+        if (localImagePath) {
+          const sdohInsight = await analyzeSDOHData(localImagePath); 
+          return sdohInsight;
+        } else {
+          return "SDOH analysis failed for this image."; // Or handle the error differently
+        }
+      })
+    );
+ 
+     // Send the prompt and receive diagnostic results
+     const generatedContent = await chatSession.sendMessage(prompt);
+     const geminiInsights = generatedContent.response.text();
+      console.log(geminiInsights)
+      console.log(sdohInsightsArray)
 
       // Store image URIs (or other relevant data) in your database
       // ... (Logic to associate image URIs with the patientId)
 
       res.status(201).json({
-        message: "Images uploaded successfully",
-        uploadedImageUrls: activeImageFiles.map(file => file.uri) 
+        message: "image uploaded successfully",
+        geminiInsights: geminiInsights,
+        sdohInsights: sdohInsightsArray,
       });
 
     } catch (error) {
@@ -1150,18 +1195,66 @@ router.post("/upload/video", upload.single('video'),
       const { patientId } = req.body;
       const video = req.file; 
 
-      // Upload the video to Gemini for processing
-      const uploadedVideo = await uploadToGemini(video.path, video.mimetype);
+      
 
-      // Wait for the file to become ACTIVE
-      const activeFile = await waitForFilesActive(uploadedVideo);
+      const prompt = `
+      Analyze the provided video in the context of pregnancy care. 
+      Focus on identifying any potential issues or abnormalities that could affect the health of the mother or the fetus.
+
+      Specifically, look for:
+      - **Maternal Physical Health:** Assess the mother's posture, gait, and any visible signs of discomfort or distress.
+      - **Fetal Movement:** Observe fetal movements and note if they appear normal, reduced, or excessive.
+      - **Environmental Factors:** Analyze the environment shown in the video for potential hazards or risks to the mother or fetus (e.g., unsafe conditions, lack of support).
+
+      Provide a concise summary of your findings and highlight any areas of concern.
+
+      **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
+      It is not a substitute for professional medical advice, diagnosis, or treatment. 
+      Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
+    `;
+
+      // Upload the video to Gemini for processing
+    const uploadedVideo = await uploadToGemini(video.path, video.mimetype);
+
+    // Wait for the file to become ACTIVE
+    const activeFile = await waitForFilesActive(uploadedVideo);
+
+    // Proceed with further processing once the file is ACTIVE
+    logger.info("File is ready:", activeFile);
+
+    // Start chat session with the model, passing the video for analysis
+    const chatSession = model.startChat({
+      generationConfig,
+      safetySettings,
+      history: [
+        {
+          role: "user",
+          parts: [
+            { text: prompt },
+            {
+              fileData: {
+                mimeType: activeFile.mimeType,
+                fileUri: activeFile.uri,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    // Send the prompt and receive diagnostic results
+    const generatedContent = await chatSession.sendMessage(prompt);
+    const geminiAnalysis = generatedContent.response.text();
+    console.log(geminiAnalysis)
 
       // Store video URI (or other relevant data) in your database
       // ... (Logic to associate video URI with the patientId)
 
       res.status(201).json({
         message: "Video uploaded successfully",
-        uploadedVideoUrl: activeFile.uri 
+        uploadedVideoUrl: activeFile.uri,
+        geminiAnalysis: geminiAnalysis
+
       });
 
     } catch (error) {
@@ -1171,43 +1264,30 @@ router.post("/upload/video", upload.single('video'),
   }
 );
 
-// *** Predict Route (Modified) ***
-router.post("/predict", async (req, res) => {
-  try {
-    const { patientId, uploadedImageUrls, uploadedVideoUrl } = req.body; 
-    logger.info('Received request for patientId:', patientId);
-
-    // ... (Data Gathering & Enrichment - same as before)
-
-    // Image Analysis (if applicable)
-    if (uploadedImageUrls && uploadedImageUrls.length > 0) {
-      // ... (Process each image URL to get imageAnalysis)
-      // Example (assuming you have a function to analyze a single image URL):
-      const imageAnalysisPromises = uploadedImageUrls.map(imageUrl => analyzeImage(imageUrl));
-      const imageAnalysisResults = await Promise.all(imageAnalysisPromises);
-      // ... (Combine imageAnalysisResults as needed)
-    }
-
-    // Video Analysis (if applicable)
-    if (uploadedVideoUrl) {
-      // ... (Process the video URL to get videoAnalysis)
-    }
-
-    // ... (Rest of your /predict logic - Gemini prompt, response processing, etc.)
-
-  } catch (error) { 
-    // ... (Error handling)
-  }
-});
-
-
-
+// Function to download an image from a URL
+async function downloadImage(url, filePath) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(filePath);
+    https.get(url, (response) => {
+      response.pipe(file);
+      file.on('finish', () => {
+        file.close(resolve); 
+      });
+    }).on('error', (err) => {
+      fs.unlink(filePath, () => reject(err)); 
+    });
+  });
+}
 
 // Route to get predictions and recommendations
 router.post("/predict", async (req, res) => {
   try {
-    const { patientId, uploadedImageUrls, uploadedVideoUrl } = req.body;
+    const { patientId, uploadedImageUrls, uploadedVideoUrl, medicalHistory,  sdohInsight, geminiInsights, geminiAnalysis } = req.body;
     logger.info('Received request for patientId:', patientId);
+    console.log(medicalHistory)
+    console.log(sdohInsight)
+    console.log(geminiAnalysis)
+    console.log(geminiInsights)
 
     // 1. Data Gathering & Enrichment:
     //   - Fetch existing record from database based on patientId
@@ -1217,87 +1297,7 @@ router.post("/predict", async (req, res) => {
     }
 
     //   - Extract medical history from unstructured text (e.g., 'notes' field)
-    const extractedMedicalHistory = await extractMedicalHistoryFromText(existingRecord); // Implement this function
-
-   // Handle image and video uploads (if any)
-   let imageAnalysis = null;
-   let videoAnalysis = null;
-   let sdohAnalysis = "No image data provided for SDOH analysis.";
-
-   if (req.files && req.files.images) {
-    const activeImageFiles = await handleFileUpload(req, res, 'image');
-
-    // Process activeImageFiles to get imageAnalysis
-    if (activeImageFiles && activeImageFiles.length > 0) {
-      const imageAnalysisPromises = activeImageFiles.map(async (imageFile) => {
-        // Construct the image analysis prompt for Gemini (similar to your /image route)
-        const imagePrompt = `
-         Analyze the provided image to identify potential social determinants of health (SDOH) factors that could affect the health of a pregnant woman living in this environment.
-
-          Consider the following aspects:
-            - **Neighborhood Safety:** Are there any visible signs of crime or violence (e.g., graffiti, broken windows, security bars)? Does the environment appear safe for walking or outdoor activities?
-            - **Access to Healthy Food:** Are there grocery stores, farmers' markets, or healthy food options visible in the image? Or are there more fast food restaurants or convenience stores?
-            - **Housing Quality:** What is the condition of the housing in the image? Are there any signs of disrepair, overcrowding, or inadequate sanitation?
-            - **Environmental Hazards:** Are there any visible environmental hazards, such as pollution, industrial sites, or lack of green spaces?
-            - **Transportation:** Are there public transportation options visible? Does the area appear walkable or bike-friendly?
-            - **Social Cohesion:** Does the environment suggest a sense of community (e.g., people interacting, community centers)?
-
-          Provide a concise summary of your observations and highlight any potential SDOH risks or protective factors that could impact the health of a pregnant woman living in this environment.
-
-          **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. It is not a substitute for professional assessment of social determinants of health.
-          `;
-
-
-        const chatSession = model.startChat({ generationConfig, safetySettings });
-        const imageResponse = await chatSession.sendMessage(imagePrompt);
-        return imageResponse.response.text(); // Or process the response as needed
-      });
-
-      const imageAnalysisResults = await Promise.all(imageAnalysisPromises);
-      imageAnalysis = { 
-        diagnosticResult: imageAnalysisResults.join('\n\n') 
-      }; 
-
-      // Analyze SDOH data using the first uploaded image
-      sdohAnalysis = await analyzeSDOHData(req.files.images[0].path); 
-    }
-  }
-
-  if (req.files && req.files.video) {
-    const activeVideoFiles = await handleFileUpload(req, res, 'video');
-  
-    // Process activeVideoFiles to get videoAnalysis (similar to image processing)
-    if (activeVideoFiles && activeVideoFiles.length > 0) {
-      const videoAnalysisPromises = activeVideoFiles.map(async (videoFile) => {
-        // Construct the video analysis prompt for Gemini
-        const videoPrompt = `
-          Analyze the provided video in the context of pregnancy care. 
-          Focus on identifying any potential issues or abnormalities that could affect the health of the mother or the fetus.
-  
-          Specifically, look for:
-          - **Maternal Physical Health:** Assess the mother's posture, gait, and any visible signs of discomfort or distress.
-          - **Fetal Movement:** Observe fetal movements and note if they appear normal, reduced, or excessive.
-          - **Environmental Factors:** Analyze the environment shown in the video for potential hazards or risks to the mother or fetus (e.g., unsafe conditions, lack of support).
-  
-          Provide a concise summary of your findings and highlight any areas of concern.
-  
-          **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
-          It is not a substitute for professional medical advice, diagnosis, or treatment. 
-          Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
-        `;
-  
-        const chatSession = model.startChat({ generationConfig, safetySettings });
-        const videoResponse = await chatSession.sendMessage(videoPrompt);
-        return videoResponse.response.text(); // Or process the response as needed
-      });
-  
-      const videoAnalysisResults = await Promise.all(videoAnalysisPromises);
-      videoAnalysis = { 
-        diagnosticResult: videoAnalysisResults.join('\n\n') 
-      }; 
-    }
-  }
-  
+    const extractedMedicalHistory = await extractMedicalHistoryFromText(existingRecord); // Implement this function  
     //   - Get existing image/video analysis result (if applicable)
    
     const existingImageAnalysis = await getExistingImageAnalysisResult(patientId);
@@ -1387,6 +1387,7 @@ function combineAnalysesFallback(imageAnalysis, videoAnalysis) {
       combinedAnalysis = fusionResponse.response.text();
     } catch (error) {
       logger.error("Error during analysis fusion with Gemini:", error);
+      logger.error("Error details:", error.response);
       // Consider a fallback mechanism:
       combinedAnalysis = combineAnalysesFallback(imageAnalysis, videoAnalysis); 
     }
@@ -1396,20 +1397,26 @@ function combineAnalysesFallback(imageAnalysis, videoAnalysis) {
 }
 
 
-async function analyzeSDOHData(imagePath) {
-  if (imagePath) {
+async function analyzeSDOHData(localImagePath) { 
+  if (localImagePath) {
+    
     // 1. Read image data from the file path
-    const imageData = fs.readFileSync(imagePath, 'base64'); // Read as base64
-
+    const imageData = fs.readFileSync(localImagePath, 'base64'); // Read as base64
+    console.log(imageData)
+    
+    console.log(imageData)
     // 2. Call Google Cloud Vision API (LABEL_DETECTION, TEXT_DETECTION)
     const visionApiResponse = await callVisionAPI(imageData); 
+    console.log(visionApiResponse)
 
     // 2. Extract relevant labels and text from the response
     const labels = visionApiResponse.labels; 
     const extractedText = visionApiResponse.text;
 
+    let prompt = "";
+    if (labels.length > 0 || extractedText !== "") {
     // 3. Construct the Gemini prompt 
-    const prompt = `
+     prompt = `
       Analyze the following information extracted from an image for social determinants of health insights:
       - Labels: ${labels.join(', ')}
       - Text: ${extractedText}
@@ -1420,6 +1427,15 @@ async function analyzeSDOHData(imagePath) {
         - Environmental hazards
         - Access to healthcare facilities
     `;
+  } else {
+    prompt = `
+      I am unable to extract specific details from the provided image. 
+      However, considering it is being analyzed for social determinants of health, 
+      please provide general insights on factors like access to healthy food options, 
+      neighborhood safety, environmental hazards, and access to healthcare facilities 
+      that could be relevant.
+    `;
+  }
 
     // 4. Get SDOH insights from Gemini
     const chatSession = model.startChat({ generationConfig, safetySettings });
@@ -1447,12 +1463,19 @@ async function callVisionAPI(imageData) {
       },
       features: [
         { type: 'LABEL_DETECTION' },
-        { type: 'TEXT_DETECTION' }, // Add more features if needed
+        { type: 'TEXT_DETECTION' }, 
+        { type: 'LANDMARK_DETECTION' }, // Detect landmarks
+        { type: 'OBJECT_LOCALIZATION' }, // Detect and locate objects
+        { type: 'FACE_DETECTION' }, // Detect faces (might be useful for identifying emotions or demographics)
+        { type: 'IMAGE_PROPERTIES' }, // Get image properties like dominant colors
+        { type: 'SAFE_SEARCH_DETECTION' }, // Detect inappropriate content (might be relevant for SDOH)
       ],
     };
 
     // Send the request to the Cloud Vision API
     const [response] = await client.annotateImage(request);
+    console.log("Full Vision API Response:", JSON.stringify(response, null, 2)); 
+
 
     // Extract labels and text from the response
     const labels = response.labelAnnotations ? 
@@ -1545,7 +1568,7 @@ router.post('/login',
       }
 
       // Generate JWT token for session management
-      const token = generateJWT({ patientId });
+      //const token = generateJWT({ patientId });
 
       res.status(200).json({ message: 'Login successful', token });
     } catch (error) {
@@ -1601,9 +1624,7 @@ router.post('/register',
   }
 );
 
-router.get('/protected', authenticateToken, (req, res) => {
-  res.status(200).json({ message: 'Protected route accessed', user: req.user });
-});
+
 
 
 
