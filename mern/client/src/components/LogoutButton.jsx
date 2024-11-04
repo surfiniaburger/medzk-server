@@ -12,4 +12,5 @@ const LogoutButton = () => {
   ) : null; // Or render something else while not authenticated
 };
 
+
 export default LogoutButton;
