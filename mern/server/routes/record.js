@@ -16,11 +16,17 @@ import crypto from 'crypto';
 import { body, param, validationResult } from 'express-validator'; // Import validation middleware
 import vision from "@google-cloud/vision"
 import https from "https"
+import { Storage } from '@google-cloud/storage';
+import ffmpeg from 'fluent-ffmpeg';
+import { Console } from "console";
 
 
 // Create __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Create a storage client (it will automatically use your credentials from the environment variable)
+const store = new Storage();
 
 const router = express.Router();
  // Initialize Google Generative AI
@@ -130,6 +136,42 @@ function fileToGenerativePart(path, mimeType) {
       mimeType
     },
   };
+}
+
+async function extractFramesFromVideo(videoPath, numFrames = 5) {
+  return new Promise((resolve, reject) => {
+    const frames = [];
+    ffmpeg(videoPath)
+      .on('end', () => resolve(frames))
+      .on('error', (err) => reject(err))
+      .screenshots({
+        count: numFrames,
+        folder: './temp/frames', // Create a temporary folder for frames
+        filename: 'frame-%i.png',
+      });
+  });
+}
+
+
+async function retryWithBackoff(fn, maxRetries = 3, backoffFactor = 2) {
+  let retryCount = 0;
+  let delay = 1000; // Initial delay of 1 second
+
+  while (retryCount <= maxRetries) {
+    try {
+      return await fn(); // Attempt the API call
+    } catch (error) {
+      if (error instanceof GoogleGenerativeAIFetchError && error.status === 503) {
+        console.warn(`Service unavailable, retrying in ${delay/1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= backoffFactor; // Increase delay for next retry
+        retryCount++;
+      } else {
+        throw error; // Re-throw other errors
+      }
+    }
+  }
+  throw new Error("Max retries exceeded.");
 }
 
 // Health check route
@@ -1092,6 +1134,14 @@ router.post("/upload/image", upload.array('images', 5),
       const { patientId } = req.body;
       const images = req.files; 
 
+      // Read image data as Buffer and store in an array
+      const imageDataArray = images.map(image => ({
+        data: fs.readFileSync(image.path),
+        createdAt: new Date() // Add timestamp
+      }));
+
+      
+
 
       // Define the prompt for Gemini AI
      const prompt = `
@@ -1139,25 +1189,31 @@ router.post("/upload/image", upload.array('images', 5),
        ],
      });
 
-     // Perform SDOH analysis for each image
-     const sdohInsightsArray = await Promise.all(
-      uploadedImages.map(async (imageFile) => {
-        const imageUrl = imageFile.uri; // Get the image URL from Gemini
-        const imageName = imageUrl.split('/').pop(); 
-        const localImagePath = path.join(__dirname, '..', 'uploads', imageName);
-        await downloadImage(imageUrl, localImagePath); 
+     // Prepare the new document to be inserted into the database
+     const newDocument = {
+      patientId,
+      // ... other fields ...
+      imageDataArray, // Store the array of image data
+      createdAt: new Date()
+    };
 
-        if (localImagePath) {
-          const sdohInsight = await analyzeSDOHData(localImagePath); 
-          return sdohInsight;
-        } else {
-          return "SDOH analysis failed for this image."; // Or handle the error differently
-        }
-      })
+    // Insert the new document into the "image-records" collection
+    const collection = await db.collection("image-sdoh-records");
+    await collection.insertOne(newDocument);
+
+    
+    await collection.updateOne(
+      { patientId }, // Find the document by patientId
+      { $push: { imageDataArray: { $each: imageDataArray } } } // Append new image data to the array
     );
+
+    
+    
+    // Perform SDOH analysis for each image
+    const sdohInsightsArray = await analyzeSDOHData(patientId);
  
      // Send the prompt and receive diagnostic results
-     const generatedContent = await chatSession.sendMessage(prompt);
+     const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
      const geminiInsights = generatedContent.response.text();
       console.log(geminiInsights)
       console.log(sdohInsightsArray)
@@ -1178,6 +1234,63 @@ router.post("/upload/image", upload.array('images', 5),
   }
 );
 
+
+async function analyzeSDOHDataForVideo(patientId) {
+  try {
+    console.log("retrieving video from database")
+    // 1. Retrieve the latest video for the patient from MongoDB
+    const collection = await db.collection("video-sdoh-records");
+    const videoRecord = await collection.findOne({ patientId });
+
+    if (!videoRecord || !videoRecord.videoDataArray || videoRecord.videoDataArray.length === 0) {
+      return "No video data found for this patient.";
+    }
+
+    // Get the latest video data
+    const videoData = videoRecord.videoDataArray[0].data;
+
+    // 2a. Create the temp directory if it doesn't exist
+    if (!fs.existsSync('./temp')) {
+      fs.mkdirSync('./temp');
+    }
+    console.log("temp dir exists")
+
+    // 2b. Save the video data to a temporary file
+    const tempVideoPath = './temp/video.mp4'; // Create a temporary file
+    fs.writeFileSync(tempVideoPath, Buffer.from(videoData.buffer)); // Convert to Buffer
+
+    // 3. Extract frames from the video
+    const frames = await extractFramesFromVideo(tempVideoPath);
+    console.log("frames successfully extracted")
+    console.log(frames);
+
+    // 4. Analyze each frame using the existing analyzeSDOHData function
+    const sdohInsights = await Promise.all(
+      frames.map(async (framePath) => {
+        const sdohInsight = await analyzeSDOHData(framePath); // Reuse the existing function
+        return sdohInsight;
+      })
+    );
+
+    // 5. Delete the temporary video and frames
+    fs.unlinkSync(tempVideoPath);
+    fs.rmdirSync('./temp/frames', { recursive: true }); // Delete the frames directory
+
+    // Delete the videoDataArray from the document after processing
+    await collection.updateOne(
+      { patientId },
+      { $set: { videoDataArray: [] } } // Clear the videoDataArray
+    );
+    console.log(sdohInsights)
+
+    return sdohInsights;
+  } catch (error) {
+    console.error('Error analyzing SDOH data for video:', error);
+    throw error;
+  }
+}
+
+
 // *** Video Upload Route ***
 router.post("/upload/video", upload.single('video'),
   // Validation for video upload
@@ -1194,7 +1307,16 @@ router.post("/upload/video", upload.single('video'),
     try {
       const { patientId } = req.body;
       const video = req.file; 
+ 
+      // Read video data as Buffer
+      const videoData = fs.readFileSync(video.path);
 
+      // Prepare the new document to be inserted into the database
+      const newDocument = {
+        patientId,
+        videoDataArray: [{ data: videoData, createdAt: new Date() }],
+        createdAt: new Date()
+      };
       
 
       const prompt = `
@@ -1218,6 +1340,19 @@ router.post("/upload/video", upload.single('video'),
 
     // Wait for the file to become ACTIVE
     const activeFile = await waitForFilesActive(uploadedVideo);
+
+    // Insert the new document into the "video-sdoh-records" collection
+    const collection = await db.collection("video-sdoh-records");
+    await collection.insertOne(newDocument);
+
+    await collection.updateOne(
+      { patientId }, // Find the document by patientId
+      { $push: { videoData: { data: videoData, createdAt: new Date() } } } // Append new image data to the array
+    );
+
+    // Perform SDOH analysis for the video
+    const sdohInsightsArray = await analyzeSDOHDataForVideo(patientId);
+
 
     // Proceed with further processing once the file is ACTIVE
     logger.info("File is ready:", activeFile);
@@ -1243,9 +1378,11 @@ router.post("/upload/video", upload.single('video'),
     });
 
     // Send the prompt and receive diagnostic results
-    const generatedContent = await chatSession.sendMessage(prompt);
+    const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
     const geminiAnalysis = generatedContent.response.text();
     console.log(geminiAnalysis)
+    console.log(sdohInsightsArray)
+    
 
       // Store video URI (or other relevant data) in your database
       // ... (Logic to associate video URI with the patientId)
@@ -1253,7 +1390,8 @@ router.post("/upload/video", upload.single('video'),
       res.status(201).json({
         message: "Video uploaded successfully",
         uploadedVideoUrl: activeFile.uri,
-        geminiAnalysis: geminiAnalysis
+        geminiAnalysis: geminiAnalysis,
+        sdohVideoInsightsArray: sdohInsightsArray
 
       });
 
@@ -1264,36 +1402,26 @@ router.post("/upload/video", upload.single('video'),
   }
 );
 
-// Function to download an image from a URL
-async function downloadImage(url, filePath) {
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(filePath);
-    https.get(url, (response) => {
-      response.pipe(file);
-      file.on('finish', () => {
-        file.close(resolve); 
-      });
-    }).on('error', (err) => {
-      fs.unlink(filePath, () => reject(err)); 
-    });
-  });
-}
+
 
 // Route to get predictions and recommendations
 router.post("/predict", async (req, res) => {
   try {
     const { patientId, uploadedImageUrls, uploadedVideoUrl, medicalHistory,  sdohInsight, geminiInsights, geminiAnalysis } = req.body;
     logger.info('Received request for patientId:', patientId);
-    console.log(medicalHistory)
-    console.log(sdohInsight)
-    console.log(geminiAnalysis)
-    console.log(geminiInsights)
+    
 
     // 1. Data Gathering & Enrichment:
     //   - Fetch existing record from database based on patientId
     const existingRecord = await db.collection("records").findOne({ patientId });
     if (!existingRecord) {
       return res.status(404).json({ error: "Record not found" });
+    }
+
+    // Get SDOH insights from video (if applicable)
+    let videoSdohAnalysis = "No video SDOH analysis performed.";
+    if (uploadedVideoUrl) {
+      videoSdohAnalysis = await analyzeSDOHDataForVideo(patientId);
     }
 
     //   - Extract medical history from unstructured text (e.g., 'notes' field)
@@ -1310,6 +1438,7 @@ router.post("/predict", async (req, res) => {
       Patient: ${patientId}
       Medical History: ${extractedMedicalHistory}
       SDOH Insights: ${sdohAnalysis}
+      Video SDOH Analysis: ${videoSdohAnalysis}
       Image Analysis (New Uploads): ${imageAnalysis ? imageAnalysis.diagnosticResult : "No new image analysis."}
       Video Analysis (New Uploads): ${videoAnalysis ? videoAnalysis.diagnosticResult : "No new video analysis."}
       Image/Video Analysis: ${combinedAnalysis}
@@ -1396,57 +1525,80 @@ function combineAnalysesFallback(imageAnalysis, videoAnalysis) {
   return combinedAnalysis;
 }
 
+async function analyzeSDOHData(patientId) {
+  try {
+    // 1. Retrieve the latest 5 images for the patient from MongoDB
+    const collection = await db.collection("image-sdoh-records");
+    const imageRecord = await collection.findOne({ patientId });
 
-async function analyzeSDOHData(localImagePath) { 
-  if (localImagePath) {
-    
-    // 1. Read image data from the file path
-    const imageData = fs.readFileSync(localImagePath, 'base64'); // Read as base64
-    console.log(imageData)
-    
-    console.log(imageData)
-    // 2. Call Google Cloud Vision API (LABEL_DETECTION, TEXT_DETECTION)
-    const visionApiResponse = await callVisionAPI(imageData); 
-    console.log(visionApiResponse)
+    if (!imageRecord || !imageRecord.imageDataArray || imageRecord.imageDataArray.length === 0) {
+      return "No image data found for this patient.";
+    }
 
-    // 2. Extract relevant labels and text from the response
-    const labels = visionApiResponse.labels; 
-    const extractedText = visionApiResponse.text;
+    // Get the latest 5 image data entries, sorted by timestamp
+    const imageDataArray = imageRecord.imageDataArray
+      .slice() // Create a copy to avoid modifying the original array
+      .sort((a, b) => b.createdAt - a.createdAt) // Sort in descending order of timestamp
+      .slice(0, 5); // Take only the latest 5
 
-    let prompt = "";
-    if (labels.length > 0 || extractedText !== "") {
-    // 3. Construct the Gemini prompt 
-     prompt = `
-      Analyze the following information extracted from an image for social determinants of health insights:
-      - Labels: ${labels.join(', ')}
-      - Text: ${extractedText}
+      // Delete the imageDataArray from the document after processing
+    await collection.updateOne(
+      { patientId },
+      { $set: { imageDataArray: [] } } // Clear the imageDataArray
+    );
 
-      Consider factors like:
-        - Access to healthy food options
-        - Neighborhood safety
-        - Environmental hazards
-        - Access to healthcare facilities
-    `;
-  } else {
-    prompt = `
-      I am unable to extract specific details from the provided image. 
-      However, considering it is being analyzed for social determinants of health, 
-      please provide general insights on factors like access to healthy food options, 
-      neighborhood safety, environmental hazards, and access to healthcare facilities 
-      that could be relevant.
-    `;
-  }
+    // 2. Process each image and call Vision API
+    const sdohInsightsArray = await Promise.all(
+      imageDataArray.map(async (imageDataEntry) => {
+        const imageData = imageDataEntry.data.toString('base64');
 
-    // 4. Get SDOH insights from Gemini
-    const chatSession = model.startChat({ generationConfig, safetySettings });
-    const response = await chatSession.sendMessage(prompt);
-    const sdohInsights = response.response.text();
+        // 3. Call Google Cloud Vision API (LABEL_DETECTION, TEXT_DETECTION)
+        const visionApiResponse = await callVisionAPI(imageData);
 
-    return sdohInsights;
-  } else {
-    return "No image data provided."; 
+        // 4. Extract relevant labels and text from the response
+        const labels = visionApiResponse.labels;
+        const extractedText = visionApiResponse.text;
+
+        // 5. Construct the Gemini prompt based on Vision API results
+        let prompt = "";
+        if (labels.length > 0 || extractedText !== "") {
+          prompt = `
+            Analyze the following information extracted from an image for social determinants of health insights:
+            - Labels: ${labels.join(', ')}
+            - Text: ${extractedText}
+
+            Consider factors like:
+              - Access to healthy food options
+              - Neighborhood safety
+              - Environmental hazards
+              - Access to healthcare facilities
+          `;
+        } else {
+          prompt = `
+            I am unable to extract specific details from the provided image. 
+            However, considering it is being analyzed for social determinants of health, 
+            please provide general insights on factors like access to healthy food options, 
+            neighborhood safety, environmental hazards, and access to healthcare facilities 
+            that could be relevant.
+          `;
+        }
+
+        // 6. Get SDOH insights from Gemini
+        const chatSession = model.startChat({ generationConfig, safetySettings });
+        const response = await chatSession.sendMessage(prompt);
+        const sdohInsights = response.response.text();
+
+        return sdohInsights;
+      })
+    );
+
+    return sdohInsightsArray;
+  } catch (error) {
+    console.error('Error analyzing SDOH data:', error);
+    throw error; // Re-throw for proper error handling
   }
 }
+
 
 async function callVisionAPI(imageData) {
   try {
@@ -1474,7 +1626,7 @@ async function callVisionAPI(imageData) {
 
     // Send the request to the Cloud Vision API
     const [response] = await client.annotateImage(request);
-    console.log("Full Vision API Response:", JSON.stringify(response, null, 2)); 
+    
 
 
     // Extract labels and text from the response
