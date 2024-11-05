@@ -641,6 +641,7 @@ async function getExistingImageAnalysisResult(patientId) {
     if (!patientId) {
       return res.status(400).json({ error: "Missing required parameter: patientId" });
     }
+    console.log("I've passed the vlidation test")
 
     // Retrieve the record from the database based on patientId
     const collection = await db.collection("image-records");
@@ -1735,7 +1736,7 @@ async function analyzeSDOHDataForVideo(patientId) {
 // Route to get predictions and recommendations
 router.post("/predict", async (req, res) => {
   try {
-    const { patientId, uploadedImageUrls, uploadedVideoUrl, medicalHistory,  sdohInsight, geminiInsights, geminiAnalysis } = req.body;
+    const { patientId, uploadedImageUrls, uploadedVideoUrl, medicalHistory,  sdohInsight, geminiInsights, geminiAnalysis, sdohVideoInsightsArray } = req.body;
     logger.info('Received request for patientId:', patientId);
     
 
@@ -1745,30 +1746,34 @@ router.post("/predict", async (req, res) => {
     if (!existingRecord) {
       return res.status(404).json({ error: "Record not found" });
     }
+    console.log(existingRecord)
 
     // Get SDOH insights from video (if applicable)
     let videoSdohAnalysis = "No video SDOH analysis performed.";
     if (uploadedVideoUrl) {
-      videoSdohAnalysis = await analyzeSDOHDataForVideo(patientId);
+      videoSdohAnalysis = sdohVideoInsightsArray;
     }
 
     //   - Extract medical history from unstructured text (e.g., 'notes' field)
-    const extractedMedicalHistory = await extractMedicalHistoryFromText(existingRecord); // Implement this function  
+    const extractedMedicalHistory = medicalHistory // Implement this function  
     //   - Get existing image/video analysis result (if applicable)
    
     const existingImageAnalysis = await getExistingImageAnalysisResult(patientId);
     const existingVideoAnalysis = await getExistingVideoAnalysisResult(patientId);
+    console.log(existingImageAnalysis)
+    console.log(existingVideoAnalysis)
 
     const combinedAnalysis = await combineAnalysisResults(existingImageAnalysis, existingVideoAnalysis)
+    console.log(combinedAnalysis)
 
     // 2. Gemini Multimodal Analysis:
     const prompt = `
       Patient: ${patientId}
       Medical History: ${extractedMedicalHistory}
-      SDOH Insights: ${sdohAnalysis}
+      SDOH Insights: ${sdohAnalysis ? sdohInsight : "No Image sdoh data provided"}
       Video SDOH Analysis: ${videoSdohAnalysis}
-      Image Analysis (New Uploads): ${imageAnalysis ? imageAnalysis.diagnosticResult : "No new image analysis."}
-      Video Analysis (New Uploads): ${videoAnalysis ? videoAnalysis.diagnosticResult : "No new video analysis."}
+      Image Analysis (New Uploads): ${imageAnalysis ? geminiInsights : "No new image analysis."}
+      Video Analysis (New Uploads): ${videoAnalysis ? geminiAnalysis : "No new video analysis."}
       Image/Video Analysis: ${combinedAnalysis}
 
       Based on this information, provide a personalized risk assessment for:

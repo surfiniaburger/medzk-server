@@ -12,6 +12,7 @@ import "./index.css";
 import App from "./App";
 import PredictForm from "./components/Predict";
 import ProofVerification from "./components/ProofVerification";
+import AdvancedAnalyticsDashboard from "./components/Analytics";
 
 // Define routes without authentication
 const router = createBrowserRouter([
@@ -38,6 +39,11 @@ const router = createBrowserRouter([
       {
         path: "/proof-verification",
         element: <ProofVerification />,
+      },
+      
+      {
+        path: "/analytics",
+        element: <AdvancedAnalyticsDashboard />,
       },
     ],
   },

@@ -12,8 +12,11 @@ const PredictForm = () => {
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState(null);
   const [predictionResult, setPredictionResults] = useState(null);
   const [sdohInsights, setSdohInsights] = useState([]);
+  const [sdohVideoInsightsArray, setSdohVideoInsightsArray] = useState([]);
   const [geminiInsights, setGeminiInsights] = useState(null);
   
+// sdohVideoInsightsArray
+
   // Enhanced loading states
   const [processingStates, setProcessingStates] = useState({
     images: false,
@@ -68,6 +71,7 @@ const PredictForm = () => {
       const response = await axios.post('http://localhost:5050/record/upload/video', formData);
       setUploadedVideoUrl(response.data.uploadedVideoUrl);
       setGeminiAnalysis(response.data.geminiAnalysis);
+      setSdohVideoInsightsArray(response.data.sdohVideoInsightsArray)
       setCompletedSteps(prev => ({ ...prev, video: true }));
     } catch (err) {
       setError(`Error uploading video: ${err.message}`);
@@ -105,7 +109,8 @@ const PredictForm = () => {
         medicalHistory,
         sdohInsights,
         geminiInsights,
-        geminiAnalysis
+        geminiAnalysis,
+        sdohVideoInsightsArray
       });
       setPredictionResults(response.data);
       setCompletedSteps(prev => ({ ...prev, prediction: true }));
