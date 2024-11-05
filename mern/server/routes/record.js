@@ -15,10 +15,9 @@ import logger from '../utils/logger.js';
 import crypto from 'crypto';
 import { body, param, validationResult } from 'express-validator'; // Import validation middleware
 import vision from "@google-cloud/vision"
-import https from "https"
 import { Storage } from '@google-cloud/storage';
 import ffmpeg from 'fluent-ffmpeg';
-import { Console } from "console";
+import { GridFSBucket } from 'mongodb';
 
 
 // Create __dirname equivalent
@@ -138,19 +137,6 @@ function fileToGenerativePart(path, mimeType) {
   };
 }
 
-async function extractFramesFromVideo(videoPath, numFrames = 5) {
-  return new Promise((resolve, reject) => {
-    const frames = [];
-    ffmpeg(videoPath)
-      .on('end', () => resolve(frames))
-      .on('error', (err) => reject(err))
-      .screenshots({
-        count: numFrames,
-        folder: './temp/frames', // Create a temporary folder for frames
-        filename: 'frame-%i.png',
-      });
-  });
-}
 
 
 async function retryWithBackoff(fn, maxRetries = 3, backoffFactor = 2) {
@@ -1235,60 +1221,7 @@ router.post("/upload/image", upload.array('images', 5),
 );
 
 
-async function analyzeSDOHDataForVideo(patientId) {
-  try {
-    console.log("retrieving video from database")
-    // 1. Retrieve the latest video for the patient from MongoDB
-    const collection = await db.collection("video-sdoh-records");
-    const videoRecord = await collection.findOne({ patientId });
 
-    if (!videoRecord || !videoRecord.videoDataArray || videoRecord.videoDataArray.length === 0) {
-      return "No video data found for this patient.";
-    }
-
-    // Get the latest video data
-    const videoData = videoRecord.videoDataArray[0].data;
-
-    // 2a. Create the temp directory if it doesn't exist
-    if (!fs.existsSync('./temp')) {
-      fs.mkdirSync('./temp');
-    }
-    console.log("temp dir exists")
-
-    // 2b. Save the video data to a temporary file
-    const tempVideoPath = './temp/video.mp4'; // Create a temporary file
-    fs.writeFileSync(tempVideoPath, Buffer.from(videoData.buffer)); // Convert to Buffer
-
-    // 3. Extract frames from the video
-    const frames = await extractFramesFromVideo(tempVideoPath);
-    console.log("frames successfully extracted")
-    console.log(frames);
-
-    // 4. Analyze each frame using the existing analyzeSDOHData function
-    const sdohInsights = await Promise.all(
-      frames.map(async (framePath) => {
-        const sdohInsight = await analyzeSDOHData(framePath); // Reuse the existing function
-        return sdohInsight;
-      })
-    );
-
-    // 5. Delete the temporary video and frames
-    fs.unlinkSync(tempVideoPath);
-    fs.rmdirSync('./temp/frames', { recursive: true }); // Delete the frames directory
-
-    // Delete the videoDataArray from the document after processing
-    await collection.updateOne(
-      { patientId },
-      { $set: { videoDataArray: [] } } // Clear the videoDataArray
-    );
-    console.log(sdohInsights)
-
-    return sdohInsights;
-  } catch (error) {
-    console.error('Error analyzing SDOH data for video:', error);
-    throw error;
-  }
-}
 
 
 // *** Video Upload Route ***
@@ -1306,94 +1239,126 @@ router.post("/upload/video", upload.single('video'),
 
     try {
       const { patientId } = req.body;
-      const video = req.file; 
- 
-      // Read video data as Buffer
-      const videoData = fs.readFileSync(video.path);
+      const video = req.file;
 
-      // Prepare the new document to be inserted into the database
-      const newDocument = {
-        patientId,
-        videoDataArray: [{ data: videoData, createdAt: new Date() }],
-        createdAt: new Date()
-      };
+      //  Check if there's an existing record for this patient
+      const existingRecord = await db.collection("video-sdoh-records").findOne({ patientId });
       
+      //  If exists, delete the old video from GridFS
+      if (existingRecord) {
+        const bucket = new GridFSBucket(db, { bucketName: 'videos' });
+        try {
+          await bucket.delete(existingRecord.uploadedVideoId);
+        } catch (deleteError) {
+          console.warn(`Failed to delete old video: ${deleteError.message}`);
+          // Continue with upload even if delete fails
+        }
+      }
 
-      const prompt = `
-      Analyze the provided video in the context of pregnancy care. 
-      Focus on identifying any potential issues or abnormalities that could affect the health of the mother or the fetus.
+      // 1. Create a GridFS bucket
+      const bucket = new GridFSBucket(db, { bucketName: 'videos' });
 
-      Specifically, look for:
-      - **Maternal Physical Health:** Assess the mother's posture, gait, and any visible signs of discomfort or distress.
-      - **Fetal Movement:** Observe fetal movements and note if they appear normal, reduced, or excessive.
-      - **Environmental Factors:** Analyze the environment shown in the video for potential hazards or risks to the mother or fetus (e.g., unsafe conditions, lack of support).
-
-      Provide a concise summary of your findings and highlight any areas of concern.
-
-      **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
-      It is not a substitute for professional medical advice, diagnosis, or treatment. 
-      Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
-    `;
-
-      // Upload the video to Gemini for processing
-    const uploadedVideo = await uploadToGemini(video.path, video.mimetype);
-
-    // Wait for the file to become ACTIVE
-    const activeFile = await waitForFilesActive(uploadedVideo);
-
-    // Insert the new document into the "video-sdoh-records" collection
-    const collection = await db.collection("video-sdoh-records");
-    await collection.insertOne(newDocument);
-
-    await collection.updateOne(
-      { patientId }, // Find the document by patientId
-      { $push: { videoData: { data: videoData, createdAt: new Date() } } } // Append new image data to the array
-    );
-
-    // Perform SDOH analysis for the video
-    const sdohInsightsArray = await analyzeSDOHDataForVideo(patientId);
-
-
-    // Proceed with further processing once the file is ACTIVE
-    logger.info("File is ready:", activeFile);
-
-    // Start chat session with the model, passing the video for analysis
-    const chatSession = model.startChat({
-      generationConfig,
-      safetySettings,
-      history: [
-        {
-          role: "user",
-          parts: [
-            { text: prompt },
-            {
-              fileData: {
-                mimeType: activeFile.mimeType,
-                fileUri: activeFile.uri,
-              },
-            },
-          ],
-        },
-      ],
-    });
-
-    // Send the prompt and receive diagnostic results
-    const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
-    const geminiAnalysis = generatedContent.response.text();
-    console.log(geminiAnalysis)
-    console.log(sdohInsightsArray)
-    
-
-      // Store video URI (or other relevant data) in your database
-      // ... (Logic to associate video URI with the patientId)
-
-      res.status(201).json({
-        message: "Video uploaded successfully",
-        uploadedVideoUrl: activeFile.uri,
-        geminiAnalysis: geminiAnalysis,
-        sdohVideoInsightsArray: sdohInsightsArray
-
+      // 2. Create an upload stream
+      const uploadStream = bucket.openUploadStream(video.originalname, {
+        metadata: { 
+          patientId,
+          uploadDate: new Date(),
+          originalName: video.originalname,
+          mimeType: video.mimetype 
+        }
       });
+
+      // 3. Pipe the video data to the upload stream
+      fs.createReadStream(video.path).pipe(uploadStream)
+        .on('error', (error) => {
+          logger.error("Error uploading video to GridFS:", error);
+          res.status(500).json({ error: "Internal server error" });
+        })
+        .on('finish', async () => {
+          // 4. Get the video file ID from GridFS
+          const videoFileId = uploadStream.id; 
+
+          // 5. Update or create the video record
+            await db.collection("video-sdoh-records").updateOne(
+             { patientId },
+           { 
+           $set: {
+            uploadedVideoId: videoFileId,
+            lastUpdated: new Date(),
+            originalName: video.originalname,
+            mimeType: video.mimetype
+            }
+           },
+           { upsert: true }
+           );
+
+          // Delete any old analysis results
+              await db.collection("sdoh-analysis-results").deleteMany({ patientId });
+
+          // 6. Upload the video to Gemini for processing
+          const uploadedVideo = await uploadToGemini(video.path, video.mimetype);
+
+          // 7. Wait for the file to become ACTIVE
+          const activeFile = await waitForFilesActive(uploadedVideo);
+
+          // 8. Define the prompt for Gemini AI (move this inside the 'finish' handler)
+          const prompt = `
+            Analyze the provided video in the context of pregnancy care. 
+            Focus on identifying any potential issues or abnormalities that could affect the health of the mother or the fetus.
+
+            Specifically, look for:
+            - **Maternal Physical Health:** Assess the mother's posture, gait, and any visible signs of discomfort or distress.
+            - **Fetal Movement:** Observe fetal movements and note if they appear normal, reduced, or excessive.
+            - **Environmental Factors:** Analyze the environment shown in the video for potential hazards or risks to the mother or fetus (e.g., unsafe conditions, lack of support).
+
+            Provide a concise summary of your findings and highlight any areas of concern.
+
+            **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
+            It is not a substitute for professional medical advice, diagnosis, or treatment. 
+            Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
+          `;
+
+          // 9. Start chat session with the model
+          const chatSession = model.startChat({
+            generationConfig,
+            safetySettings,
+            history: [
+              {
+                role: "user",
+                parts: [
+                  { text: prompt },
+                  {
+                    fileData: {
+                      mimeType: activeFile.mimeType,
+                      fileUri: activeFile.uri,
+                    },
+                  },
+                ],
+              },
+            ],
+          });
+
+          // 10. Send the prompt and receive diagnostic results
+          const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
+          const geminiAnalysis = generatedContent.response.text();
+          console.log(geminiAnalysis)
+
+          // 11. Perform SDOH analysis for the video
+          analyzeSDOHDataForVideo(patientId)
+            .then(({ accumulatedInsights, tempVideoPath }) => {
+              res.status(201).json({
+                message: "Video uploaded successfully",
+                uploadedVideoUrl: activeFile.uri,
+                geminiAnalysis: geminiAnalysis,
+                sdohVideoInsightsArray: accumulatedInsights,
+                uploadedVideoId: videoFileId,
+              });
+            })
+            .catch(error => {
+              logger.error("Error during video SDOH analysis:", error);
+              res.status(500).json({ error: "Internal server error" });
+            });
+        }); // End of uploadStream.on('finish')
 
     } catch (error) {
       logger.error("Error uploading video:", error);
@@ -1402,7 +1367,370 @@ router.post("/upload/video", upload.single('video'),
   }
 );
 
+// Fixed extractFramesFromVideo function
+async function extractFramesFromVideo(videoPath, numFrames = 5) {
+  try {
+    // 1. Create the temp directory for frames if it doesn't exist
+    const framesDir = path.join(process.cwd(), 'temp', 'frames');
+    if (!fs.existsSync(framesDir)) {
+      fs.mkdirSync(framesDir, { recursive: true });
+    }
 
+    // 2. Clean up any existing frames
+    fs.readdirSync(framesDir)
+      .filter(file => file.startsWith('frame-'))
+      .forEach(file => fs.unlinkSync(path.join(framesDir, file)));
+
+    // 3. Create a promise to handle frame extraction
+    return new Promise((resolve, reject) => {
+      const frameFileNames = [];
+      let frameCount = 0;
+
+      ffmpeg(videoPath)
+        .on('filenames', (filenames) => {
+          frameFileNames.push(...filenames.map(filename => 
+            path.join(framesDir, filename)
+          ));
+        })
+        .on('end', () => {
+          // Verify frames were actually created
+          const existingFrames = frameFileNames.filter(frame => 
+            fs.existsSync(frame)
+          );
+          
+          if (existingFrames.length === 0) {
+            reject(new Error('No frames were extracted from the video'));
+          } else {
+            resolve(existingFrames);
+          }
+        })
+        .on('error', (err) => reject(err))
+        .screenshots({
+          count: numFrames,
+          folder: framesDir,
+          filename: `frame-%i.png`,
+          size: '1280x720'  // Set a consistent size
+        });
+    });
+  } catch (error) {
+    console.error('Error extracting frames from video:', error);
+    throw error;
+  }
+}
+
+
+const visionClient = new vision.ImageAnnotatorClient();
+async function analyzeSDOHDataForVideoFrame(framePath, previousInsights = {}) {
+  try {
+    // 1. Call Google Vision API 
+    const [result] = await visionClient.annotateImage({
+      image: { source: { filename: framePath } },
+      features: [
+        { type: 'LABEL_DETECTION' },
+        { type: 'OBJECT_LOCALIZATION' },
+      ],
+    });
+
+    const labels = result.labelAnnotations;
+    const objects = result.localizedObjectAnnotations;
+
+    // 2. Analyze labels and objects for SDOH insights
+    let sdohInsights = { ...previousInsights };
+
+    // Log detected items
+    console.log('\n--- Frame Analysis Results ---');
+    console.log('Detected Labels:', labels.map(l => `${l.description} (${(l.score * 100).toFixed(1)}%)`));
+    console.log('Detected Objects:', objects.map(o => `${o.name} (${(o.score * 100).toFixed(1)}%)`));
+
+    // Analyze labels
+    for (const label of labels) {
+      const labelDesc = label.description.toLowerCase();
+      
+      // Safety analysis
+      if (labelDesc.includes("graffiti") || labelDesc.includes("broken window")) {
+        sdohInsights.neighborhoodSafety = (sdohInsights.neighborhoodSafety || 0) - 1;
+        console.log(`⚠️ Safety Concern: Detected ${label.description}`);
+      }
+      
+      // Food access analysis
+      if (labelDesc.includes("fast food") || labelDesc.includes("convenience store")) {
+        sdohInsights.healthyFoodAccess = (sdohInsights.healthyFoodAccess || 0) - 1;
+        console.log(`🍔 Limited Food Access: Detected ${label.description}`);
+      }
+      if (labelDesc.includes("grocery store") || labelDesc.includes("farmers market")) {
+        sdohInsights.healthyFoodAccess = (sdohInsights.healthyFoodAccess || 0) + 1;
+        console.log(`🥬 Healthy Food Access: Detected ${label.description}`);
+      }
+      
+      // Transportation access
+      if (labelDesc.includes("bus stop") || labelDesc.includes("train station")) {
+        sdohInsights.transportationAccess = (sdohInsights.transportationAccess || 0) + 1;
+        console.log(`🚌 Transportation Access: Detected ${label.description}`);
+      }
+      
+      // Healthcare access
+      if (labelDesc.includes("hospital") || labelDesc.includes("clinic")) {
+        sdohInsights.healthcareAccess = (sdohInsights.healthcareAccess || 0) + 1;
+        console.log(`🏥 Healthcare Access: Detected ${label.description}`);
+      }
+    }
+
+    // Analyze objects for mobility
+    for (const object of objects) {
+      if (object.name === "Person" && object.score > 0.8) {
+        sdohInsights.mobility = (sdohInsights.mobility || 0) + 1;
+        console.log(`👤 Mobility Analysis: Detected person with ${(object.score * 100).toFixed(1)}% confidence`);
+      }
+    }
+
+    // Print frame analysis summary
+    console.log('\n--- Frame SDOH Insights Summary ---');
+    Object.entries(sdohInsights).forEach(([category, score]) => {
+      console.log(`${category}: ${score}`);
+    });
+    console.log('--------------------------------\n');
+
+    return sdohInsights;
+
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.error(`Frame not found: ${framePath}`);
+      return { error: `Frame not found: ${framePath}` };
+    }
+    console.error("Error analyzing SDOH data for video frame:", error);
+    throw error;
+  }
+}
+
+
+// Add these helper functions BEFORE analyzeSDOHDataForVideo function
+
+// Helper function to calculate overall SDOH score
+function calculateOverallScore(insights) {
+  // If insights is empty or undefined, return 0
+  if (!insights || Object.keys(insights).length === 0) {
+    return 0;
+  }
+
+  const weights = {
+    neighborhoodSafety: 0.25,
+    healthyFoodAccess: 0.2,
+    transportationAccess: 0.2,
+    healthcareAccess: 0.25,
+    mobility: 0.1
+  };
+
+  let totalScore = 0;
+  let weightSum = 0;
+
+  Object.entries(insights).forEach(([category, value]) => {
+    if (weights[category]) {
+      totalScore += (value || 0) * weights[category];
+      weightSum += weights[category];
+    }
+  });
+
+  return weightSum > 0 ? Number((totalScore / weightSum).toFixed(2)) : 0;
+}
+
+// Helper function to format SDOH categories
+function formatSDOHCategories(insights) {
+  // If insights is empty or undefined, return empty object
+  if (!insights || Object.keys(insights).length === 0) {
+    return {};
+  }
+
+  const categories = {};
+  
+  Object.entries(insights).forEach(([category, score]) => {
+    categories[category] = {
+      score: score || 0,
+      impact: score > 0 ? 'Positive' : score < 0 ? 'Negative' : 'Neutral'
+    };
+  });
+
+  return categories;
+}
+
+// Helper function to generate recommendations
+function generateRecommendations(insights) {
+  // If insights is empty or undefined, return empty array
+  if (!insights || Object.keys(insights).length === 0) {
+    return [];
+  }
+
+  const recommendations = [];
+
+  if ((insights.neighborhoodSafety || 0) < 0) {
+    recommendations.push('Consider safety assessment and community resource connection');
+  }
+  if ((insights.healthyFoodAccess || 0) < 0) {
+    recommendations.push('Provide information about local food assistance programs and healthy food resources');
+  }
+  if ((insights.transportationAccess || 0) < 0) {
+    recommendations.push('Connect with transportation assistance services');
+  }
+  if ((insights.healthcareAccess || 0) < 0) {
+    recommendations.push('Facilitate connections with nearby healthcare providers');
+  }
+  if ((insights.mobility || 0) < 0) {
+    recommendations.push('Consider mobility assessment and support services');
+  }
+
+  // If no specific recommendations, provide a default one
+  if (recommendations.length === 0) {
+    recommendations.push('Continue monitoring SDOH factors');
+  }
+
+  return recommendations;
+}
+
+
+async function analyzeSDOHDataForVideo(patientId) {
+  let tempVideoPath = null;
+  let frames = [];
+  
+  try {
+    // 1. Get the video file ID from database 
+    const videoRecord = await db.collection("video-sdoh-records").findOne({ patientId }, { sort: { lastUpdated: -1 } });
+    if (!videoRecord) {
+      throw new Error(`No video record found for patient ID: ${patientId}`);
+    }
+
+    const videoFileId = videoRecord.uploadedVideoId;
+
+    // Verify the video exists in GridFS
+    const bucket = new GridFSBucket(db, { bucketName: 'videos' });
+    const videoFiles = await bucket.find({ _id: videoFileId }).toArray();
+    
+    if (videoFiles.length === 0) {
+      throw new Error(`Video file not found in GridFS: ${videoFileId}`);
+    }
+    
+    // 2. Create temporary directory
+    const tempDir = path.join(process.cwd(), 'temp');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    // 3. Set up temporary video path
+    tempVideoPath = path.join(tempDir, `${Date.now()}-temp-video.mp4`);
+    
+    // 4. Download and process video
+    await new Promise((resolve, reject) => {
+      const bucket = new GridFSBucket(db, { bucketName: 'videos' });
+      const downloadStream = bucket.openDownloadStream(videoFileId);
+      const writeStream = fs.createWriteStream(tempVideoPath);
+
+      downloadStream
+        .pipe(writeStream)
+        .on('error', reject)
+        .on('finish', resolve);
+    });
+
+    console.log("Video downloaded successfully to:", tempVideoPath);
+
+    // 5. Extract frames
+    frames = await extractFramesFromVideo(tempVideoPath);
+    console.log("Frames extracted successfully:", frames);
+
+    // 6. Initialize analysis containers
+     // Initialize insights tracking with default values
+     let accumulatedInsights = {
+      neighborhoodSafety: 0,
+      healthyFoodAccess: 0,
+      transportationAccess: 0,
+      healthcareAccess: 0,
+      mobility: 0
+    };
+    let frameAnalyses = [];
+
+    // 7. Analyze each frame
+    for (const [index, framePath] of frames.entries()) {
+      try {
+        console.log(`\n=== Processing Frame ${index + 1}/${frames.length} ===`);
+        if (!fs.existsSync(framePath)) {
+          console.warn(`Skipping missing frame: ${framePath}`);
+          continue;
+        }
+
+        const frameInsights = await analyzeSDOHDataForVideoFrame(framePath, accumulatedInsights);
+        frameAnalyses.push({
+          frameNumber: index + 1,
+          insights: frameInsights
+        });
+
+        accumulatedInsights = { ...accumulatedInsights, ...frameInsights };
+      } catch (frameError) {
+        console.error(`❌ Error analyzing frame ${index + 1}:`, frameError);
+      }
+    }
+
+    // 8. Generate SDOH summary
+    const sdohSummary = {
+      overallScore: calculateOverallScore(accumulatedInsights),
+      categories: formatSDOHCategories(accumulatedInsights),
+      recommendations: generateRecommendations(accumulatedInsights)
+    };
+
+    // Print final analysis results
+    console.log('\n========================================');
+    console.log('🏥 FINAL SDOH ANALYSIS RESULTS 🏥');
+    console.log('========================================');
+    console.log('\n📊 Overall SDOH Score:', sdohSummary.overallScore);
+    
+    console.log('\n📋 Category Breakdown:');
+    Object.entries(sdohSummary.categories).forEach(([category, details]) => {
+      console.log(`\n${category}:`);
+      console.log(`  Score: ${details.score}`);
+      console.log(`  Impact: ${details.impact}`);
+    });
+
+    console.log('\n💡 Recommendations:');
+    sdohSummary.recommendations.forEach((rec, index) => {
+      console.log(`${index + 1}. ${rec}`);
+    });
+    
+    console.log('\n========================================\n');
+
+    // 9. Store analysis results
+    const analysisRecord = {
+      patientId,
+      timestamp: new Date(),
+      sdohSummary,
+      frameAnalyses,
+      rawInsights: accumulatedInsights
+    };
+
+    await db.collection("sdoh-analysis-results").insertOne(analysisRecord);
+    console.log(`✅ Analysis results saved to database for patient ${patientId}`);
+
+    return {
+      accumulatedInsights,
+      tempVideoPath,
+      sdohSummary,
+      analysisId: analysisRecord._id
+    };
+
+  } catch (error) {
+    console.error('❌ Error in SDOH video analysis:', error);
+    throw error;
+  } finally {
+    // Cleanup
+    try {
+      if (tempVideoPath && fs.existsSync(tempVideoPath)) {
+        fs.unlinkSync(tempVideoPath);
+      }
+      frames.forEach(frame => {
+        if (fs.existsSync(frame)) {
+          fs.unlinkSync(frame);
+        }
+      });
+    } catch (cleanupError) {
+      console.error('Error during cleanup:', cleanupError);
+    }
+  }
+}
 
 // Route to get predictions and recommendations
 router.post("/predict", async (req, res) => {
