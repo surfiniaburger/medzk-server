@@ -1770,10 +1770,10 @@ router.post("/predict", async (req, res) => {
     const prompt = `
       Patient: ${patientId}
       Medical History: ${extractedMedicalHistory}
-      SDOH Insights: ${sdohAnalysis ? sdohInsight : "No Image sdoh data provided"}
+      SDOH Insights: ${sdohInsight}
       Video SDOH Analysis: ${videoSdohAnalysis}
-      Image Analysis (New Uploads): ${imageAnalysis ? geminiInsights : "No new image analysis."}
-      Video Analysis (New Uploads): ${videoAnalysis ? geminiAnalysis : "No new video analysis."}
+      Image Analysis (New Uploads): ${geminiInsights}
+      Video Analysis (New Uploads): ${geminiAnalysis}
       Image/Video Analysis: ${combinedAnalysis}
 
       Based on this information, provide a personalized risk assessment for:
@@ -1791,6 +1791,7 @@ router.post("/predict", async (req, res) => {
     });
     const response = await chatSession.sendMessage(prompt);
     const predictionOutput = response.response.text(); // Get text output from Gemini
+    console.log(predictionOutput)
 
     // 3. Process & Return Results:
     //   - Extract risk scores and recommendations from Gemini's response
@@ -1981,6 +1982,7 @@ async function callVisionAPI(imageData) {
 // Function to process Gemini's prediction output
 async function processGeminiPrediction(predictionText) {
   try {
+    console.log("Into the world of processed prediction")
     // 1. Split the prediction text into lines
     const lines = predictionText.split('\n');
 
@@ -2021,6 +2023,9 @@ async function processGeminiPrediction(predictionText) {
         }
       }
     });
+    console.log(riskScores)
+    console.log(recommendations)
+    console.log(explanations)
 
     // 5. Return the extracted data
     return { riskScores, recommendations, explanations };

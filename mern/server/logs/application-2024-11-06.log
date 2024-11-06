@@ -1,0 +1,31 @@
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-05T23:09:53.537Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T08:40:35.950Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730882681614-demo-img.jpg as: files/vpw6iy1c2k5u","timestamp":"2024-11-06T08:44:44.067Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730882686137-9.mp4 as: files/1v5t60axy42s","timestamp":"2024-11-06T08:44:54.733Z"}
+{"level":"info","message":"Waiting for file processing...","timestamp":"2024-11-06T08:44:54.735Z"}
+{"level":"info","message":"\nFile is ready for use.","timestamp":"2024-11-06T08:45:06.873Z"}
+{"0":"3","1":"2","2":"4","level":"info","message":"Received request for patientId:","timestamp":"2024-11-06T08:45:32.652Z"}
+{"level":"error","message":"Error generating prediction: sdohAnalysis is not defined","stack":"ReferenceError: sdohAnalysis is not defined\n    at file:///C:/Users/CCL/Desktop/mern/mern/server/routes/record.js:1773:24\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)","timestamp":"2024-11-06T08:45:40.736Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T08:59:06.360Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730883606901-demo-img.jpg as: files/4kh50nol4t4q","timestamp":"2024-11-06T09:00:09.336Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730883615332-9.mp4 as: files/65mro708nmc0","timestamp":"2024-11-06T09:00:22.080Z"}
+{"level":"info","message":"Waiting for file processing...","timestamp":"2024-11-06T09:00:22.083Z"}
+{"level":"info","message":"\nFile is ready for use.","timestamp":"2024-11-06T09:00:23.145Z"}
+{"0":"3","1":"2","2":"4","level":"info","message":"Received request for patientId:","timestamp":"2024-11-06T09:00:53.104Z"}
+{"level":"error","message":"Error generating prediction: imageAnalysis is not defined","stack":"ReferenceError: imageAnalysis is not defined\n    at file:///C:/Users/CCL/Desktop/mern/mern/server/routes/record.js:1775:39\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)","timestamp":"2024-11-06T09:01:01.323Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T09:03:03.050Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730884643786-demo-img.jpg as: files/loit77kvp9c9","timestamp":"2024-11-06T09:17:26.368Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730884653785-9.mp4 as: files/e8gcg2zrjrpv","timestamp":"2024-11-06T09:17:41.039Z"}
+{"level":"info","message":"Waiting for file processing...","timestamp":"2024-11-06T09:17:41.040Z"}
+{"level":"info","message":"\nFile is ready for use.","timestamp":"2024-11-06T09:17:52.399Z"}
+{"0":"3","1":"2","2":"4","level":"info","message":"Received request for patientId:","timestamp":"2024-11-06T09:18:20.637Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T09:27:22.884Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T09:29:21.598Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730885518777-03.11.2024_11.36.52_REC.png as: files/4ctzozaxax2i","timestamp":"2024-11-06T09:32:01.564Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730885570537-3327104-hd_1920_1080_24fps.mp4 as: files/fonk3skjcal7","timestamp":"2024-11-06T09:33:18.741Z"}
+{"level":"info","message":"Waiting for file processing...","timestamp":"2024-11-06T09:33:18.746Z"}
+{"level":"info","message":"\nFile is ready for use.","timestamp":"2024-11-06T09:33:30.790Z"}
+{"0":"3","1":"2","2":"4","level":"info","message":"Received request for patientId:","timestamp":"2024-11-06T09:34:02.724Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T09:44:51.943Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730886302776-demo-img.jpg as: files/tvus14h8c631","timestamp":"2024-11-06T09:45:05.137Z"}
+{"0":"3","1":"2","2":"4","level":"info","message":"Received request for patientId:","timestamp":"2024-11-06T09:47:28.578Z"}
