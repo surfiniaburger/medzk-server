@@ -10,9 +10,10 @@ import Vision from "./components/vision";
 import VideoUpload from "./components/VideoUpload";
 import "./index.css";
 import App from "./App";
-import PredictForm from "./components/Predict";
+
 import ProofVerification from "./components/ProofVerification";
 import AdvancedAnalyticsDashboard from "./components/Analytics";
+import PredictForm from "./components/Predict";
 
 // Define routes without authentication
 const router = createBrowserRouter([
@@ -22,11 +23,11 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/", 
-        element: <PredictForm />, 
+        element: <App />, 
       },
       {
-        path: "/login",
-        element: <App />, 
+        path: "/predict", 
+        element: <PredictForm />, 
       },
       {
         path: "/vision",
