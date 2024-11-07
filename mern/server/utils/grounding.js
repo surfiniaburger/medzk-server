@@ -96,12 +96,23 @@ export async function Grounding(predictionOutput) {
       safetySettings
     });
 
-    // Send the prompt and receive grounded response
     const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
     const groundedResponse = generatedContent.response.text();
-    console.log(groundedResponse)
+    
+    // Accessing groundingMetadata from the first candidate
+    const candidates = generatedContent.response.candidates;
+    if (candidates && candidates.length > 0) {
+        const groundingMetadata = candidates[0].groundingMetadata;
+        const webSearchQueries = groundingMetadata ? groundingMetadata.webSearchQueries : undefined;
 
-    return groundedResponse; 
+        // Log or use webSearchQueries as needed
+        console.log(webSearchQueries);
+    } else {
+        console.error("No candidates found in response.");
+    }
+
+
+    return { content: groundedResponse, webSearchQueries };
 
   } catch (error) {
     console.error("Error in Grounding function:", error);

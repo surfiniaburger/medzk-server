@@ -112,7 +112,7 @@ const AdvancedAnalyticsDashboard = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Maternal Health Analytics Hub</h1>
+          <h1 className="text-3xl font-bold">Zero Kare Analytics Hub</h1>
           <p className="text-gray-500">Powered by Google Cloud Gemini AI</p>
         </div>
         <div className="flex gap-4">

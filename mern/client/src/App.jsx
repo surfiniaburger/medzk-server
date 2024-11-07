@@ -70,7 +70,7 @@ const App = () => {
     <div className="min-h-screen bg-black text-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-green-900 to-black py-20">
-        <div className="container mx-auto px-6 lg:px-8 text-center max-w-4xl bg-green-900 rounded-lg shadow-2xl">
+        <div className="container mx-auto px-6 lg:px-8 text-center max-w-4xl border-y-slate-400  rounded-lg shadow-2xl">
           <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-400 to-green-700 bg-clip-text text-transparent">
             Empowering Your Pregnancy with AI
           </h1>
@@ -110,7 +110,7 @@ const App = () => {
       {/* Testimonials Section */}
       <section className="bg-black py-20">
         <div className="container mx-auto px-6 lg:px-8 max-w-5xl bg-green-900 rounded-lg shadow-2xl text-center">
-          <h2 className="text-3xl font-bold mb-12 text-green-400">
+          <h2 className="text-3xl font-bold mb-12 text-green-900">
             What Our Users Say
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-6">
@@ -169,7 +169,7 @@ const App = () => {
       {/* CTA Section */}
       <section className="bg-green-900 py-20">
         <div className="container mx-auto px-6 lg:px-8 text-center max-w-4xl bg-green-900 rounded-lg shadow-2xl">
-          <h2 className="text-3xl font-bold mb-6 text-black">
+          <h2 className="text-3xl font-bold mb-6 text-green-900">
             Start Your AI-Powered Pregnancy Journey Today
           </h2>
           <p className="text-lg text-black max-w-2xl mx-auto mb-8">
@@ -187,7 +187,7 @@ const App = () => {
       {/* Footer */}
       <footer className="border-t py-8 bg-black">
         <div className="container mx-auto px-6 lg:px-8 text-center text-black">
-          <p>© 2024 Maternal AI Solutions. All rights reserved.</p>
+          <p>© 2024 Zero Kare AI Solutions. All rights reserved.</p>
         </div>
       </footer>
     </div>

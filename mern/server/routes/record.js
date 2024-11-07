@@ -1780,6 +1780,7 @@ router.post("/predict", async (req, res) => {
     console.log("Location of the patient")
     console.log(longitude)
     console.log(latitude)
+    console.log(extractedMedicalHistory)
 
     const combinedAnalysis = await combineAnalysisResults(existingImageAnalysis, existingVideoAnalysis)
     console.log(combinedAnalysis)
@@ -1816,12 +1817,20 @@ router.post("/predict", async (req, res) => {
 
     // 3. Process & Return Results:
     //   - Extract risk scores and recommendations from Gemini's response
-    const riskAssessments = await processGeminiPrediction(predictionOutput); 
+   
     const groundedPredictionOutput = await Grounding(predictionOutput)
+    // const riskAssessments = await processGeminiPrediction(groundedPredictionOutput );
+    
+    const webSearchQueries = groundedPredictionOutput.groundingMetadata?.webSearchQueries || [];
+
+    
 
     res.status(200).json({ 
-      groundedPredictionOutput,
-      riskAssessments,
+      groundedPredictionOutput: {
+        content: groundedPredictionOutput.content, // The grounded LLM response
+        webSearchQueries, // The Google Search Suggestions
+      },
+      
     });
 
   } catch (error) {
@@ -2000,46 +2009,62 @@ async function callVisionAPI(imageData) {
   }
 }
 
-// Function to process Gemini's prediction output
-async function processGeminiPrediction(predictionText) {
+// Function to process Gemini's grounded prediction output
+async function processGeminiPrediction(groundedPredictionOutput) {
   try {
     console.log("Into the world of processed prediction");
-    const lines = predictionText.split('\n');
-    const riskAssessments = []; 
+    console.log(groundedPredictionOutput)
+    const riskAssessments = [];
 
-    let currentCondition = null;
-    let riskLevel = null;
-    let reasoning = null;
-    let recommendations = [];
+    // 1. Split the output into sections (assuming each condition is a separate section)
+    const sections = groundedPredictionOutput.split(/\n## /g); // Split by "## "
 
-    for (const line of lines) {
-      const trimmedLine = line.trim();
+    // 2. Process each section
+    for (const section of sections) {
+      if (!section.trim()) continue; // Skip empty sections
 
-      if (trimmedLine.startsWith('- ')) { 
-        currentCondition = trimmedLine.slice(2); 
-        riskLevel = null;
-        reasoning = null;
-        recommendations = [];
-      } else if (trimmedLine.startsWith('* **Risk Level:**')) {
-        riskLevel = trimmedLine.split('**Risk Level:**')[1].replace(/[*:]/g, '').trim();
-      } else if (trimmedLine.startsWith('* **Reasoning:**')) {
-        reasoning = trimmedLine.split('**Reasoning:**')[1].replace(/[*:]/g, '').trim();
-      } else if (trimmedLine.startsWith('* **')) { 
-        recommendations.push(trimmedLine.replace(/[*:]/g, '').trim());
-      } 
+      const lines = section.split('\n');
+      let currentCondition = null;
+      let riskLevel = null;
+      let reasoning = null;
+      let recommendations = [];
+      let sources = []; // Array to store sources for each recommendation
 
-      if (currentCondition && riskLevel && reasoning && recommendations.length > 0) {
+      // 3. Extract data from each line
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        if (i === 0) { // First line is the condition
+          currentCondition = line;
+        } else if (line.startsWith('* **Risk Level:**')) {
+          riskLevel = line.split('**Risk Level:**')[1].replace(/[*:]/g, '').trim();
+        } else if (line.startsWith('* **Reasoning:**')) {
+          reasoning = line.split('**Reasoning:**')[1].replace(/[*:]/g, '').trim();
+        } else if (line.startsWith('* **')) { // Recommendation
+          const recommendationText = line.replace(/[*:]/g, '').trim();
+          recommendations.push(recommendationText);
+
+          // Check for source link in the next line
+          if (lines[i + 1] && lines[i + 1].startsWith('[Source:')) {
+            const sourceLink = lines[i + 1].match(/\[Source: (.*?)\]/)[1];
+            sources.push(sourceLink);
+          } else {
+            sources.push(null); // No source found
+          }
+        }
+      }
+
+      // 4. Add the extracted data to the riskAssessments array
+      if (currentCondition && riskLevel && reasoning) {
         riskAssessments.push({
           condition: currentCondition,
           riskLevel,
           reasoning,
-          recommendations,
+          recommendations: recommendations.map((rec, index) => ({
+            advice: rec,
+            source: sources[index]
+          })),
         });
-
-        currentCondition = null;
-        riskLevel = null;
-        reasoning = null;
-        recommendations = [];
       }
     }
 
