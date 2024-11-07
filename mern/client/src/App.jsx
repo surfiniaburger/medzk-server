@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle 
 } from "@/components/ui/card";
-import { HeartPulse, ShieldCheck, Video, Camera, ArrowRight, BarChart3, Quote, BarChart2 } from 'lucide-react';
+import { HeartPulse, ShieldCheck, Video, Camera, ArrowRight, BarChart3, Quote} from 'lucide-react';
 
 const FeatureCard = ({ icon: Icon, title, description, to }) => (
   <Card className="group hover:shadow-2xl transition-all bg-green-900 text-white rounded-lg p-6">
@@ -62,12 +62,7 @@ const App = () => {
       description: "Access detailed analytics on your health data.",
       to: "/analytics"
     },
-    {
-      icon: BarChart2,
-      title: "Gender Analytics",
-      description: "Access detailed analytics on gender Equality.",
-      to: "/equity"
-    },
+   
   ];
 
   return (

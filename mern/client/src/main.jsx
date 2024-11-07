@@ -14,7 +14,7 @@ import App from "./App";
 import ProofVerification from "./components/ProofVerification";
 import AdvancedAnalyticsDashboard from "./components/Analytics";
 import PredictForm from "./components/Predict";
-import GenderEquityDashboard from "./components/equality";
+
 
 // Define routes without authentication
 const router = createBrowserRouter([
@@ -46,10 +46,6 @@ const router = createBrowserRouter([
       {
         path: "/analytics",
         element: <AdvancedAnalyticsDashboard />,
-      },
-      {
-        path: "/equity",
-        element: <GenderEquityDashboard />,
       },
     ],
   },
