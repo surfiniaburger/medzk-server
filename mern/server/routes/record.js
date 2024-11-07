@@ -18,6 +18,7 @@ import vision from "@google-cloud/vision"
 import { Storage } from '@google-cloud/storage';
 import ffmpeg from 'fluent-ffmpeg';
 import { GridFSBucket } from 'mongodb';
+import { Grounding } from "../utils/grounding.js";
 
 
 // Create __dirname equivalent
@@ -406,11 +407,8 @@ router.get("/recommendations/:condition", async (req, res) => {
   }
 });
 
-
-
-router.get("/search/:patientId", async (req, res) => {
+async function getExistingMedicalResult(patientId) {
   try {
-    const { patientId } = req.params;
 
     if (!patientId) {
       return res.status(400).json({ error: "Missing required parameter: patientId" });
@@ -487,12 +485,29 @@ router.get("/search/:patientId", async (req, res) => {
     }
 
     // Step 10: Return the decrypted data and verification result
-    res.status(200).json({
+    return {
       patientId,
       recordHash,
       criteriaHash,
       decryptedData,
       isValid
+    };
+
+  } catch (error) {
+    logger.error("Error retrieving and verifying record:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+router.get("/search/:patientId", async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+   const result = await  getExistingMedicalResult(patientId)
+    // Step 10: Return the decrypted data and verification result
+    res.status(200).json({
+      result : result
     });
 
   } catch (error) {
@@ -1736,7 +1751,7 @@ async function analyzeSDOHDataForVideo(patientId) {
 // Route to get predictions and recommendations
 router.post("/predict", async (req, res) => {
   try {
-    const { patientId, uploadedImageUrls, uploadedVideoUrl, medicalHistory,  sdohInsight, geminiInsights, geminiAnalysis, sdohVideoInsightsArray } = req.body;
+    const { patientId, uploadedImageUrls, uploadedVideoUrl, wellnessText, latitude, longitude,  sdohInsight, geminiInsights, geminiAnalysis, sdohVideoInsightsArray } = req.body;
     logger.info('Received request for patientId:', patientId);
     
 
@@ -1755,13 +1770,16 @@ router.post("/predict", async (req, res) => {
     }
 
     //   - Extract medical history from unstructured text (e.g., 'notes' field)
-    const extractedMedicalHistory = medicalHistory // Implement this function  
+    const extractedMedicalHistory = await getExistingMedicalResult(patientId) // Implement this function  
     //   - Get existing image/video analysis result (if applicable)
    
     const existingImageAnalysis = await getExistingImageAnalysisResult(patientId);
     const existingVideoAnalysis = await getExistingVideoAnalysisResult(patientId);
     console.log(existingImageAnalysis)
     console.log(existingVideoAnalysis)
+    console.log("Location of the patient")
+    console.log(longitude)
+    console.log(latitude)
 
     const combinedAnalysis = await combineAnalysisResults(existingImageAnalysis, existingVideoAnalysis)
     console.log(combinedAnalysis)
@@ -1769,12 +1787,15 @@ router.post("/predict", async (req, res) => {
     // 2. Gemini Multimodal Analysis:
     const prompt = `
       Patient: ${patientId}
+      wellnessText: ${wellnessText}
       Medical History: ${extractedMedicalHistory}
       SDOH Insights: ${sdohInsight}
       Video SDOH Analysis: ${videoSdohAnalysis}
       Image Analysis (New Uploads): ${geminiInsights}
       Video Analysis (New Uploads): ${geminiAnalysis}
       Image/Video Analysis: ${combinedAnalysis}
+      Patient Longitude: ${longitude}
+      Patient Latitude: ${latitude}
 
       Based on this information, provide a personalized risk assessment for:
         - Diabetes
@@ -1795,12 +1816,12 @@ router.post("/predict", async (req, res) => {
 
     // 3. Process & Return Results:
     //   - Extract risk scores and recommendations from Gemini's response
-    const { riskScores, recommendations, explanations } = processGeminiPrediction(predictionOutput); // Implement this function
+    const riskAssessments = await processGeminiPrediction(predictionOutput); 
+    const groundedPredictionOutput = await Grounding(predictionOutput)
 
     res.status(200).json({ 
-      riskScores, 
-      recommendations, 
-      explanations 
+      groundedPredictionOutput,
+      riskAssessments,
     });
 
   } catch (error) {
@@ -1982,59 +2003,55 @@ async function callVisionAPI(imageData) {
 // Function to process Gemini's prediction output
 async function processGeminiPrediction(predictionText) {
   try {
-    console.log("Into the world of processed prediction")
-    // 1. Split the prediction text into lines
+    console.log("Into the world of processed prediction");
     const lines = predictionText.split('\n');
+    const riskAssessments = []; 
 
-    // 2. Initialize variables to store extracted data
-    const riskScores = {};
-    const recommendations = [];
-    const explanations = {};
+    let currentCondition = null;
+    let riskLevel = null;
+    let reasoning = null;
+    let recommendations = [];
 
-    // 3. Define keywords or patterns to identify sections (adjust as needed)
-    const riskKeyword = "Risk Assessment:";
-    const recommendationKeyword = "Recommendations:";
-    const explanationKeyword = "Explanation:";
+    for (const line of lines) {
+      const trimmedLine = line.trim();
 
-    // 4. Iterate through each line to extract information
-    let currentSection = null;
-    lines.forEach(line => {
-      // Find the start of a new section
-      if (line.includes(riskKeyword)) {
-        currentSection = "risk";
-      } else if (line.includes(recommendationKeyword)) {
-        currentSection = "recommendation";
-      } else if (line.includes(explanationKeyword)) {
-        currentSection = "explanation";
-      } else if (currentSection && line.trim() !== "") { // Process lines within a section
-        switch (currentSection) {
-          case "risk":
-            const [condition, score] = line.split(':').map(s => s.trim());
-            riskScores[condition] = parseFloat(score); // Assuming scores are numerical
-            break;
-          case "recommendation":
-            recommendations.push(line.trim());
-            break;
-          case "explanation":
-            // Assuming explanations are in "Condition: Explanation" format
-            const [expCondition, expText] = line.split(':').map(s => s.trim());
-            explanations[expCondition] = expText;
-            break;
-        }
+      if (trimmedLine.startsWith('- ')) { 
+        currentCondition = trimmedLine.slice(2); 
+        riskLevel = null;
+        reasoning = null;
+        recommendations = [];
+      } else if (trimmedLine.startsWith('* **Risk Level:**')) {
+        riskLevel = trimmedLine.split('**Risk Level:**')[1].replace(/[*:]/g, '').trim();
+      } else if (trimmedLine.startsWith('* **Reasoning:**')) {
+        reasoning = trimmedLine.split('**Reasoning:**')[1].replace(/[*:]/g, '').trim();
+      } else if (trimmedLine.startsWith('* **')) { 
+        recommendations.push(trimmedLine.replace(/[*:]/g, '').trim());
+      } 
+
+      if (currentCondition && riskLevel && reasoning && recommendations.length > 0) {
+        riskAssessments.push({
+          condition: currentCondition,
+          riskLevel,
+          reasoning,
+          recommendations,
+        });
+
+        currentCondition = null;
+        riskLevel = null;
+        reasoning = null;
+        recommendations = [];
       }
-    });
-    console.log(riskScores)
-    console.log(recommendations)
-    console.log(explanations)
+    }
 
-    // 5. Return the extracted data
-    return { riskScores, recommendations, explanations };
+    console.log(riskAssessments);
+    return riskAssessments;
 
   } catch (error) {
     logger.error("Error parsing Gemini prediction:", error);
     throw new Error("Unable to process prediction results.");
   }
 }
+
 
 
 router.post('/login', 
