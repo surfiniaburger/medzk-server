@@ -15,6 +15,7 @@ import ProofVerification from "./components/ProofVerification";
 import AdvancedAnalyticsDashboard from "./components/Analytics";
 import PredictForm from "./components/Predict";
 
+
 // Define routes without authentication
 const router = createBrowserRouter([
   {

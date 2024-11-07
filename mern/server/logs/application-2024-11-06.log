@@ -29,3 +29,61 @@
 {"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T09:44:51.943Z"}
 {"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730886302776-demo-img.jpg as: files/tvus14h8c631","timestamp":"2024-11-06T09:45:05.137Z"}
 {"0":"3","1":"2","2":"4","level":"info","message":"Received request for patientId:","timestamp":"2024-11-06T09:47:28.578Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T16:09:27.934Z"}
+{"0":"3","1":"2","2":"4","level":"info","message":"Received request for patientId:","timestamp":"2024-11-06T16:12:59.413Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T16:46:42.537Z"}
+{"level":"error","message":"API key is not valid or not found in the config.env file","timestamp":"2024-11-06T17:44:56.743Z"}
+{"level":"error","message":"API key is not valid or not found in the config.env file","timestamp":"2024-11-06T18:27:23.282Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:45:32.544Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:45:34.503Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:48:06.875Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:48:09.935Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:49:09.408Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:49:11.423Z"}
+{"level":"error","message":"Error retrieving and verifying record: result.stringify is not a function","stack":"TypeError: result.stringify is not a function\n    at file:///C:/Users/CCL/Desktop/mern/mern/server/routes/record.js:511:23\n    at Layer.handleRequest (C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\node_modules\\router\\lib\\layer.js:145:17)\n    at next (C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\node_modules\\router\\lib\\route.js:159:13)\n    at Route.dispatch (C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\node_modules\\router\\lib\\route.js:119:3)\n    at handle (C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\node_modules\\router\\index.js:428:11)\n    at Layer.handleRequest (C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\node_modules\\router\\lib\\layer.js:145:17)\n    at C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\node_modules\\router\\index.js:293:15\n    at param (C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\node_modules\\router\\index.js:593:14)\n    at param (C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\node_modules\\router\\index.js:603:14)\n    at processParams (C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\node_modules\\router\\index.js:653:3)","timestamp":"2024-11-06T18:49:14.891Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:51:01.917Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:51:04.025Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:53:37.021Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:53:40.246Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:54:24.041Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:54:25.758Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:58:56.066Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T18:58:59.144Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T19:01:39.254Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T19:01:42.305Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T19:02:16.655Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T19:02:19.457Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T19:02:41.995Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T19:02:45.053Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T19:10:01.930Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T19:10:05.569Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730920641426-demo-img.jpg as: files/zeyc79dzhaap","timestamp":"2024-11-06T19:17:23.956Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730920648098-9.mp4 as: files/x0qw536tdraw","timestamp":"2024-11-06T19:17:37.165Z"}
+{"level":"info","message":"Waiting for file processing...","timestamp":"2024-11-06T19:17:37.169Z"}
+{"level":"info","message":"\nFile is ready for use.","timestamp":"2024-11-06T19:17:38.299Z"}
+{"0":"3","1":"2","2":"4","level":"info","message":"Received request for patientId:","timestamp":"2024-11-06T19:18:08.653Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T19:54:49.783Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T19:54:56.167Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730922927148-familia-feliz-tomando-cafe-da-manha-em-um-parque-qiu39vmd6xtm24m4l52xx36uzp103r4c691nvk1anc.webp as: files/mbv89lrsus9h","timestamp":"2024-11-06T19:55:32.978Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730922934237-9.mp4 as: files/edo1j3ti3d10","timestamp":"2024-11-06T19:55:56.846Z"}
+{"level":"info","message":"Waiting for file processing...","timestamp":"2024-11-06T19:55:56.850Z"}
+{"level":"info","message":"\nFile is ready for use.","timestamp":"2024-11-06T19:55:58.913Z"}
+{"0":"3","1":"2","2":"4","level":"info","message":"Received request for patientId:","timestamp":"2024-11-06T19:57:12.934Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T21:42:01.829Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T21:42:06.273Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730929443623-demo-img.jpg as: files/byppvbjjh473","timestamp":"2024-11-06T21:44:06.257Z"}
+{"0":"3","1":"2","2":"4","level":"info","message":"Received request for patientId:","timestamp":"2024-11-06T21:44:36.309Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730929784176-demo-img.jpg as: files/441d1yjgqif4","timestamp":"2024-11-06T21:49:46.414Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730929788659-9.mp4 as: files/wi4eh6pgjny3","timestamp":"2024-11-06T21:49:54.963Z"}
+{"level":"info","message":"Waiting for file processing...","timestamp":"2024-11-06T21:49:54.969Z"}
+{"level":"info","message":"\nFile is ready for use.","timestamp":"2024-11-06T21:49:56.208Z"}
+{"0":"3","1":"2","2":"4","level":"info","message":"Received request for patientId:","timestamp":"2024-11-06T21:51:14.002Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T22:34:55.884Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T22:34:59.977Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730933710338-39c2f5f9-ac0a-42b0-b006-eaebb70b1ada.jpg as: files/mfvutlcf8y9l","timestamp":"2024-11-06T22:55:13.726Z"}
+{"level":"info","message":"Uploaded file C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\uploads\\1730933718450-9.mp4 as: files/duh5nbgaoudm","timestamp":"2024-11-06T22:55:26.574Z"}
+{"level":"info","message":"Waiting for file processing...","timestamp":"2024-11-06T22:55:26.575Z"}
+{"level":"info","message":"\nFile is ready for use.","timestamp":"2024-11-06T22:55:39.113Z"}
+{"0":"3","1":"2","2":"4","level":"info","message":"Received request for patientId:","timestamp":"2024-11-06T22:56:30.651Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T22:59:22.921Z"}
+{"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-06T22:59:26.204Z"}

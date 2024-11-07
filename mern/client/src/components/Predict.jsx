@@ -2,10 +2,11 @@ import { useState } from 'react';
 import axios from 'axios';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import PredictionResults from './PredictionResult';
 
 const PredictForm = () => {
   const [patientId, setPatientId] = useState('');
-  const [medicalHistory, setMedicalHistory] = useState('');
+  const [wellnessText, setWellnessText] = useState('');
   const [geminiAnalysis, setGeminiAnalysis] = useState(null);
   const [error, setError] = useState(null);
   const [uploadedImageUrls, setUploadedImageUrls] = useState([]);
@@ -14,6 +15,8 @@ const PredictForm = () => {
   const [sdohInsights, setSdohInsights] = useState([]);
   const [sdohVideoInsightsArray, setSdohVideoInsightsArray] = useState([]);
   const [geminiInsights, setGeminiInsights] = useState(null);
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
   
 // sdohVideoInsightsArray
 
@@ -29,6 +32,22 @@ const PredictForm = () => {
     video: false,
     prediction: false
   });
+
+const handleLocation = () => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLatitude(position.coords.latitude);
+        setLongitude(position.coords.longitude);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+      }
+    );
+  } else {
+    console.error("Geolocation is not supported by this browser.");
+  }
+};
 
   const handleImageUpload = async (event) => {
     const files = event.target.files;
@@ -84,8 +103,8 @@ const PredictForm = () => {
     const { name, value } = event.target;
     if (name === 'patientId') {
       setPatientId(value);
-    } else if (name === 'medicalHistory') {
-      setMedicalHistory(value);
+    } else if (name === 'wellnessText') {
+      setWellnessText(value);
     }
     setError(null);
   };
@@ -98,6 +117,10 @@ const PredictForm = () => {
       return;
     }
 
+    const formData = new FormData(event.target);
+    formData.append('latitude', latitude);
+    formData.append('longitude', longitude);
+
     setProcessingStates(prev => ({ ...prev, prediction: true }));
     setError(null);
 
@@ -106,11 +129,13 @@ const PredictForm = () => {
         patientId,
         uploadedImageUrls,
         uploadedVideoUrl,
-        medicalHistory,
+        wellnessText,
         sdohInsights,
         geminiInsights,
         geminiAnalysis,
-        sdohVideoInsightsArray
+        sdohVideoInsightsArray,
+        longitude,
+        latitude,
       });
       setPredictionResults(response.data);
       setCompletedSteps(prev => ({ ...prev, prediction: true }));
@@ -150,13 +175,13 @@ const PredictForm = () => {
           </div>
 
           <div>
-            <label htmlFor="medicalHistory" className="block text-sm font-medium mb-1">
-              Medical History
+            <label htmlFor="wellnessText" className="block text-sm font-medium mb-1">
+              Wellness Text
             </label>
             <textarea
-              id="medicalHistory"
-              name="medicalHistory"
-              value={medicalHistory}
+              id="wellnessText"
+              name="wellnessText"
+              value={wellnessText}
               onChange={handleInputChange}
               className="w-full p-2 border rounded-md h-32"
             />
@@ -192,6 +217,10 @@ const PredictForm = () => {
           </div>
         </div>
 
+        <button type="button" onClick={handleLocation}>
+        Get Current Location
+       </button>
+
         <button
           type="submit"
           disabled={processingStates.prediction || processingStates.images || processingStates.video}
@@ -209,12 +238,7 @@ const PredictForm = () => {
       </form>
 
       {predictionResult && (
-        <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-xl font-bold mb-4">Prediction Results</h3>
-          <pre className="bg-white p-4 rounded-md overflow-auto">
-            {JSON.stringify(predictionResult, null, 2)}
-          </pre>
-        </div>
+        <PredictionResults predictionResult={predictionResult} />
       )}
 
       <div className="mt-4 space-y-2">
