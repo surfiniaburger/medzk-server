@@ -26,6 +26,10 @@ const PredictForm = () => {
     video: false,
     prediction: false
   });
+
+  const API_BASE = process.env.NODE_ENV === 'production' 
+    ? 'https://medzk-server.onrender.com'
+    : 'http://localhost:5050';
   
   const [completedSteps, setCompletedSteps] = useState({
     images: false,
@@ -63,7 +67,7 @@ const handleLocation = () => {
     formData.append('patientId', patientId);
 
     try {
-      const response = await axios.post('http://localhost:5050/record/upload/image', formData);
+      const response = await axios.post(`${API_BASE}/record/upload/image`, formData);
       setUploadedImageUrls(response.data.uploadedImageUrls);
       setSdohInsights(response.data.sdohInsights);
       setGeminiInsights(response.data.geminiInsights);
@@ -87,7 +91,7 @@ const handleLocation = () => {
     formData.append('patientId', patientId);
 
     try {
-      const response = await axios.post('http://localhost:5050/record/upload/video', formData);
+      const response = await axios.post(`${API_BASE}/record/upload/video`, formData);
       setUploadedVideoUrl(response.data.uploadedVideoUrl);
       setGeminiAnalysis(response.data.geminiAnalysis);
       setSdohVideoInsightsArray(response.data.sdohVideoInsightsArray)
@@ -125,7 +129,7 @@ const handleLocation = () => {
     setError(null);
 
     try {
-      const response = await axios.post('http://localhost:5050/record/predict', {
+      const response = await axios.post(`${API_BASE}/record/predict`, {
         patientId,
         uploadedImageUrls,
         uploadedVideoUrl,
