@@ -28,7 +28,7 @@ const PredictForm = () => {
   });
 
   const API_BASE = process.env.NODE_ENV === 'production' 
-    ? 'https://medzk-server.vercel.app/'
+    ? 'https://medzk-server.onrender.com'
     : 'http://localhost:5050';
   
   const [completedSteps, setCompletedSteps] = useState({

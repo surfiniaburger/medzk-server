@@ -12,7 +12,7 @@ export default defineConfig({
     server: {
       proxy: {
         '/record': {
-          target: 'https://medzk-server.vercel.app/',
+          target: 'https://medzk-server.onrender.com',
           changeOrigin: true,
           secure: false
         }
