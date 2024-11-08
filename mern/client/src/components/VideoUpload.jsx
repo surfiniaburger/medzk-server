@@ -74,6 +74,10 @@ const VideoUpload = () => {
     }
   };
 
+  const API_BASE = process.env.NODE_ENV === 'production' 
+    ? 'https://medzk-server.onrender.com'
+    : 'http://localhost:5050';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!patientId || !videoFile) {
@@ -93,7 +97,7 @@ const VideoUpload = () => {
     }
       setStatus('Uploading video...');
       const response = await axios.post(
-        'http://localhost:5050/record/video',
+        `${API_BASE}/record/video`,
         formData,
         {
           headers: {

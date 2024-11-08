@@ -20,6 +20,10 @@ const ProofVerification = () => {
         diagnosis: '',
         riskScore: ''
     });
+
+    const API_BASE = process.env.NODE_ENV === 'production' 
+    ? 'https://medzk-server.onrender.com'
+    : 'http://localhost:5050';
     
 
     // State for criteria inputs
@@ -112,7 +116,7 @@ const ProofVerification = () => {
     // Function to send data to the server
     const sendDataToServer = async (patientId, recordHash, criteriaHash, verificationKeyHash, recordData) => {
         try {
-            const response = await fetch('http://localhost:5050/record', {
+            const response = await fetch(`${API_BASE}/record`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
