@@ -1,6 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { GoogleGenerativeAI, DynamicRetrievalMode, HarmCategory, HarmBlockThreshold} from "@google/generative-ai";
+import { GoogleGenerativeAI, DynamicRetrievalMode, HarmCategory, HarmBlockThreshold, GoogleGenerativeAIFetchError }  from "@google/generative-ai";
 import logger from '../utils/logger.js'; 
 import { Storage } from '@google-cloud/storage';
 
@@ -97,22 +97,9 @@ export async function Grounding(predictionOutput) {
     });
 
     const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
-    const groundedResponse = generatedContent.response.text();
-    
-    // Accessing groundingMetadata from the first candidate
-    const candidates = generatedContent.response.candidates;
-    if (candidates && candidates.length > 0) {
-        const groundingMetadata = candidates[0].groundingMetadata;
-        const webSearchQueries = groundingMetadata ? groundingMetadata.webSearchQueries : undefined;
+    const groundedResponse = await generatedContent.response.text();
 
-        // Log or use webSearchQueries as needed
-        console.log(webSearchQueries);
-    } else {
-        console.error("No candidates found in response.");
-    }
-
-
-    return { content: groundedResponse, webSearchQueries };
+    return groundedResponse;
 
   } catch (error) {
     console.error("Error in Grounding function:", error);

@@ -5,15 +5,9 @@ import records from "./routes/record.js";
 const PORT = process.env.PORT || 5050;
 const app = express();
 
-// Configure CORS to allow requests from a specific origin
-const corsOptions = {
-  origin: 'https://medzk-server.onrender.com', // Allow this origin
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Specify allowed methods
-  credentials: true // Allow credentials (if needed)
-};
 
 // Configure CORS
-app.use(cors(corsOptions));
+app.use(cors());
 
 // Body parser middleware
 app.use(express.json());
