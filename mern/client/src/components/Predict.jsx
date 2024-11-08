@@ -63,7 +63,7 @@ const handleLocation = () => {
     formData.append('patientId', patientId);
 
     try {
-      const response = await axios.post('https://medzk-server.onrender.com/record/upload/image', formData);
+      const response = await axios.post('http://localhost:5050/record/upload/image', formData);
       setUploadedImageUrls(response.data.uploadedImageUrls);
       setSdohInsights(response.data.sdohInsights);
       setGeminiInsights(response.data.geminiInsights);

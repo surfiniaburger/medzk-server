@@ -9,7 +9,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as snarkjs from 'snarkjs';
 import multer from "multer";
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold} from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GoogleGenerativeAIFetchError } from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import logger from '../utils/logger.js'; 
 import crypto from 'crypto';
@@ -1821,16 +1821,12 @@ router.post("/predict", async (req, res) => {
     const groundedPredictionOutput = await Grounding(predictionOutput)
     // const riskAssessments = await processGeminiPrediction(groundedPredictionOutput );
     
-    const webSearchQueries = groundedPredictionOutput.groundingMetadata?.webSearchQueries || [];
+   // const webSearchQueries = groundedPredictionOutput.groundingMetadata?.webSearchQueries || [];
 
     
 
     res.status(200).json({ 
-      groundedPredictionOutput: {
-        content: groundedPredictionOutput.content, // The grounded LLM response
-        webSearchQueries, // The Google Search Suggestions
-      },
-      
+        groundedPredictionOutput, 
     });
 
   } catch (error) {
