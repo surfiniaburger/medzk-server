@@ -9,5 +9,14 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, "./src"), // This sets up '@' to map to the 'src' directory
     },
+    server: {
+      proxy: {
+        '/record': {
+          target: 'https://medzk-server.vercel.app/',
+          changeOrigin: true,
+          secure: false
+        }
+      }
+    }
   },
 });

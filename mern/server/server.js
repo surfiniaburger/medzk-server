@@ -7,7 +7,11 @@ const app = express();
 
 
 // Configure CORS
-app.use(cors());
+app.use(cors({
+  origin: 'https://medzk-server.vercel.app/',
+  methods: 'GET,POST,PUT,DELETE',
+  credentials: true
+}));
 
 // Body parser middleware
 app.use(express.json());
