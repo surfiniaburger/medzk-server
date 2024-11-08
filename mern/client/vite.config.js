@@ -7,16 +7,17 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, "./src"), // This sets up '@' to map to the 'src' directory
+      '@': path.resolve(__dirname, './src'),
     },
-    server: {
-      proxy: {
-        '/record': {
-          target: 'https://medzk-server.onrender.com',
-          changeOrigin: true,
-          secure: false
-        }
+  },
+  server: {
+    proxy: {
+      '/record': {
+        target: 'https://medzk-server.onrender.com',
+        changeOrigin: true,
+        secure: false
       }
     }
-  },
+  }
 });
+
