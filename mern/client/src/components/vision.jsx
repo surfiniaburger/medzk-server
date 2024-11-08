@@ -19,6 +19,10 @@ const Vision = () => {
     setImages(images.filter((_, index) => index !== indexToRemove));
   };
 
+  const API_BASE = process.env.NODE_ENV === 'production' 
+    ? 'https://medzk-server.onrender.com'
+    : 'http://localhost:5050';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
   
@@ -45,7 +49,7 @@ const Vision = () => {
     }
       setLoading(true);
   
-      const response = await fetch('http://localhost:5050/record/image', {
+      const response = await fetch(`${API_BASE}/record/image`, {
         method: 'POST',
         body: formData,
       });
