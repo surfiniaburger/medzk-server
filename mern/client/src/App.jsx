@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { HeartPulse, ShieldCheck, Video, Camera, ArrowRight, BarChart3, Quote } from 'lucide-react';
 import Navbar from "./components/Navbar";
+import grootBg from './assets/groot.jpg';
 
 // Animated feature card component
 const FeatureCard = ({ icon: Icon, title, description, to, index }) => {
@@ -137,26 +138,43 @@ const App = () => {
           style={{ scaleX: scrollYProgress }}
         />
 
-        {/* Hero Section */}
-        <motion.section 
-          className="bg-gradient-to-b from-green-900 to-black py-20 relative"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1 }}
-        >
-          <motion.div
-            className="absolute inset-0"
-            style={{
-              background: "radial-gradient(circle at 50% 50%, rgba(34,197,94,0.2) 0%, transparent 80%)",
-              scale: springProgress
-            }}
-          />
-          <motion.div 
-            className="container mx-auto px-6 lg:px-8 text-center max-w-4xl border-y-slate-400 rounded-lg shadow-2xl"
-            initial={{ y: 50 }}
-            animate={{ y: 0 }}
-            transition={{ duration: 0.8, type: "spring" }}
+                  {/* Hero Section with Background Image */}
+                  <motion.section 
+            className="relative min-h-screen flex items-center justify-center py-20"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1 }}
           >
+            {/* Background Image */}
+            <div 
+              className="absolute inset-0 z-0"
+              style={{
+                backgroundImage: `url(${grootBg})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+              }}
+            />
+            
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black bg-opacity-60 z-10" />
+            
+            {/* Gradient Overlay */}
+            <motion.div
+              className="absolute inset-0 z-20"
+              style={{
+                background: "radial-gradient(circle at 50% 50%, rgba(34,197,94,0.3) 0%, transparent 80%)",
+                scale: springProgress
+              }}
+            />
+
+            {/* Content */}
+            <motion.div 
+              className="container mx-auto px-6 lg:px-8 text-center max-w-4xl relative z-30"
+              initial={{ y: 50 }}
+              animate={{ y: 0 }}
+              transition={{ duration: 0.8, type: "spring" }}
+            >
             <motion.h1 
               className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-400 to-green-700 bg-clip-text text-transparent"
               animate={{ 
