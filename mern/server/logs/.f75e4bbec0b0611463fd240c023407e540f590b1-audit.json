@@ -6,16 +6,6 @@
     "auditLog": "C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\logs\\.f75e4bbec0b0611463fd240c023407e540f590b1-audit.json",
     "files": [
         {
-            "date": 1729887501612,
-            "name": "C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\logs\\application-2024-10-25.log",
-            "hash": "40558699e4d609f7331153a6e5cd82335f3c07f5d0cb496e219e82d777ef7649"
-        },
-        {
-            "date": 1729897941059,
-            "name": "C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\logs\\application-2024-10-26.log",
-            "hash": "671ab5f8257d250952ee75edcabf90388ee0796ce5b2a563cdddbb007f44f8bf"
-        },
-        {
             "date": 1730512154874,
             "name": "C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\logs\\application-2024-11-02.log",
             "hash": "ae8edef999543d4b61060c05a507021bcf21adff7ab824f185e75da251d25e57"
@@ -49,6 +39,11 @@
             "date": 1731020431572,
             "name": "C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\logs\\application-2024-11-08.log",
             "hash": "937312eecdb8ebf528b8bfab694ae8889c85b961ade64e501df7c2e24ce6f048"
+        },
+        {
+            "date": 1731114409467,
+            "name": "C:\\Users\\CCL\\Desktop\\mern\\mern\\server\\logs\\application-2024-11-09.log",
+            "hash": "7323800309ab18c75dbe39815ff0c00910272f3a10d33588c44373f6944d1210"
         }
     ],
     "hashType": "sha256"

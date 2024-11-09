@@ -1748,89 +1748,203 @@ async function analyzeSDOHDataForVideo(patientId) {
   }
 }
 
-// Route to get predictions and recommendations
+// Helper function to calculate maternal health risk scores
+function calculateMaternalHealthRisks(analysisData) {
+  const riskFactors = {
+    prenatalCare: 0,
+    nutritionalStatus: 0,
+    healthcareAccess: 0,
+    socialSupport: 0,
+    environmentalRisks: 0
+  };
+
+  // Analyze SDOH insights
+  if (analysisData.sdohInsight) {
+    // Healthcare access impact
+    if (analysisData.sdohInsight.healthcareAccess < 0) {
+      riskFactors.healthcareAccess += 2;
+      riskFactors.prenatalCare += 1;
+    }
+
+    // Food access impact
+    if (analysisData.sdohInsight.healthyFoodAccess < 0) {
+      riskFactors.nutritionalStatus += 2;
+    }
+
+    // Transportation impact
+    if (analysisData.sdohInsight.transportationAccess < 0) {
+      riskFactors.healthcareAccess += 1;
+      riskFactors.prenatalCare += 1;
+    }
+
+    // Safety impact
+    if (analysisData.sdohInsight.neighborhoodSafety < 0) {
+      riskFactors.environmentalRisks += 2;
+      riskFactors.socialSupport += 1;
+    }
+  }
+
+  // Calculate weighted risk score (0-10 scale)
+  const weights = {
+    prenatalCare: 0.3,
+    nutritionalStatus: 0.2,
+    healthcareAccess: 0.2,
+    socialSupport: 0.15,
+    environmentalRisks: 0.15
+  };
+
+  let totalRiskScore = 0;
+  Object.entries(riskFactors).forEach(([factor, score]) => {
+    totalRiskScore += score * weights[factor];
+  });
+
+  return {
+    riskScore: Math.min(Math.round(totalRiskScore * 10) / 10, 10),
+    riskFactors,
+    riskLevel: totalRiskScore <= 3 ? 'Low' : totalRiskScore <= 6 ? 'Moderate' : 'High'
+  };
+}
+
+// Helper function to generate maternal health recommendations
+function generateMaternalHealthRecommendations(riskAnalysis, locationData) {
+  const recommendations = [];
+
+  // Basic recommendations based on risk factors
+  if (riskAnalysis.riskFactors.prenatalCare > 1) {
+    recommendations.push({
+      category: 'Prenatal Care',
+      priority: 'High',
+      recommendation: 'Schedule immediate prenatal care appointment and develop care schedule',
+      action: 'Connect with local OB/GYN or midwife services'
+    });
+  }
+
+  if (riskAnalysis.riskFactors.nutritionalStatus > 1) {
+    recommendations.push({
+      category: 'Nutrition',
+      priority: 'High',
+      recommendation: 'Improve access to nutritional resources and dietary guidance',
+      action: 'Connect with WIC program and local food assistance services'
+    });
+  }
+
+  if (riskAnalysis.riskFactors.healthcareAccess > 1) {
+    recommendations.push({
+      category: 'Healthcare Access',
+      priority: 'High',
+      recommendation: 'Address barriers to healthcare access',
+      action: 'Explore telemedicine options and transportation assistance programs'
+    });
+  }
+
+  return recommendations;
+}
+
+// Enhanced prediction route with grounding
 router.post("/predict", async (req, res) => {
   try {
-    const { patientId, uploadedImageUrls, uploadedVideoUrl, wellnessText, latitude, longitude,  sdohInsight, geminiInsights, geminiAnalysis, sdohVideoInsightsArray } = req.body;
-    logger.info('Received request for patientId:', patientId);
-    
+    const {
+      patientId,
+      uploadedImageUrls,
+      uploadedVideoUrl,
+      wellnessText,
+      latitude,
+      longitude,
+      sdohInsight,
+      geminiInsights,
+      geminiAnalysis,
+      sdohVideoInsightsArray
+    } = req.body;
 
-    // 1. Data Gathering & Enrichment:
-    //   - Fetch existing record from database based on patientId
+    logger.info('Received maternal health analysis request for patientId:', patientId);
+
+    // Fetch existing record
     const existingRecord = await db.collection("records").findOne({ patientId });
     if (!existingRecord) {
       return res.status(404).json({ error: "Record not found" });
     }
-    console.log(existingRecord)
 
-    // Get SDOH insights from video (if applicable)
-    let videoSdohAnalysis = "No video SDOH analysis performed.";
-    if (uploadedVideoUrl) {
-      videoSdohAnalysis = sdohVideoInsightsArray;
-    }
+    // Get video SDOH analysis
+    const videoSdohAnalysis = uploadedVideoUrl ? sdohVideoInsightsArray : "No video analysis";
 
-    //   - Extract medical history from unstructured text (e.g., 'notes' field)
-    const extractedMedicalHistory = await getExistingMedicalResult(patientId) // Implement this function  
-    //   - Get existing image/video analysis result (if applicable)
-   
+    // Fetch and combine existing analyses
+    const extractedMedicalHistory = await getExistingMedicalResult(patientId);
     const existingImageAnalysis = await getExistingImageAnalysisResult(patientId);
     const existingVideoAnalysis = await getExistingVideoAnalysisResult(patientId);
-    console.log(existingImageAnalysis)
-    console.log(existingVideoAnalysis)
-    console.log("Location of the patient")
-    console.log(longitude)
-    console.log(latitude)
-    console.log(extractedMedicalHistory)
+    const combinedAnalysis = await combineAnalysisResults(existingImageAnalysis, existingVideoAnalysis);
 
-    const combinedAnalysis = await combineAnalysisResults(existingImageAnalysis, existingVideoAnalysis)
-    console.log(combinedAnalysis)
-
-    // 2. Gemini Multimodal Analysis:
+    // Enhanced Gemini prompt focusing on maternal health
     const prompt = `
       Patient: ${patientId}
+      Context: Maternal Health Assessment
       wellnessText: ${wellnessText}
       Medical History: ${extractedMedicalHistory}
       SDOH Insights: ${sdohInsight}
       Video SDOH Analysis: ${videoSdohAnalysis}
-      Image Analysis (New Uploads): ${geminiInsights}
-      Video Analysis (New Uploads): ${geminiAnalysis}
-      Image/Video Analysis: ${combinedAnalysis}
-      Patient Longitude: ${longitude}
-      Patient Latitude: ${latitude}
+      Image Analysis: ${geminiInsights}
+      Video Analysis: ${geminiAnalysis}
+      Combined Analysis: ${combinedAnalysis}
+      Location: ${latitude}, ${longitude}
 
-      Based on this information, provide a personalized risk assessment for:
-        - Diabetes
-        - Heart Disease
-        - ... (other relevant conditions)
+      Provide a comprehensive maternal health risk assessment focusing on:
+      1. Prenatal care access and quality
+      2. Nutritional status and food security
+      3. Healthcare accessibility
+      4. Social support systems
+      5. Environmental risk factors
 
-      Include specific recommendations for preventative measures, considering the patient's context.
-      Explain your reasoning for each risk assessment and recommendation.
+      Include evidence-based recommendations considering:
+      - Local healthcare resources
+      - Community support programs
+      - Transportation accessibility
+      - Nutritional resources
+      - Safety considerations
+
+      Please provide specific citations and evidence for each risk assessment and recommendation.
     `;
 
-    const chatSession = model.startChat({ 
-      generationConfig,
-      safetySettings 
-    });
+    const chatSession = model.startChat({ generationConfig, safetySettings });
     const response = await chatSession.sendMessage(prompt);
-    const predictionOutput = response.response.text(); // Get text output from Gemini
-    console.log(predictionOutput)
+    const predictionOutput = response.response.text();
 
-    // 3. Process & Return Results:
-    //   - Extract risk scores and recommendations from Gemini's response
-   
-    const groundedPredictionOutput = await Grounding(predictionOutput)
-    // const riskAssessments = await processGeminiPrediction(groundedPredictionOutput );
-    
-   // const webSearchQueries = groundedPredictionOutput.groundingMetadata?.webSearchQueries || [];
+    // Ground the prediction output with factual information
+    const groundedPredictionOutput = await Grounding(predictionOutput);
 
-    
+    // Calculate risk scores and generate recommendations
+    const analysisData = {
+      sdohInsight,
+      geminiInsights,
+      videoAnalysis: videoSdohAnalysis,
+      location: { latitude, longitude }
+    };
 
-    res.status(200).json({ 
-        groundedPredictionOutput, 
+    const riskAnalysis = calculateMaternalHealthRisks(analysisData);
+    const recommendations = generateMaternalHealthRecommendations(riskAnalysis, {
+      latitude,
+      longitude
+    });
+
+    // Store analysis results
+    const analysisRecord = {
+      patientId,
+      timestamp: new Date(),
+      riskAnalysis,
+      recommendations,
+      groundedPredictionOutput,
+      rawData: analysisData
+    };
+
+    await db.collection("maternal-health-analyses").insertOne(analysisRecord);
+
+    res.status(200).json({
+      riskAnalysis,
+      recommendations,
+      groundedPredictionOutput,
+      analysisId: analysisRecord._id
     });
 
   } catch (error) {
-    logger.error("Error generating prediction:", error);
+    logger.error("Error in maternal health analysis:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
