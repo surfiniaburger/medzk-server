@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import styles from './VideoUpload.module.css'
+import Navbar from './Navbar';
 
 const VideoUpload = () => {
   const [patientId, setPatientId] = useState('');
@@ -156,7 +157,9 @@ const VideoUpload = () => {
   };
 
   return (
-    <div className={styles.container}>
+    <>
+<Navbar/>
+<div className={styles.container}>
     <h2>Upload Video Record</h2>
     <form onSubmit={handleSubmit}>
       <div>
@@ -315,6 +318,9 @@ const VideoUpload = () => {
     </form>
     {status && <p className={styles.statusMessage}>{status}</p>}
   </div>
+    
+    </>
+    
   );
 };
 

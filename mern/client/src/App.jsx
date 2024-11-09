@@ -12,6 +12,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { HeartPulse, ShieldCheck, Video, Camera, ArrowRight, BarChart3, Quote } from 'lucide-react';
+import Navbar from "./components/Navbar";
 
 // Animated feature card component
 const FeatureCard = ({ icon: Icon, title, description, to, index }) => {
@@ -122,8 +123,14 @@ const App = () => {
   ];
 
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <>
+   
+    <Navbar/>
+
+<ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <div className="min-h-screen bg-black text-white relative">
+      
+        
         {/* Progress indicator */}
         <motion.div
           className="fixed top-0 left-0 right-0 h-1 bg-green-500 origin-left z-50"
@@ -347,6 +354,8 @@ const App = () => {
         </footer>
       </div>
     </ThemeProvider>
+    </>
+    
   );
 };
 

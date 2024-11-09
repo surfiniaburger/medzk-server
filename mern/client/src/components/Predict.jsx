@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import PredictionResults from './PredictionResult';
+import Navbar from './Navbar';
 
 const PredictForm = () => {
   const [patientId, setPatientId] = useState('');
@@ -151,6 +152,8 @@ const handleLocation = () => {
   };
 
   return (
+    <>
+    <Navbar/>
     <div className="max-w-2xl mx-auto p-4 space-y-6">
       <h2 className="text-2xl font-bold">Medical Prediction Form</h2>
       
@@ -269,6 +272,8 @@ const handleLocation = () => {
         </ul>
       </div>
     </div>
+    </>
+    
   );
 };
 

@@ -10,6 +10,7 @@ import {
   ComposedChart, Area 
 } from 'recharts';
 import { Brain, TrendingUp, Map,  Users } from 'lucide-react';
+import Navbar from './Navbar';
 
 const AdvancedAnalyticsDashboard = () => {
   const [timeRange, setTimeRange] = useState('1y');
@@ -109,7 +110,9 @@ const AdvancedAnalyticsDashboard = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <>
+    <Navbar/>
+     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Zero Kare Analytics Hub</h1>
@@ -322,6 +325,8 @@ const AdvancedAnalyticsDashboard = () => {
         </TabsContent>
       </Tabs>
     </div>
+    </>
+   
   );
 };
 

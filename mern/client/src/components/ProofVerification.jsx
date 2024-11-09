@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import './ProofVerification.css'; // Import the CSS file
+import Navbar from './Navbar';
 
 const ProofVerification = () => {
     // State for medical report inputs
@@ -182,7 +183,9 @@ const ProofVerification = () => {
     };
 
     return (
-        <div className="new-container">
+        <>
+        <Navbar/>
+         <div className="new-container">
             <h1>Health Record Proof Verification</h1>
             <form onSubmit={handleSubmit} className="form">
                 <h2>Medical Report</h2>
@@ -403,6 +406,8 @@ const ProofVerification = () => {
                 </div>
             )}
         </div>
+        </>
+       
     );
 
 };

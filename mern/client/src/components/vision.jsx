@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './Vision.css'; // Assuming you have a separate CSS file for styling
+import Navbar from './Navbar';
 
 const Vision = () => {
   const [patientId, setPatientId] = useState('');
@@ -75,7 +76,9 @@ const Vision = () => {
   };
 
   return (
-    <div className="vision-container">
+    <>
+    <Navbar/>
+     <div className="vision-container">
       <h2>Submit Medical Record</h2>
       <form onSubmit={handleSubmit} className="vision-form">
         <div className="form-group">
@@ -135,6 +138,8 @@ const Vision = () => {
         </div>
       )}
     </div>
+    </>
+   
   );
 };
 
