@@ -117,7 +117,7 @@ function PredictionResult({ predictionResult }) {
 
   if (!predictionResult) return null;
 
-  const { groundedPredictionOutput, riskAnalysis, recommendations } = predictionResult;
+  const { groundedPredictionOutput } = predictionResult;
 
   // Process the markdown to handle source citations
   const processContent = (content) => {
@@ -184,28 +184,6 @@ function PredictionResult({ predictionResult }) {
               components={components}
               className="prose prose-sm max-w-none"
             />
-            {riskAnalysis && (
-      <section className="mt-6">
-        <h2 className="text-lg font-semibold">Risk Analysis</h2>
-        <ReactMarkdown
-          children={processContent(riskAnalysis)}
-          remarkPlugins={[remarkGfm]}
-          components={components}
-          className="prose prose-sm max-w-none"
-        />
-      </section>
-    )}
-    {recommendations && (
-      <section className="mt-6">
-        <h2 className="text-lg font-semibold">Recommendations</h2>
-        <ReactMarkdown
-          children={processContent(recommendations)}
-          remarkPlugins={[remarkGfm]}
-          components={components}
-          className="prose prose-sm max-w-none"
-        />
-      </section>
-    )}
           </div>
         </ScrollArea>
       </div>
@@ -251,8 +229,6 @@ function PredictionResult({ predictionResult }) {
 PredictionResult.propTypes = {
   predictionResult: PropTypes.shape({
     groundedPredictionOutput: PropTypes.string,
-    riskAnalysis: PropTypes.string,
-    recommendations: PropTypes.string,
   }),
 };
 
