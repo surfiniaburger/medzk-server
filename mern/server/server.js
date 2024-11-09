@@ -24,6 +24,7 @@ if (googleCredentials) {
 app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
+      'http://localhost:3000/',
       'https://medzk-server.vercel.app',
       'https://medzk-server.onrender.com',
       
