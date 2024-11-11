@@ -20,6 +20,8 @@ const store = new Storage();
 } else {
   logger.info('API key loaded successfully:');
 }
+
+
  const genAI = new GoogleGenerativeAI(gkey);
  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-002",
     tools: [
