@@ -1787,10 +1787,15 @@ router.post("/predict", async (req, res) => {
     const combinedAnalysis = await combineAnalysisResults(existingImageAnalysis, existingVideoAnalysis)
     console.log(combinedAnalysis)
 
-    //  Fetch air quality data
-     fetchAirQuality(latitude, longitude)
-     .then(data => console.log(data))
-     .catch(error => console.error(error));
+     // Example 1: With valid coordinates
+     fetchAirQuality(latitude, longitude) // Coordinates for Lagos, Nigeria
+     .then(data => console.log('Air Quality Data:', data))
+     .catch(error => console.error('Error:', error));
+
+     // Example 2: Without coordinates (uses fallback)
+     fetchAirQuality()
+     .then(data => console.log('Air Quality Data:', data))
+     .catch(error => console.error('Error:', error));
 
     // 2. Gemini Multimodal Analysis:
     const prompt = `
