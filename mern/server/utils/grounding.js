@@ -13,6 +13,8 @@ const __dirname = path.dirname(__filename);
 // Create a storage client (it will automatically use your credentials from the environment variable)
 const store = new Storage();
 
+
+
  // Initialize Google Generative AI
  const gkey = process.env.GEMINI_API_KEY || null;
  if (!gkey) {
@@ -20,6 +22,8 @@ const store = new Storage();
 } else {
   logger.info('API key loaded successfully:');
 }
+
+
  const genAI = new GoogleGenerativeAI(gkey);
  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-002",
     tools: [
