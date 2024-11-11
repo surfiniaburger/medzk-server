@@ -1,16 +1,15 @@
-// Import required modules
 import fetch from 'node-fetch';
 import logger from './logger.js';
 import 'dotenv/config';
 
-// Export the function to be reused
-export async function fetchAirQuality(latitude, longitude) {
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
+async function testAPI() {
+const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    
   const url = `https://airquality.googleapis.com/v1/currentConditions:lookup?key=${apiKey}`;
   const requestBody = {
     universalAqi: true,
-    location: { latitude, longitude }, // Use passed parameters
+    location: { latitude: 37.419734, longitude: -122.0827784 },
     extraComputations: [
       "HEALTH_RECOMMENDATIONS",
       "DOMINANT_POLLUTANT_CONCENTRATION",
@@ -30,12 +29,9 @@ export async function fetchAirQuality(latitude, longitude) {
 
     const data = await response.json();
     console.log('Response:', data);
-    return data; // Return the data for further use
   } catch (error) {
-    logger.error('Error fetching air quality data:', error);
-    throw error; // Re-throw the error for handling by the caller
+    logger.error('Error:', error);
   }
 }
 
-  
-  
+testAPI();
