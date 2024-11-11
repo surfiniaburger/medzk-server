@@ -20,6 +20,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import { GridFSBucket } from 'mongodb';
 import { Grounding } from "../utils/grounding.js";
 import { fetchAirQuality } from "../utils/air-quality.js";
+import { getAddressFromCoordinates } from "../utils/address.js";
 
 
 
@@ -1758,25 +1759,15 @@ router.post("/predict", async (req, res) => {
     
 
     // 1. Data Gathering & Enrichment:
-    //   - Fetch existing record from database based on patientId
-    const existingRecord = await db.collection("records").findOne({ patientId });
-    if (!existingRecord) {
-      return res.status(404).json({ error: "Record not found" });
-    }
-    console.log(existingRecord)
 
-    // Get SDOH insights from video (if applicable)
-    let videoSdohAnalysis = "No video SDOH analysis performed.";
-    if (uploadedVideoUrl) {
-      videoSdohAnalysis = sdohVideoInsightsArray;
-    }
+    const [existingRecord, extractedMedicalHistory, existingImageAnalysis, existingVideoAnalysis] = await Promise.all([
+      db.collection("records").findOne({ patientId }),
+      getExistingMedicalResult(patientId),
+      getExistingImageAnalysisResult(patientId),
+      getExistingVideoAnalysisResult(patientId),
+    ]);
 
-    //   - Extract medical history from unstructured text (e.g., 'notes' field)
-    const extractedMedicalHistory = await getExistingMedicalResult(patientId) // Implement this function  
-    //   - Get existing image/video analysis result (if applicable)
-   
-    const existingImageAnalysis = await getExistingImageAnalysisResult(patientId);
-    const existingVideoAnalysis = await getExistingVideoAnalysisResult(patientId);
+    
     console.log(existingImageAnalysis)
     console.log(existingVideoAnalysis)
     console.log("Location of the patient")
@@ -1787,28 +1778,38 @@ router.post("/predict", async (req, res) => {
     const combinedAnalysis = await combineAnalysisResults(existingImageAnalysis, existingVideoAnalysis)
     console.log(combinedAnalysis)
 
-     // Example 1: With valid coordinates
-     fetchAirQuality(latitude, longitude) // Coordinates for Lagos, Nigeria
-     .then(data => console.log('Air Quality Data:', data))
-     .catch(error => console.error('Error:', error));
 
-     // Example 2: Without coordinates (uses fallback)
-     fetchAirQuality()
-     .then(data => console.log('Air Quality Data:', data))
-     .catch(error => console.error('Error:', error));
+     const airQualityData = await fetchAirQuality(latitude, longitude).catch(err => {
+      logger.error('Air Quality Fetch Error:', err);
+      return null;
+    });
+
+    const address = await getAddressFromCoordinates(latitude, longitude).catch(err => {
+      logger.error('Air Quality Fetch Error:', err);
+      return null;
+    });
+    
+     const combinedSDOHInsights = {
+      image: {
+        visionAPI: sdohInsight || "No image SDOH insights from Vision API available.",
+        gemini: geminiInsights || "No image SDOH insights from Gemini available."
+      },
+      video: {
+        visionAPI: sdohVideoInsightsArray || "No video SDOH insights from Vision API available.",
+        gemini: geminiAnalysis || "No video SDOH insights from Gemini available."
+      }
+    };
+    
 
     // 2. Gemini Multimodal Analysis:
     const prompt = `
       Patient: ${patientId}
       wellnessText: ${wellnessText}
-      Medical History: ${extractedMedicalHistory}
-      SDOH Insights: ${sdohInsight}
-      Video SDOH Analysis: ${videoSdohAnalysis}
-      Image Analysis (New Uploads): ${geminiInsights}
-      Video Analysis (New Uploads): ${geminiAnalysis}
+      Medical History: ${JSON.stringify(extractedMedicalHistory)}
+      SDOH Insights: ${JSON.stringify(combinedSDOHInsights)}
+      Air Quality Data: ${JSON.stringify(airQualityData)}
+      Patient Address: ${address}
       Image/Video Analysis: ${combinedAnalysis}
-      Patient Longitude: ${longitude}
-      Patient Latitude: ${latitude}
 
       Based on this information, provide a personalized risk assessment for:
         - Diabetes
@@ -1834,8 +1835,6 @@ router.post("/predict", async (req, res) => {
     // const riskAssessments = await processGeminiPrediction(groundedPredictionOutput );
     
    // const webSearchQueries = groundedPredictionOutput.groundingMetadata?.webSearchQueries || [];
-
-    
 
     res.status(200).json({ 
         groundedPredictionOutput, 
