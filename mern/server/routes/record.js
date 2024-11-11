@@ -19,6 +19,8 @@ import { Storage } from '@google-cloud/storage';
 import ffmpeg from 'fluent-ffmpeg';
 import { GridFSBucket } from 'mongodb';
 import { Grounding } from "../utils/grounding.js";
+import { getAirQuality } from "../utils/air-quality.js";
+
 
 
 // Create __dirname equivalent
@@ -1784,6 +1786,10 @@ router.post("/predict", async (req, res) => {
 
     const combinedAnalysis = await combineAnalysisResults(existingImageAnalysis, existingVideoAnalysis)
     console.log(combinedAnalysis)
+
+    //  Fetch air quality data
+    const airQualityData = await getAirQuality(latitude, longitude);
+    console.log("Air Quality Data:", airQualityData);
 
     // 2. Gemini Multimodal Analysis:
     const prompt = `
