@@ -14,3 +14,9 @@
 {"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-11T06:55:12.505Z"}
 {"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-11T06:55:12.600Z"}
 {"level":"info","message":"API key loaded successfully:","timestamp":"2024-11-11T06:55:14.592Z"}
+{"level":"error","message":"Google Map API key is not valid or not found in the config.env file","timestamp":"2024-11-11T10:40:21.144Z"}
+{"level":"error","message":"Google Map API key is not valid or not found in the config.env file","timestamp":"2024-11-11T10:41:22.395Z"}
+{"level":"error","message":"Google Map API key is not valid or not found in the config.env file","timestamp":"2024-11-11T10:42:36.162Z"}
+{"level":"error","message":"Google Map API key is not valid or not found in the config.env file","timestamp":"2024-11-11T10:42:36.167Z"}
+{"level":"error","message":"Google Map API key is not valid or not found in the config.env file","timestamp":"2024-11-11T10:43:45.712Z"}
+{"level":"error","message":"Google Map API key is not valid or not found in the config.env file","timestamp":"2024-11-11T10:43:45.718Z"}
