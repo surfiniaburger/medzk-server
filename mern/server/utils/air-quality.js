@@ -2,11 +2,11 @@ import axios from 'axios';
 import logger from './logger.js'; 
 
 // Initialize Google Generative AI
-const gkey = process.env.GEMINI_API_KEY || null;
+const gkey = process.env.GOOGLE_MAPS_API_KEY || null;
 if (!gkey) {
-  logger.error('API key is not valid or not found in the config.env file');
+  logger.error('Google Map API key is not valid or not found in the config.env file');
 } else {
-  logger.info('API key loaded successfully:');
+  logger.info('Google Map API key loaded successfully:');
 }
 
 export async function getAirQuality(latitude, longitude) {
