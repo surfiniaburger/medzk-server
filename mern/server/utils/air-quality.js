@@ -15,17 +15,7 @@ export async function getAirQuality(latitude, longitude) {
       location: {
         latitude: latitude,
         longitude: longitude,
-      },
-      // Add more computations for a more robust response
-      extraComputations: [
-        "HEALTH_RECOMMENDATIONS", 
-        "DOMINANT_POLLUTANT_CONCENTRATION", 
-        "POLLUTANT_CONCENTRATION", 
-        "LOCAL_AQI", 
-        "POLLUTANT_ADDITIONAL_INFO" 
-      ],
-      languageCode: "en", // You can specify the language
-      universalAqi: true, // Include Universal AQI
+      }
     };
 
     const response = await axios.post(
