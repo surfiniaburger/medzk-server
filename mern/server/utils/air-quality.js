@@ -1,4 +1,3 @@
-import axios from 'axios';
 import logger from './logger.js'; 
 
 // Initialize Google Generative AI
@@ -9,40 +8,49 @@ if (!gkey) {
   logger.info('Google Map API key loaded successfully:');
 }
 
-export async function getAirQuality(latitude, longitude) {
-  try {
+export async function fetchAirQuality(latitude, longitude) {
+    const apiKey = gkey; // Replace with your actual API key
+  
+    const url = `https://airquality.googleapis.com/v1/currentConditions:lookup?key=${apiKey}`;
+  
     const requestBody = {
+      universalAqi: true,
       location: {
         latitude: latitude,
         longitude: longitude,
       },
-      // Add more computations for a more robust response
       extraComputations: [
-        "HEALTH_RECOMMENDATIONS", 
-        "DOMINANT_POLLUTANT_CONCENTRATION", 
-        "POLLUTANT_CONCENTRATION", 
-        "LOCAL_AQI", 
-        "POLLUTANT_ADDITIONAL_INFO" 
+        "HEALTH_RECOMMENDATIONS",
+        "DOMINANT_POLLUTANT_CONCENTRATION",
+        "POLLUTANT_CONCENTRATION",
+        "LOCAL_AQI",
+        "POLLUTANT_ADDITIONAL_INFO",
       ],
-      languageCode: "en", // You can specify the language
-      universalAqi: true, // Include Universal AQI
+      languageCode: "en",
     };
-
-    const response = await axios.post(
-      `https://airquality.googleapis.com/v1/currentConditions:lookup?key=${gkey}`,
-      requestBody,
-      {
+  
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify(requestBody),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
-    );
-
-    const airQualityData = response.data;
-    return airQualityData; 
-
-  } catch (error) {
-    console.error('Error fetching air quality data:', error);
-    throw error; 
+  
+      const data = await response.json();
+      console.log('Air Quality Data:', data);
+      return data;
+  
+    } catch (error) {
+      logger.error('Error fetching air quality data:', error);
+      throw error;
+    }
   }
-}
+  
+  
+  
