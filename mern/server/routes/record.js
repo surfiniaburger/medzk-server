@@ -1767,7 +1767,7 @@ router.post("/predict", async (req, res) => {
       getExistingVideoAnalysisResult(patientId),
     ]);
 
-    
+
     console.log(existingImageAnalysis)
     console.log(existingVideoAnalysis)
     console.log("Location of the patient")
@@ -1779,7 +1779,7 @@ router.post("/predict", async (req, res) => {
     console.log(combinedAnalysis)
 
 
-     const airQualityData = await fetchAirQuality(latitude, longitude).catch(err => {
+     const airQualityData = await fetchAirQuality().catch(err => {
       logger.error('Air Quality Fetch Error:', err);
       return null;
     });
