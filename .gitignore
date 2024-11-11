@@ -5,3 +5,6 @@ gem-creation.json
 /uploads
 uploads**
 *uploads/*
+*logs
+*/logs*
+*logs/*
