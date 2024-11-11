@@ -1,16 +1,20 @@
-// Import required modules
 import fetch from 'node-fetch';
 import logger from './logger.js';
 import 'dotenv/config';
 
-// Export the function to be reused
 export async function fetchAirQuality(latitude, longitude) {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+
+  // Define fallback coordinates
+  const fallbackCoordinates = { latitude: 37.419734, longitude: -122.0827784 };
+
+  // Fallback logic: Use provided or fallback coordinates
+  const coordinates = latitude && longitude ? { latitude, longitude } : fallbackCoordinates;
 
   const url = `https://airquality.googleapis.com/v1/currentConditions:lookup?key=${apiKey}`;
   const requestBody = {
     universalAqi: true,
-    location: { latitude, longitude }, // Use passed parameters
+    location: coordinates, // Use determined coordinates
     extraComputations: [
       "HEALTH_RECOMMENDATIONS",
       "DOMINANT_POLLUTANT_CONCENTRATION",
@@ -28,6 +32,11 @@ export async function fetchAirQuality(latitude, longitude) {
       body: JSON.stringify(requestBody),
     });
 
+    if (!response.ok) {
+      // Handle non-successful responses
+      throw new Error(`API returned status ${response.status}: ${response.statusText}`);
+    }
+
     const data = await response.json();
     console.log('Response:', data);
     return data; // Return the data for further use
@@ -36,6 +45,3 @@ export async function fetchAirQuality(latitude, longitude) {
     throw error; // Re-throw the error for handling by the caller
   }
 }
-
-  
-  
