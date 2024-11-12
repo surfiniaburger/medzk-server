@@ -1417,11 +1417,14 @@ router.post("/upload/video", upload.single('video'),
                 contents: [
                   {
                     role: 'user',
-                    parts: [{ text: prompt }], // Cache the prompt as well
+                    parts: [{ text: prompt }], 
                   },
                   {
                     role: 'assistant',
-                    parts: [{ text: JSON.stringify(cacheContent) }], // Cache the analysis results
+                    parts: [
+                      { text: cacheContent.geminiAnalysis }, // Directly cache geminiAnalysis
+                      { text: JSON.stringify(cacheContent.sdohVideoInsightsArray) } // Cache sdohVideoInsightsArray as a string
+                    ], // Cache the analysis results
                   },
                 ],
                 ttlSeconds,
