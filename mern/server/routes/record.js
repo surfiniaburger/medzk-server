@@ -9,7 +9,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as snarkjs from 'snarkjs';
 import multer from "multer";
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GoogleGenerativeAIFetchError } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GoogleGenerativeAIFetchError, GoogleAICacheManager } from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import logger from '../utils/logger.js'; 
 import crypto from 'crypto';
@@ -21,6 +21,7 @@ import { GridFSBucket } from 'mongodb';
 import { Grounding } from "../utils/grounding.js";
 import { fetchAirQuality } from "../utils/air-quality.js";
 import { getAddressFromCoordinates } from "../utils/address.js";
+
 
 
 
@@ -1241,6 +1242,7 @@ router.post("/upload/image", upload.array('images', 5),
 
 
 
+
 // *** Video Upload Route ***
 router.post("/upload/video", upload.single('video'),
   // Validation for video upload
@@ -1318,64 +1320,125 @@ router.post("/upload/video", upload.single('video'),
           // 7. Wait for the file to become ACTIVE
           const activeFile = await waitForFilesActive(uploadedVideo);
 
-          // 8. Define the prompt for Gemini AI (move this inside the 'finish' handler)
-          const prompt = `
-            Analyze the provided video in the context of pregnancy care. 
-            Focus on identifying any potential issues or abnormalities that could affect the health of the mother or the fetus.
+          // *** Caching Logic Start ***
+          const cacheManager = new GoogleAICacheManager(gkey);
+          const displayName = `video-analysis-${patientId}`; // Unique name for the cache
+          const modelName = 'models/gemini-1.5-pro-002'; // Your Gemini model
+          let ttlSeconds = 24 * 3600; // Cache TTL (24 hour in this example)
 
-            Specifically, look for:
-            - **Maternal Physical Health:** Assess the mother's posture, gait, and any visible signs of discomfort or distress.
-            - **Fetal Movement:** Observe fetal movements and note if they appear normal, reduced, or excessive.
-            - **Environmental Factors:** Analyze the environment shown in the video for potential hazards or risks to the mother or fetus (e.g., unsafe conditions, lack of support).
+          // Create a cache key. This should be unique for each video.
+          const cacheKey = `video-analysis-${videoFileId}`; 
 
-            Provide a concise summary of your findings and highlight any areas of concern.
+          // Try to fetch from cache first
+          let cachedContent = null;
+          try {
+            cachedContent = await cacheManager.get(cacheKey);
+          } catch (err) {
+            // Handle cache miss (e.g., cache not found)
+            console.log('Cache miss:', err.message); 
+          }
 
-            **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
-            It is not a substitute for professional medical advice, diagnosis, or treatment. 
-            Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
-          `;
+          if (cachedContent) {
+            // Use the cached content
+            console.log('Using cached content');
+            const { geminiAnalysis, sdohVideoInsightsArray } = cachedContent; 
 
-          // 9. Start chat session with the model
-          const chatSession = model.startChat({
-            generationConfig,
-            safetySettings,
-            history: [
-              {
-                role: "user",
-                parts: [
-                  { text: prompt },
-                  {
-                    fileData: {
-                      mimeType: activeFile.mimeType,
-                      fileUri: activeFile.uri,
+            res.status(201).json({
+              message: "Video analysis retrieved from cache",
+              uploadedVideoUrl: activeFile.uri,
+              geminiAnalysis: geminiAnalysis,
+              sdohVideoInsightsArray: sdohVideoInsightsArray,
+              uploadedVideoId: videoFileId,
+            });
+
+          } else {
+            console.log('Cache miss - performing analysis');
+
+            // 8. Define the prompt for Gemini AI 
+            const prompt = `
+              Analyze the provided video in the context of pregnancy care. 
+              Focus on identifying any potential issues or abnormalities that could affect the health of the mother or the fetus.
+
+              Specifically, look for:
+              - **Maternal Physical Health:** Assess the mother's posture, gait, and any visible signs of discomfort or distress.
+              - **Fetal Movement:** Observe fetal movements and note if they appear normal, reduced, or excessive.
+              - **Environmental Factors:** Analyze the environment shown in the video for potential hazards or risks to the mother or fetus (e.g., unsafe conditions, lack of support).
+
+              Provide a concise summary of your findings and highlight any areas of concern.
+
+              **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
+              It is not a substitute for professional medical advice, diagnosis, or treatment. 
+              Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
+            `;
+
+            // 9. Start chat session with the model
+            const chatSession = model.startChat({
+              generationConfig,
+              safetySettings,
+              history: [
+                {
+                  role: "user",
+                  parts: [
+                    { text: prompt },
+                    {
+                      fileData: {
+                        mimeType: activeFile.mimeType,
+                        fileUri: activeFile.uri,
+                      },
                     },
-                  },
-                ],
-              },
-            ],
-          });
+                  ],
+                },
+              ],
+            });
 
-          // 10. Send the prompt and receive diagnostic results
-          const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
-          const geminiAnalysis = generatedContent.response.text();
-          console.log(geminiAnalysis)
+            // 10. Send the prompt and receive diagnostic results
+            const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
+            const geminiAnalysis = generatedContent.response.text();
+            console.log(geminiAnalysis)
 
-          // 11. Perform SDOH analysis for the video
-          analyzeSDOHDataForVideo(patientId)
-            .then(({ accumulatedInsights, tempVideoPath }) => {
-              res.status(201).json({
-                message: "Video uploaded successfully",
-                uploadedVideoUrl: activeFile.uri,
+            // 11. Perform SDOH analysis for the video
+            const { accumulatedInsights, tempVideoPath } = await analyzeSDOHDataForVideo(patientId);
+
+            // Cache the response for future use
+            try {
+              const cacheContent = {
                 geminiAnalysis: geminiAnalysis,
                 sdohVideoInsightsArray: accumulatedInsights,
-                uploadedVideoId: videoFileId,
+              };
+
+              const cache = await cacheManager.create({
+                model: modelName,
+                displayName: cacheKey, // Use the cache key here
+                systemInstruction: '', // You can leave this empty if not needed
+                contents: [
+                  {
+                    role: 'user',
+                    parts: [{ text: prompt }], // Cache the prompt as well
+                  },
+                  {
+                    role: 'assistant',
+                    parts: [{ text: JSON.stringify(cacheContent) }], // Cache the analysis results
+                  },
+                ],
+                ttlSeconds,
               });
-            })
-            .catch(error => {
-              logger.error("Error during video SDOH analysis:", error);
-              res.status(500).json({ error: "Internal server error" });
+              console.log('Response cached successfully:', cache.name);
+            } catch (cacheError) {
+              console.error('Error caching response:', cacheError);
+              // Handle caching errors (e.g., log the error)
+            }
+
+            res.status(201).json({
+              message: "Video record created successfully",
+              uploadedVideoUrl: activeFile.uri,
+              geminiAnalysis: geminiAnalysis,
+              sdohVideoInsightsArray: accumulatedInsights,
+              uploadedVideoId: videoFileId,
             });
-        }); // End of uploadStream.on('finish')
+          }
+          // *** Caching Logic End ***
+
+        }); // End of uploadStream.on('finish') 
 
     } catch (error) {
       logger.error("Error uploading video:", error);
@@ -1383,6 +1446,7 @@ router.post("/upload/video", upload.single('video'),
     }
   }
 );
+
 
 // Fixed extractFramesFromVideo function
 async function extractFramesFromVideo(videoPath, numFrames = 5) {
