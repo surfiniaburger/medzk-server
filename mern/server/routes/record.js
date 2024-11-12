@@ -42,7 +42,7 @@ const router = express.Router();
   logger.info('API key loaded successfully:');
 }
  const genAI = new GoogleGenerativeAI(gkey);
- const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-002",
+ const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-001",
  
  }
 
@@ -1324,7 +1324,7 @@ router.post("/upload/video", upload.single('video'),
           // *** Caching Logic Start ***
           const cacheManager = new GoogleAICacheManager(gkey);
           const displayName = `video-analysis-${patientId}`; // Unique name for the cache
-          const modelName = 'models/gemini-1.5-pro-002'; // Your Gemini model
+          const modelName = 'models/gemini-1.5-pro-001'; // Your Gemini model
           let ttlSeconds = 24 * 3600; // Cache TTL (24 hour in this example)
 
           // Create a cache key. This should be unique for each video.
@@ -1334,7 +1334,10 @@ router.post("/upload/video", upload.single('video'),
           let cachedContent = null;
           try {
             cachedContent = await cacheManager.get(cacheKey);
+            console.log("cached content" + cacheKey + "   " + cachedContent)
+            console.log(displayName)
           } catch (err) {
+            console.log(displayName)
             // Handle cache miss (e.g., cache not found)
             console.log('Cache miss:', err.message); 
           }
