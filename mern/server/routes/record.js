@@ -1241,212 +1241,6 @@ router.post("/upload/image", upload.array('images', 5),
 );
 
 
-// *** Video Upload Route ***
-router.post("/upload/video", upload.single('video'),
-  // Validation for video upload
-  [
-    body('patientId').isString().notEmpty().withMessage('Patient ID is required'),
-  ],
-  async (req, res) => {
-    // Validation result check
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    try {
-      const { patientId } = req.body;
-      const video = req.file;
-
-      //  Check if there's an existing record for this patient
-      const existingRecord = await db.collection("video-sdoh-records").findOne({ patientId });
-      
-      //  If exists, delete the old video from GridFS
-      if (existingRecord) {
-        const bucket = new GridFSBucket(db, { bucketName: 'videos' });
-        try {
-          await bucket.delete(existingRecord.uploadedVideoId);
-        } catch (deleteError) {
-          console.warn(`Failed to delete old video: ${deleteError.message}`);
-          // Continue with upload even if delete fails
-        }
-      }
-
-      // 1. Create a GridFS bucket
-      const bucket = new GridFSBucket(db, { bucketName: 'videos' });
-
-      // 2. Create an upload stream
-      const uploadStream = bucket.openUploadStream(video.originalname, {
-        metadata: { 
-          patientId,
-          uploadDate: new Date(),
-          originalName: video.originalname,
-          mimeType: video.mimetype 
-        }
-      });
-
-      // 3. Pipe the video data to the upload stream
-      fs.createReadStream(video.path).pipe(uploadStream)
-        .on('error', (error) => {
-          logger.error("Error uploading video to GridFS:", error);
-          res.status(500).json({ error: "Internal server error" });
-        })
-        .on('finish', async () => {
-          // 4. Get the video file ID from GridFS
-          const videoFileId = uploadStream.id; 
-
-          // 5. Update or create the video record
-            await db.collection("video-sdoh-records").updateOne(
-             { patientId },
-           { 
-           $set: {
-            uploadedVideoId: videoFileId,
-            lastUpdated: new Date(),
-            originalName: video.originalname,
-            mimeType: video.mimetype
-            }
-           },
-           { upsert: true }
-           );
-
-          // Delete any old analysis results
-              await db.collection("sdoh-analysis-results").deleteMany({ patientId });
-
-          // 6. Upload the video to Gemini for processing
-          const uploadedVideo = await uploadToGemini(video.path, video.mimetype);
-
-          // 7. Wait for the file to become ACTIVE
-          const activeFile = await waitForFilesActive(uploadedVideo);
-
-          // *** Caching Logic Start ***
-          const cacheManager = new GoogleAICacheManager(gkey);
-          const displayName = `video-analysis-${patientId}`; // Unique name for the cache
-          const modelName = 'models/gemini-1.5-pro-002'; // Your Gemini model
-          let ttlSeconds = 24 * 3600; // Cache TTL (24 hour in this example)
-
-          // Create a cache key. This should be unique for each video.
-          const cacheKey = `video-analysis-${videoFileId}`; 
-
-          // Try to fetch from cache first
-          let cachedContent = null;
-          try {
-            cachedContent = await cacheManager.get(cacheKey);
-          } catch (err) {
-            // Handle cache miss (e.g., cache not found)
-            console.log('Cache miss:', err.message); 
-          }
-
-          if (cachedContent) {
-            // Use the cached content
-            console.log('Using cached content');
-            const { geminiAnalysis, sdohVideoInsightsArray } = cachedContent; 
-
-            res.status(201).json({
-              message: "Video analysis retrieved from cache",
-              uploadedVideoUrl: activeFile.uri,
-              geminiAnalysis: geminiAnalysis,
-              sdohVideoInsightsArray: sdohVideoInsightsArray,
-              uploadedVideoId: videoFileId,
-            });
-
-          } else {
-            console.log('Cache miss - performing analysis');
-
-            // 8. Define the prompt for Gemini AI 
-            const prompt = `
-              Analyze the provided video in the context of pregnancy care. 
-              Focus on identifying any potential issues or abnormalities that could affect the health of the mother or the fetus.
-
-              Specifically, look for:
-              - **Maternal Physical Health:** Assess the mother's posture, gait, and any visible signs of discomfort or distress.
-              - **Fetal Movement:** Observe fetal movements and note if they appear normal, reduced, or excessive.
-              - **Environmental Factors:** Analyze the environment shown in the video for potential hazards or risks to the mother or fetus (e.g., unsafe conditions, lack of support).
-
-              Provide a concise summary of your findings and highlight any areas of concern.
-
-              **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
-              It is not a substitute for professional medical advice, diagnosis, or treatment. 
-              Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
-            `;
-
-            // 9. Start chat session with the model
-            const chatSession = model.startChat({
-              generationConfig,
-              safetySettings,
-              history: [
-                {
-                  role: "user",
-                  parts: [
-                    { text: prompt },
-                    {
-                      fileData: {
-                        mimeType: activeFile.mimeType,
-                        fileUri: activeFile.uri,
-                      },
-                    },
-                  ],
-                },
-              ],
-            });
-
-            // 10. Send the prompt and receive diagnostic results
-            const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
-            const geminiAnalysis = generatedContent.response.text();
-            console.log(geminiAnalysis)
-
-            // 11. Perform SDOH analysis for the video
-            const { accumulatedInsights, tempVideoPath } = await analyzeSDOHDataForVideo(patientId);
-
-            // Cache the response for future use
-            try {
-              const cacheContent = {
-                geminiAnalysis: geminiAnalysis,
-                sdohVideoInsightsArray: accumulatedInsights,
-              };
-
-              const cache = await cacheManager.create({
-                model: modelName,
-                displayName: cacheKey, // Use the cache key here
-                systemInstruction: '', // You can leave this empty if not needed
-                contents: [
-                  {
-                    role: 'user',
-                    parts: [{ text: prompt }], // Cache the prompt as well
-                  },
-                  {
-                    role: 'assistant',
-                    parts: [{ text: JSON.stringify(cacheContent) }], // Cache the analysis results
-                  },
-                ],
-                ttlSeconds,
-              });
-              console.log('Response cached successfully:', cache.name);
-            } catch (cacheError) {
-              console.error('Error caching response:', cacheError);
-              // Handle caching errors (e.g., log the error)
-            }
-
-            res.status(201).json({
-              message: "Video record created successfully",
-              uploadedVideoUrl: activeFile.uri,
-              geminiAnalysis: geminiAnalysis,
-              sdohVideoInsightsArray: accumulatedInsights,
-              uploadedVideoId: videoFileId,
-            });
-          }
-          // *** Caching Logic End ***
-
-        }); // End of uploadStream.on('finish') 
-
-    } catch (error) {
-      logger.error("Error uploading video:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  }
-);
-
-
-
 
 // Fixed extractFramesFromVideo function
 async function extractFramesFromVideo(videoPath, numFrames = 5) {
@@ -1841,6 +1635,7 @@ router.post("/predict", async (req, res) => {
     console.log(combinedAnalysis)
 
 
+    // air quality data are not yet available in some region, we are using a default co-ordinate
      const airQualityData = await fetchAirQuality().catch(err => {
       logger.error('Air Quality Fetch Error:', err);
       return null;
@@ -2226,9 +2021,6 @@ router.post('/register',
 );
 
 
-
-
-
 // ... (Helper function to extract medical history from text)
 async function extractMedicalHistoryFromText(text) {
   const prompt = `
@@ -2248,5 +2040,6 @@ async function extractMedicalHistoryFromText(text) {
   const response = await chatSession.sendMessage(prompt);
   return response.response.text(); 
 }
-
+  
+  
 export default router;
