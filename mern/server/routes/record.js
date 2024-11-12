@@ -1321,21 +1321,32 @@ router.post("/upload/video", upload.single('video'),
           const activeFile = await waitForFilesActive(uploadedVideo);
 
           // 8. Define the prompt for Gemini AI (move this inside the 'finish' handler)
-          const prompt = `
-            Analyze the provided video in the context of pregnancy care. 
-            Focus on identifying any potential issues or abnormalities that could affect the health of the mother or the fetus.
-
-            Specifically, look for:
-            - **Maternal Physical Health:** Assess the mother's posture, gait, and any visible signs of discomfort or distress.
-            - **Fetal Movement:** Observe fetal movements and note if they appear normal, reduced, or excessive.
-            - **Environmental Factors:** Analyze the environment shown in the video for potential hazards or risks to the mother or fetus (e.g., unsafe conditions, lack of support).
-
-            Provide a concise summary of your findings and highlight any areas of concern.
-
-            **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
-            It is not a substitute for professional medical advice, diagnosis, or treatment. 
-            Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
-          `;
+          const prompt = [
+            { 
+              role: "user",
+              content: `
+                You are a healthcare assistant helping to analyze a video for potential pregnancy complications. 
+                You will receive instructions step-by-step. 
+                Your final goal is to provide a concise summary of your findings and highlight any areas of concern.
+          
+                **Disclaimer:** You are an AI and cannot provide medical advice. This analysis is for informational purposes only. 
+                Always consult with a qualified healthcare provider for any health concerns.
+              `
+            },
+            // Initial instructions
+            {
+              role: "user",
+              content: `
+                **Thought 1:** I need to assess the mother's physical well-being.
+          
+                **Action 1:** <analyze>posture</analyze> in the video. Is it normal for pregnancy or are there signs of pain/discomfort?
+                **Action 2:** <analyze>gait</analyze>. Is the mother's walking pattern steady and normal for pregnancy?
+                **Action 3:** <detect>facial expressions</detect> that might indicate pain, discomfort, or distress. 
+                **Action 4:** <analyze>skin color</analyze>. Is there any pallor (paleness) or jaundice (yellowing)?
+                **Action 5:** <analyze>breathing</analyze>. Is the mother's breathing labored or rapid?
+              `
+            }
+          ];
 
           // 9. Start chat session with the model
           const chatSession = model.startChat({
@@ -1357,18 +1368,182 @@ router.post("/upload/video", upload.single('video'),
             ],
           });
 
-          // 10. Send the prompt and receive diagnostic results
-          const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
-          const geminiAnalysis = generatedContent.response.text();
-          console.log(geminiAnalysis)
+           // Function to extract observations from Gemini's response 
+           function extractObservationsFromVideo(geminiResponse) {
+            const observations = [];
+            // ... (Your logic to extract observations using keyword matching, regex, or NLP)
+            // Keyword Matching Example:
+            const keywords = ["lower back pain", "unsteady gait", "pallor", "jaundice", "labored breathing", "rapid breathing", "edema", "preeclampsia",  "facial expressions of pain", "different possible diagnosis"];
+             keywords.forEach(keyword => {
+              if (geminiResponse.toLowerCase().includes(keyword.toLowerCase())) {
+                 observations.push(keyword);
+             }
+           });
 
-          // 11. Perform SDOH analysis for the video
-          analyzeSDOHDataForVideo(patientId)
+            // *** Optional: Add more sophisticated logic using regex or NLP ***
+            // Example using regex to capture variations of "pain":
+            // const painRegex = /(pain|discomfort|ache|soreness)/gi;
+            // let match;
+            // while ((match = painRegex.exec(geminiResponse)) !== null) {
+            //   observations.push(match[0]); // Add the matched word to observations
+            // }
+
+            return observations;
+          }
+
+        // Function to determine if the analysis is sufficient
+        function analysisIsSufficient(geminiAnalysis, observations, iterationCount) {
+           // 1. Check if all required observations are present
+           const hasAllObservations = requiredObservations.every(obs => observations.includes(obs));
+
+        // 2. Check if the maximum number of iterations has been reached
+          const reachedMaxIterations = iterationCount >= maxIterations;
+
+        // 3. (Optional) Check for specific keywords or phrases in Gemini's response
+        //    that indicate a high level of confidence or a clear conclusion.
+        // Example: Check if Gemini uses phrases like "high probability" or "confident that"
+        const confidenceKeywords = ["high probability", "confident that", "certain that"];
+        const hasHighConfidence = confidenceKeywords.some(keyword => 
+        geminiAnalysis.toLowerCase().includes(keyword.toLowerCase())
+       );
+
+        // Return true if analysis is sufficient, otherwise false
+           return hasAllObservations || reachedMaxIterations || hasHighConfidence; 
+        }
+
+
+          // Analysis Loop
+          let iterationCount = 1; // Keep track of iterations
+          const maxIterations = 5; // Set a maximum number of iterations
+          const requiredObservations = ["lower back pain", "unsteady gait", "Facial Expressions of Pain", "Pallor or Jaundice", "Labored or Rapid Breathing", "different possible diagnosis"];
+
+          
+          while (iterationCount <= maxIterations) {
+            // Send the CURRENT prompt to Gemini
+            const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
+            const geminiAnalysis = generatedContent.response.text();
+          
+            // Extract Observations (You need to implement this function)
+            const observations = extractObservationsFromVideo(geminiAnalysis); 
+          
+            // Construct Next Thought-Action based on Observations
+            if (observations.includes("lower back pain")) {
+              prompt.push({
+                role: "user",
+                content: `
+                  **Thought ${iterationCount + 1}:** The mother's posture seems to show lower back pain. 
+                  
+                  **Action ${iterationCount + 5}:** <analyze>movements</analyze> for any indication of favoring one side or difficulty moving.
+                `
+              });
+            } else if (observations.includes("unsteady gait")) {
+              prompt.push({
+                role: "user",
+                content: `
+                  **Thought ${iterationCount + 1}:** The mother's gait appears unsteady.
+          
+                  **Action ${iterationCount + 5}:** <analyze>environment</analyze> for potential hazards that could be contributing to the unsteady gait (e.g., uneven surfaces, obstacles).
+                  **Action ${iterationCount + 6}:** <analyze>footwear</analyze> to see if it is appropriate and supportive.
+                `
+              });
+            } else if (observations.includes("Facial Expressions of Pain")) {
+              prompt.push({
+                role: "user",
+                content: `
+                  **Thought ${iterationCount + 1}:** The mother's facial expressions indicate pain.
+          
+                  **Action ${iterationCount + 5}:** <analyze>location of pain</analyze> based on facial expressions and body language.
+                  **Action ${iterationCount + 6}:** <analyze>severity of pain</analyze> based on facial expressions and vocalizations.
+                `
+              });
+            } else if (observations.includes("pallor")) {
+              prompt.push({
+                role: "user",
+                content: `
+                  **Thought ${iterationCount + 1}:** The mother appears pale.
+            
+                  **Action ${iterationCount + 5}:** <assess>possibility of anemia</assess>.
+                  **Action ${iterationCount + 6}:** <analyze>context</analyze> to see if pallor could be due to lighting or video quality.
+                `
+              });
+            } else if (observations.includes("jaundice")) {
+              prompt.push({
+                role: "user",
+                content: `
+                  **Thought ${iterationCount + 1}:** The mother appears to have jaundice.
+            
+                  **Action ${iterationCount + 5}:** <assess>possibility of liver problems</assess>.
+                  **Action ${iterationCount + 6}:** <analyze>context</analyze> to see if jaundice could be due to lighting or video quality.
+                `
+              });
+            } else if (observations.includes("Pallor or Jaundice")) {
+              prompt.push({
+                role: "user",
+                content: `
+                  **Thought ${iterationCount + 1}:** The mother's skin appears [pallor/jaundice].
+          
+                  **Action ${iterationCount + 5}:** <analyze>possibility of anemia</analyze> if pallor is observed.
+                  **Action ${iterationCount + 6}:** <analyze>possibility of liver problems</analyze> if jaundice is observed.
+                `
+              });
+            } else if (observations.includes("Labored or Rapid Breathing")) {
+              prompt.push({
+                role: "user",
+                content: `
+                  **Thought ${iterationCount + 1}:**  The mother's breathing is [labored/rapid].
+          
+                  **Action ${iterationCount + 5}:** <analyze>possibility of respiratory distress</analyze> if labored breathing is observed.
+                  **Action ${iterationCount + 6}:** <analyze>environment</analyze>  for potential triggers (e.g., allergens, smoke).
+                `
+              });
+            } else if (observations.includes("different possible diagnosis")) {
+              prompt.push({
+                role: "user",
+                content: `
+                  **Thought ${iterationCount + 1}:**  The mother's lower back pain, unsteady gait, and edema suggest possible preeclampsia.
+          
+                  **Action ${iterationCount + 5}:** <analyze>risk factors for preeclampsia</analyze> based on available information (e.g., medical history, age).
+                  **Action ${iterationCount + 6}:** <recommend>further evaluation</recommend>   by a healthcare professional if preeclampsia is suspected.
+                `
+              });
+            }
+          
+            // Check if analysis is sufficient
+            if (analysisIsSufficient(geminiAnalysis, observations, iterationCount)) {
+              // Final prompt to summarize findings
+              prompt.push({
+                role: "user",
+                content: `
+                  **Final Thought:** Based on all the observations, provide a concise summary of the analysis, highlighting any potential pregnancy complications or areas of concern.
+                `
+              });
+          
+              // Get the final summary from Gemini
+              const finalGeneratedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
+              const finalGeminiAnalysis = finalGeneratedContent.response.text();
+          
+              // ... ( finalGeminiAnalysis is stored to the database)
+              try {
+              const analysisResult = await db.collection("sdoh-analysis-results").insertOne({
+                patientId: patientId,
+                analysisData: finalGeminiAnalysis,
+                createdAt: new Date()
+              });
+          
+              console.log("Video analysis result stored successfully:", analysisResult.insertedId)
+            } catch (error) {
+              logger.error("Error storing video analysis result:", error);
+              res.status(500).json({ error: "Internal server error" });
+            }
+
+              // 11.  SDOH analysis is performed for the video
+              analyzeSDOHDataForVideo(patientId)
             .then(({ accumulatedInsights, tempVideoPath }) => {
               res.status(201).json({
                 message: "Video uploaded successfully",
                 uploadedVideoUrl: activeFile.uri,
-                geminiAnalysis: geminiAnalysis,
+                lastIterationAnalysis: geminiAnalysis, // Renamed to avoid confusion
+                finalGeminiAnalysis: finalGeminiAnalysis,
                 sdohVideoInsightsArray: accumulatedInsights,
                 uploadedVideoId: videoFileId,
               });
@@ -1377,6 +1552,12 @@ router.post("/upload/video", upload.single('video'),
               logger.error("Error during video SDOH analysis:", error);
               res.status(500).json({ error: "Internal server error" });
             });
+          
+              break; // Exit the loop
+            }
+          
+            iterationCount++;
+          } 
         }); // End of uploadStream.on('finish')
 
     } catch (error) {
@@ -1779,6 +1960,7 @@ router.post("/predict", async (req, res) => {
     console.log(combinedAnalysis)
 
 
+    // air quality data are not yet available in some region, we are using a default co-ordinate
      const airQualityData = await fetchAirQuality().catch(err => {
       logger.error('Air Quality Fetch Error:', err);
       return null;
