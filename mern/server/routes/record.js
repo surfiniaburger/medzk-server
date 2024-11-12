@@ -1426,7 +1426,7 @@ router.post("/upload/video", upload.single('video'),
                     role: 'assistant',
                     parts: [
                       { text: cacheContent.geminiAnalysis }, // Directly cache geminiAnalysis
-                      { text: JSON.stringify(cacheContent.sdohVideoInsightsArray) } // Cache sdohVideoInsightsArray as a string
+                      ...cacheContent.sdohVideoInsightsArray.map(insight => ({ text: insight })) // Cache sdohVideoInsightsArray as a string
                     ], // Cache the analysis results
                   },
                 ],
