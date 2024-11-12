@@ -1412,11 +1412,8 @@ router.post("/upload/video", upload.single('video'),
 
               const cache = await cacheManager.create({
                 model: modelName,
-                displayName: cacheKey, // Use the cache key here
-                systemInstruction: { // Provide a valid Content object
-                  role: 'system', // Set the role to 'system'
-                  parts: [{ text: '' }], // You can keep the text empty
-                }, // You can leave this empty if not needed
+                displayName: "video checker", // Use the cache key here
+                systemInstruction: "you a cache manager, your role is to manage my video cache",
                 contents: [
                   {
                     role: 'user',
@@ -1425,8 +1422,8 @@ router.post("/upload/video", upload.single('video'),
                   {
                     role: 'assistant',
                     parts: [
-                      {role: 'assistant', text: cacheContent.geminiAnalysis }, // Directly cache geminiAnalysis
-                      {role: 'assistant', text: JSON.stringify(cacheContent.sdohVideoInsightsArray) } // Cache the entire object as a string
+                      {text: cacheContent.geminiAnalysis }, // Directly cache geminiAnalysis
+                      {text: JSON.stringify(cacheContent.sdohVideoInsightsArray) } // Cache the entire object as a string
                     ], // Cache the analysis results
                   },
                 ],
