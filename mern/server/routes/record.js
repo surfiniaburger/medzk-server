@@ -9,7 +9,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as snarkjs from 'snarkjs';
 import multer from "multer";
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GoogleGenerativeAIFetchError, GoogleAICacheManager } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GoogleGenerativeAIFetchError } from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import logger from '../utils/logger.js'; 
 import crypto from 'crypto';
@@ -21,6 +21,7 @@ import { GridFSBucket } from 'mongodb';
 import { Grounding } from "../utils/grounding.js";
 import { fetchAirQuality } from "../utils/air-quality.js";
 import { getAddressFromCoordinates } from "../utils/address.js";
+import { GoogleAICacheManager } from '@google/generative-ai/server';
 
 
 
