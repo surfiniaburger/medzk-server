@@ -1356,7 +1356,7 @@ router.post("/upload/video", upload.single('video'),
               {
                 role: "user",
                 parts: [
-                  { text: prompt },
+                  ...prompt.map(message => ({ text: message.content })),
                   {
                     fileData: {
                       mimeType: activeFile.mimeType,
