@@ -42,7 +42,7 @@ const router = express.Router();
   logger.info('API key loaded successfully:');
 }
  const genAI = new GoogleGenerativeAI(gkey);
- const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-001",
+ const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-002",
  
  }
 
