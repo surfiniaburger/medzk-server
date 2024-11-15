@@ -54,6 +54,12 @@ app.use("/record", records);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));  // Make sure to create a 'views' folder
 
+// Generic error handler (optional)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something went wrong!');
+});
+
 // Start the Express server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server listening on port ${PORT}`);
