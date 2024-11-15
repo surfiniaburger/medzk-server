@@ -30,6 +30,7 @@ import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
+    TooltipProvider,
   } from "@/components/ui/tooltip";
 
 // Custom component to handle source citations
@@ -206,6 +207,7 @@ function PredictionResult({ predictionResult }) {
             />
           </div>
         </ScrollArea>
+        <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" onClick={handleMapClick} className="h-8 w-8">
@@ -223,6 +225,7 @@ function PredictionResult({ predictionResult }) {
             <pre>{JSON.stringify(mapData, null, 2)}</pre>
           </div>
         )}
+        </TooltipProvider>
       </div>
     </>
   );
