@@ -8,6 +8,12 @@ import 'dotenv/config';
 const PORT = process.env.PORT || 5050;
 const app = express();
 
+
+// Set EJS as the view engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));  // Make sure to create a 'views' folder
+
+
 // Handle Google Credentials Setup conditionally based on environment
 if (process.env.NODE_ENV === 'production') {
   const googleCredentials = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
@@ -50,15 +56,8 @@ app.use(express.json());
 
 app.use("/record", records);
 
-// Set EJS as the view engine
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));  // Make sure to create a 'views' folder
 
-// Generic error handler (optional)
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something went wrong!');
-});
+
 
 // Start the Express server
 app.listen(PORT, '0.0.0.0', () => {
