@@ -25,7 +25,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ExternalLink, Copy, CheckCircle2 } from 'lucide-react';
+import { ExternalLink, Copy, CheckCircle2, MapPin } from 'lucide-react';
 import {
     Tooltip,
     TooltipContent,
@@ -114,6 +114,8 @@ const SourceCitation = ({ children }) => {
 function PredictionResult({ predictionResult }) {
   const [open, setOpen] = React.useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [mapData, setMapData] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
 
   if (!predictionResult) return null;
 
@@ -132,6 +134,24 @@ function PredictionResult({ predictionResult }) {
       
       return `* **Fact:**${factContent}\n<SourceCitation>[Source:${rest.join('[Source:')}`;
     }).join('\n');
+  };
+
+  const API_BASE = process.env.NODE_ENV === 'production' 
+    ? 'https://medzk-server.onrender.com'
+    : 'http://localhost:5050';
+  
+
+  const handleMapClick = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/map`);
+      const data = await response.json();
+      setMapData(data);
+    } catch (error) {
+      console.error("Error fetching map data:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const components = {
@@ -186,6 +206,23 @@ function PredictionResult({ predictionResult }) {
             />
           </div>
         </ScrollArea>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" onClick={handleMapClick} className="h-8 w-8">
+              <MapPin className="h-4 w-4 text-blue-600" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>View Map</p>
+          </TooltipContent>
+        </Tooltip>
+        {loading && <p>Loading map data...</p>}
+        {mapData && (
+          <div className="mt-4">
+            <h4 className="font-bold">Map Information:</h4>
+            <pre>{JSON.stringify(mapData, null, 2)}</pre>
+          </div>
+        )}
       </div>
     </>
   );
