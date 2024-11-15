@@ -184,13 +184,19 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Route to render the map page with the API key
-router.get("/map", async (req, res) => {
+// Define the route for rendering the map
+router.get('/map', (req, res) => {
   try {
-    // Render the map page and pass the Google Maps API key from environment variables
-    res.status(200).render('map', { apiKey: process.env.GOOGLE_MAPS_API_KEY });
+    // Read the HTML file
+    const filePath = path.join(__dirname, 'views/map.html');
+    let fileContent = fs.readFileSync(filePath, 'utf-8');
+
+    // Replace the placeholder with the API key
+    fileContent = fileContent.replace('<%= apiKey %>', process.env.GOOGLE_MAPS_API_KEY);
+
+    // Send the modified content
+    res.status(200).send(fileContent);
   } catch (error) {
-    // Log and return an error if something goes wrong
     console.error("Error rendering the map page:", error);
     res.status(500).json({ error: "Internal server error" });
   }
