@@ -3,6 +3,7 @@ import cors from "cors";
 import records from "./routes/record.js";
 import fs from 'fs';
 import path from 'path';
+import 'dotenv/config';
 
 const PORT = process.env.PORT || 5050;
 const app = express();
@@ -48,6 +49,10 @@ app.use(cors({
 app.use(express.json());
 
 app.use("/record", records);
+
+// Set EJS as the view engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));  // Make sure to create a 'views' folder
 
 // Start the Express server
 app.listen(PORT, '0.0.0.0', () => {
