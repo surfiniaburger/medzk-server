@@ -1,7 +1,7 @@
 # med-zk server 
 
+![alt text](mern/client/src/assets/groot.jpg)
 
-[![CI](https://github.com/mongodb-developer/mern-stack-example/actions/workflows/main.yaml/badge.svg)](https://github.com/mongodb-developer/mern-stack-example/actions/workflows/main.yaml)
 
 ## How To Run
 Create the file `mern/server/config.env` with your Atlas URI and the server port:
