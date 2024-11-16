@@ -197,7 +197,7 @@ router.get('/map', (req, res) => {
     // Send the modified content
     res.status(200).send(fileContent);
   } catch (error) {
-    console.error("Error rendering the map page:", error);
+    logger.error("Error rendering the map page:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
