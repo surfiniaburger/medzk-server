@@ -49,13 +49,8 @@ app.use(cors({
 // Body parser middleware
 app.use(express.json());
 
-// Add this line to serve files from the public directory
-app.use(express.static(path.join(__dirname, 'public')));
 
 app.use("/record", records);
-
-
-
 
 // Start the Express server
 app.listen(PORT, '0.0.0.0', () => {

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Home, Camera, Activity, BarChart2, Shield, Video } from "lucide-react";
+import { Menu, X, Home, Camera, Activity, BarChart2,  Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NavItem = ({ to, children, icon: Icon }) => {
