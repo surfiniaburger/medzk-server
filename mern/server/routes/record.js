@@ -184,24 +184,23 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Define the route for rendering the map
+
 router.get('/map', (req, res) => {
   try {
-    // Read the HTML file
-    const filePath = path.join(__dirname, 'views/map.html');
-    let fileContent = fs.readFileSync(filePath, 'utf-8');
-
-    // Replace the placeholders with the API keys
-    fileContent = fileContent
-      .replace('<%= googleApiKey %>', process.env.GOOGLE_MAPS_API_KEY)
-      .replace('<%= openWeatherApiKey %>', process.env.OPENWEATHER_API_KEY);
-
-    
-    // Send the modified content
-    res.status(200).send(fileContent);
+      // Read the HTML file
+      const filePath = path.join(__dirname, 'views/map.html');
+      let fileContent = fs.readFileSync(filePath, 'utf-8');
+      
+      // Replace the template variables with actual API keys
+      fileContent = fileContent
+          .replace('{{GOOGLE_MAPS_API_KEY}}', process.env.GOOGLE_MAPS_API_KEY)
+          .replace('{{OPENWEATHER_API_KEY}}', process.env.OPENWEATHER_API_KEY);
+      
+      // Send the modified content
+      res.status(200).send(fileContent);
   } catch (error) {
-    logger.error("Error rendering the map page:", error);
-    res.status(500).json({ error: "Internal server error" });
+      logger.error("Error rendering the map page:", error);
+      res.status(500).json({ error: "Internal server error" });
   }
 });
 
