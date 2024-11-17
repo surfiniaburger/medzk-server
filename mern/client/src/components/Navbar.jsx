@@ -56,7 +56,6 @@ export default function Navbar() {
     { to: "/", label: "Home", icon: Home },
     { to: "/predict", label: "Predictions", icon: Activity },
     { to: "/vision", label: "Image Analysis", icon: Camera },
-    { to: "/proof-verification", label: "Verification", icon: Shield },
     { to: "/analytics", label: "Analytics", icon: BarChart2 },
     { to:  "/video-upload", label: "Video Analysis", icon: Video},
   ];

@@ -1,11 +1,12 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
+import Navbar from './Navbar';
 
 const MapComponent = () => {
   const [mapHtml, setMapHtml] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   useEffect(() => {
     const API_BASE = process.env.NODE_ENV === 'production' 
     ? 'https://medzk-server.onrender.com'
@@ -46,6 +47,7 @@ const MapComponent = () => {
 
   return (
     <div>
+        <Navbar/>
       <h1>Map View</h1>
       <div
         dangerouslySetInnerHTML={{ __html: mapHtml }}
