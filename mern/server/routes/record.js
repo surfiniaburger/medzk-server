@@ -188,33 +188,36 @@ router.get("/", async (req, res) => {
 router.get('/map', (req, res) => {
   try {
     // Log request details
-    logger.log('info', 'Request received for /map');
+    logger.info('info', 'Request received for /map');
     
     // Log environment variables
-    logger.log('info', `GOOGLE_MAPS_API_KEY: ${process.env.GOOGLE_MAPS_API_KEY ? 'Loaded' : 'Not Loaded'}`);
-    logger.log('info', `OPENWEATHER_API_KEY: ${process.env.OPENWEATHER_API_KEY ? 'Loaded' : 'Not Loaded'}`);
+    logger.info('info', `GOOGLE_MAPS_API_KEY: ${process.env.GOOGLE_MAPS_API_KEY ? 'Loaded' : 'Not Loaded'}`);
+    logger.info('info', `OPENWEATHER_API_KEY: ${process.env.OPENWEATHER_API_KEY ? 'Loaded' : 'Not Loaded'}`);
     
     // Log the keys (caution: avoid in production)
-    logger.log('debug', `GOOGLE_MAPS_API_KEY Value: ${process.env.GOOGLE_MAPS_API_KEY}`);
-    logger.log('debug', `OPENWEATHER_API_KEY Value: ${process.env.OPENWEATHER_API_KEY}`);
+    logger.info('debug', `GOOGLE_MAPS_API_KEY Value: ${process.env.GOOGLE_MAPS_API_KEY}`);
+    logger.info('debug', `OPENWEATHER_API_KEY Value: ${process.env.OPENWEATHER_API_KEY}`);
     
     // Read both files
     const htmlPath = path.join(__dirname, 'views/map.html');
     const jsPath = path.join(__dirname, '../public/js/map-application.js');
     
-    logger.log('info', `Reading HTML file from: ${htmlPath}`);
-    logger.log('info', `Reading JS file from: ${jsPath}`);
+    logger.info('info', `Reading HTML file from: ${htmlPath}`);
+    logger.info('info', `Reading JS file from: ${jsPath}`);
     
     let htmlContent = fs.readFileSync(htmlPath, 'utf-8');
     const jsContent = fs.readFileSync(jsPath, 'utf-8');
     
+    logger.info(htmlContent)
+    logger.info(jsContent)
+
     // Inject the JavaScript content and API keys
     htmlContent = htmlContent
       .replace('{{GOOGLE_MAPS_API_KEY}}', process.env.GOOGLE_MAPS_API_KEY)
       .replace('{{OPENWEATHER_API_KEY}}', process.env.OPENWEATHER_API_KEY)
       .replace('<script src="/js/map-application.js"></script>', `<script>${jsContent}</script>`);
     
-    logger.log('info', 'Successfully injected API keys into HTML');
+    logger.info('info', 'Successfully injected API keys into HTML');
     res.status(200).send(htmlContent);
   } catch (error) {
     logger.error('Error rendering the map page:', error);
