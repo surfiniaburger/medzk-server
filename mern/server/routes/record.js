@@ -194,10 +194,6 @@ router.get('/map', (req, res) => {
     logger.info('info', `GOOGLE_MAPS_API_KEY: ${process.env.GOOGLE_MAPS_API_KEY ? 'Loaded' : 'Not Loaded'}`);
     logger.info('info', `OPENWEATHER_API_KEY: ${process.env.OPENWEATHER_API_KEY ? 'Loaded' : 'Not Loaded'}`);
     
-    // Log the keys (caution: avoid in production)
-    logger.info('debug', `GOOGLE_MAPS_API_KEY Value: ${process.env.GOOGLE_MAPS_API_KEY}`);
-    logger.info('debug', `OPENWEATHER_API_KEY Value: ${process.env.OPENWEATHER_API_KEY}`);
-    
     // Read both files
     const htmlPath = path.join(__dirname, 'views/map.html');
     const jsPath = path.join(__dirname, '../public/js/map-application.js');
@@ -207,9 +203,6 @@ router.get('/map', (req, res) => {
     
     let htmlContent = fs.readFileSync(htmlPath, 'utf-8');
     const jsContent = fs.readFileSync(jsPath, 'utf-8');
-    
-    logger.info(htmlContent)
-    logger.info(jsContent)
 
     // Inject the JavaScript content and API keys
     htmlContent = htmlContent
