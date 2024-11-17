@@ -26,6 +26,7 @@ const MapComponent = () => {
         
         // Set the HTML response to state
         setMapHtml(html);
+        console.log(html)
         setLoading(false);
       } catch (err) {
         setError(err.message);
@@ -42,7 +43,7 @@ const MapComponent = () => {
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div>There was an Error: {error}</div>;
   }
 
   return (
