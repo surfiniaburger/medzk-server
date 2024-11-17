@@ -191,9 +191,12 @@ router.get('/map', (req, res) => {
     const filePath = path.join(__dirname, 'views/map.html');
     let fileContent = fs.readFileSync(filePath, 'utf-8');
 
-    // Replace the placeholder with the API key
-    fileContent = fileContent.replace('<%= apiKey %>', process.env.GOOGLE_MAPS_API_KEY);
+    // Replace the placeholders with the API keys
+    fileContent = fileContent
+      .replace('<%= googleApiKey %>', process.env.GOOGLE_MAPS_API_KEY)
+      .replace('<%= openWeatherApiKey %>', process.env.OPENWEATHER_API_KEY);
 
+    
     // Send the modified content
     res.status(200).send(fileContent);
   } catch (error) {
