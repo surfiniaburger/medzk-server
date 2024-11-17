@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle 
 } from "@/components/ui/card";
-import { HeartPulse, ShieldCheck, Video, Camera, ArrowRight, BarChart3, Quote } from 'lucide-react';
+import { HeartPulse, ShieldCheck, Video, Camera, ArrowRight, BarChart3, Quote, MapPin } from 'lucide-react';
 import Navbar from "./components/Navbar";
 import grootBg from './assets/groot.jpg';
 
@@ -119,6 +119,12 @@ const App = () => {
       title: "Advanced Analytics",
       description: "Access detailed analytics on your health data.",
       to: "/analytics"
+    },
+    {
+      icon: MapPin,
+      title: "Photorealistic 3D Maps",
+      description: "It’s more than a map; it’s a pathway to peace of mind, tailored for the unique needs of motherhood.",
+      to: "/map"
     },
    
   ];

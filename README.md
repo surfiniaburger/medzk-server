@@ -13,6 +13,7 @@ GEMINI_API_KEY=your_gemini_api_key
 JWT_SECRET=your_super_secret_key
 JWT_EXPIRY=1h # token expiration time
 GOOGLE_MAPS_API_KEY=
+OPENWEATHER_API_KEY=
 
 ```
 

@@ -348,7 +348,7 @@
       }
 
       async function fetchEnvironmentalData(location) {
-        const openweatherKey = "open-weather-api-key";
+        const openweatherKey = "<%= openWeatherApiKey %>";
         const airQualityUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${location.lat()}&lon=${location.lng()}&appid=${openweatherKey}`;
         const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${location.lat()}&lon=${location.lng()}&appid=${openweatherKey}`;
 

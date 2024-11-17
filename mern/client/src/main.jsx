@@ -14,6 +14,7 @@ import App from "./App";
 import ProofVerification from "./components/ProofVerification";
 import AdvancedAnalyticsDashboard from "./components/Analytics";
 import PredictForm from "./components/Predict";
+import MapComponent from "./components/Map";
 
 
 // Define routes without authentication
@@ -46,6 +47,10 @@ const router = createBrowserRouter([
       {
         path: "/analytics",
         element: <AdvancedAnalyticsDashboard />,
+      },
+      {
+        path: "/map",
+        element: <MapComponent />,
       },
     ],
   },
