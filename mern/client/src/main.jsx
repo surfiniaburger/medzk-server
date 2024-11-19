@@ -14,7 +14,8 @@ import App from "./App";
 import ProofVerification from "./components/ProofVerification";
 import AdvancedAnalyticsDashboard from "./components/Analytics";
 import PredictForm from "./components/Predict";
-import MapComponent from "./components/Map";
+//import MapComponent from "./components/Map";
+import EmbeddedHtml from "./components/EmbeddedHtml";
 
 
 // Define routes without authentication
@@ -50,7 +51,7 @@ const router = createBrowserRouter([
       },
       {
         path: "/map",
-        element: <MapComponent />,
+        element: <EmbeddedHtml />,
       },
     ],
   },
