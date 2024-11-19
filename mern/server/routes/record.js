@@ -557,22 +557,42 @@ async (req, res) => {
 
     // Define the prompt for Gemini AI
      const prompt = `
-    Analyze this T2-weighted brain MRI for signs of multiple sclerosis. 
-    Specifically, examine the white matter of the brain, particularly the periventricular regions, 
-    the corpus callosum, and the optic nerves, for hyperintense lesions. 
-
-    Provide a differential diagnosis, considering and ranking the likelihood of:
- 
-    * Multiple Sclerosis
-    * Stroke
-    * Migraine with Aura
-
-    Estimate the number and size of any lesions detected. 
-    Format your response with clear headings for each section.
-
-    **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
-    It is not a substitute for professional medical advice, diagnosis, or treatment. 
-    Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
+    Question
+    Analyze T2-weighted brain MRI for signs of multiple sclerosis and potential differential diagnoses.
+    Thought 1
+    I need to systematically examine the MRI, focusing on specific brain regions known to be indicative of multiple sclerosis and other neurological conditions.
+    Action 1
+    <search>T2-weighted MRI multiple sclerosis diagnostic criteria</search>
+    Observation 1
+    T2-weighted MRI is crucial for identifying white matter lesions, with specific focus on periventricular regions, corpus callosum, and optic nerves.
+    Thought 2
+    I will first examine the periventricular white matter for characteristic MS lesions.
+    Action 2
+    <lookup>periventricular white matter lesion characteristics</lookup>
+    Observation 2
+    Looking for hyperintense lesions that appear as bright spots near the ventricles, which are typical in multiple sclerosis.
+    Thought 3
+    Next, I will carefully analyze the corpus callosum for any characteristic lesion patterns.
+    Action 3
+    <search>corpus callosum multiple sclerosis lesions</search>
+    Observation 3
+    Examining the connecting neural pathways for distinct hyperintense lesions that could indicate demyelination.
+    Thought 4
+    I will investigate the optic nerves for any signs of neurological involvement.
+    Action 4
+    <lookup>optic nerve lesions neurological conditions</lookup>
+    Observation 4
+    Assessing the optic nerve regions for hyperintense lesions that could suggest multiple sclerosis or other neurological disorders.
+    Thought 5
+    I will develop a differential diagnosis, comparing the observed lesions to characteristics of multiple sclerosis, stroke, and migraine with aura.
+    Action 5
+    <search>differential diagnosis white matter lesions</search>
+     Observation 5
+    Comparing lesion characteristics, location, and patterns to diagnostic criteria for multiple potential neurological conditions.
+     Thought 6
+    I will quantify and characterize any detected lesions to support the diagnostic reasoning.
+    Action 6
+    <finish>Comprehensive MRI lesion analysis for neurological diagnosis</finish>
     `;  // Thanks to Gemini code assist
     
 
@@ -859,16 +879,36 @@ async (req, res) => {
 
     // Define the prompt for Gemini AI
     const prompt = `
-      Carefully analyze the provided video footage for any healthcare-related abnormalities. Specifically, look for signs of potential physical ailments, mobility issues, or behavioral anomalies. Your analysis should cover:
-      1. A comprehensive review of any visible medical symptoms and their significance.
-      2. Differential diagnoses based on observed clinical indicators.
-      3. Suggestions for appropriate follow-up tests or imaging studies.
-      4. Insights into the urgency of medical intervention, if applicable, and potential care pathways.
-      Structure your response with clear headings for each section, and ensure that your analysis is thorough and evidence-based.
-
-      **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
-      It is not a substitute for professional medical advice, diagnosis, or treatment. 
-      Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
+      Question
+    Analyze the provided video footage for healthcare-related abnormalities.
+    Thought 1
+    I need to systematically break down the medical analysis into key components: symptoms, potential diagnoses, follow-up recommendations, and intervention urgency.
+    Action 1
+    <search>medical observation methodology</search>
+    Observation 1
+    Comprehensive medical analysis requires careful, systematic examination of visible symptoms, context, and potential clinical indicators.
+    Thought 2
+    I will structure my analysis by first identifying and categorizing any observable physical or behavioral symptoms.
+    Action 2
+    <lookup>clinical symptom assessment</lookup>
+    Observation 2
+    Key steps include noting abnormal movements, physical appearance, behavioral changes, and potential signs of distress or medical conditions.
+     Thought 3
+     Next, I will cross-reference the observed symptoms to generate potential differential diagnoses that could explain the clinical presentation.
+     Action 3
+     <search>differential diagnosis techniques</search>
+     Observation 3
+     Differential diagnosis involves creating a list of possible conditions that could account for the observed symptoms, ranking them by likelihood and severity.
+    Thought 4
+    Then, I will recommend appropriate follow-up tests or imaging studies that could provide more definitive diagnostic information.
+    Action 4
+    <lookup>medical diagnostic protocols</lookup>
+    Observation 4
+    Recommended follow-up typically involves confirmatory tests, specialist consultations, and additional diagnostic imaging based on initial observations.
+     Thought 5
+     Finally, I will assess the urgency of potential medical intervention and suggest appropriate care pathways.
+     Action 5
+     <finish>Structured medical video analysis methodology prepared</finish>
     `;
 
 
@@ -1154,19 +1194,41 @@ router.post("/upload/image", upload.array('images', 5),
 
       // Define the prompt for Gemini AI
      const prompt = `
-     Analyze the provided image to identify potential social determinants of health (SDOH) factors that could affect the health of a pregnant woman living in this environment.
- 
-          Consider the following aspects:
-            - **Neighborhood Safety:** Are there any visible signs of crime or violence (e.g., graffiti, broken windows, security bars)? Does the environment appear safe for walking or outdoor activities?
-            - **Access to Healthy Food:** Are there grocery stores, farmers' markets, or healthy food options visible in the image? Or are there more fast food restaurants or convenience stores?
-            - **Housing Quality:** What is the condition of the housing in the image? Are there any signs of disrepair, overcrowding, or inadequate sanitation?
-            - **Environmental Hazards:** Are there any visible environmental hazards, such as pollution, industrial sites, or lack of green spaces?
-            - **Transportation:** Are there public transportation options visible? Does the area appear walkable or bike-friendly?
-            - **Social Cohesion:** Does the environment suggest a sense of community (e.g., people interacting, community centers)?
-
-          Provide a concise summary of your observations and highlight any potential SDOH risks or protective factors that could impact the health of a pregnant woman living in this environment.
-
-          **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. It is not a substitute for professional assessment of social determinants of health.
+                        Analyze the provided image to identify potential social determinants of health (SDOH) factors for a pregnant woman.
+            Thought 1
+            I need to systematically examine the image across multiple dimensions of social determinants of health, focusing on factors that could directly impact maternal and fetal health.
+            Action 1
+            <search>social determinants of health pregnancy</search>
+            Observation 1
+            Social determinants of health encompass environmental, economic, and social conditions that significantly influence health outcomes, particularly for vulnerable populations like pregnant women.
+             Thought 2
+            I will first assess neighborhood safety, as this is a critical factor for physical and mental well-being during pregnancy.
+            Action 2
+           <lookup>neighborhood safety indicators</lookup>
+            Observation 2
+           Key safety indicators include physical environment condition, visible security measures, signs of community maintenance, and potential crime markers.
+           Thought 3
+           Next, I'll evaluate access to healthy food, which is crucial for proper nutrition during pregnancy.
+           Action 3
+          <search>nutrition access urban environment</search>
+          Observation 3
+          Food environment directly impacts maternal nutrition, with access to fresh foods being critical for healthy fetal development and maternal health.
+          Thought 4
+          I will examine housing quality and environmental conditions that could pose risks to maternal and fetal health.
+          Action 4
+          <lookup>housing health risks pregnancy</lookup>
+          Observation 4
+          Housing conditions can expose pregnant women to environmental hazards, impact stress levels, and influence overall health outcomes.
+          Thought 5
+          I'll assess transportation and social infrastructure as additional determinants of health access and social support.
+          Action 5
+          <search>transportation social support pregnancy</search> 
+          Observation 5
+          Transportation and community infrastructure significantly impact a pregnant woman's ability to access healthcare, maintain social connections, and manage daily needs.
+          Thought 6
+          I will synthesize these observations to provide a comprehensive assessment of potential health risks and protective factors.
+          Action 6
+          <finish>Comprehensive SDOH analysis for pregnant woman's health environment</finish>
      `;  // Thanks to Gemini code assist
 
 
@@ -1362,19 +1424,35 @@ router.post("/upload/video", upload.single('video'),
 
             // 8. Define the prompt for Gemini AI 
             const prompt = `
-              Analyze the provided video in the context of pregnancy care. 
-              Focus on identifying any potential issues or abnormalities that could affect the health of the mother or the fetus.
-
-              Specifically, look for:
-              - **Maternal Physical Health:** Assess the mother's posture, gait, and any visible signs of discomfort or distress.
-              - **Fetal Movement:** Observe fetal movements and note if they appear normal, reduced, or excessive.
-              - **Environmental Factors:** Analyze the environment shown in the video for potential hazards or risks to the mother or fetus (e.g., unsafe conditions, lack of support).
-
-              Provide a concise summary of your findings and highlight any areas of concern.
-
-              **Disclaimer:** This analysis is provided by an AI system and is intended for informational purposes only. 
-              It is not a substitute for professional medical advice, diagnosis, or treatment. 
-              Always consult with a qualified healthcare provider for any health concerns or before making any decisions related to your health or treatment.
+              Analyze the provided video for potential pregnancy-related health issues and abnormalities.
+            Thought 1
+             I need to develop a systematic approach to assess maternal and fetal health through video observation, breaking down the analysis into specific clinical indicators.
+            Action 1
+            <search>pregnancy health assessment techniques</search>
+            Observation 1
+             Comprehensive pregnancy health assessment requires careful evaluation of physical, behavioral, and environmental factors affecting maternal and fetal well-being.
+            Thought 2
+            I will first focus on assessing the mother's physical health, looking for any visible signs of potential medical concerns.
+            Action 2
+            <lookup>maternal physical health indicators</lookup>
+            Observation 2
+            Key physical health indicators include posture, movement patterns, signs of discomfort, visible physical changes, and overall physical functioning during pregnancy.
+            Thought 3
+            Next, I will carefully observe fetal movement patterns to identify any potential abnormalities or areas of concern.
+            Action 3
+            <search>fetal movement assessment pregnancy</search>
+            Observation 3
+            Fetal movement provides critical insights into fetal health, neural development, and potential underlying medical conditions that may require further investigation.
+            Thought 4
+            I will analyze the environmental context to identify any potential external factors that could impact maternal or fetal health.
+            Action 4
+            <lookup>environmental health risks pregnancy</lookup>
+            Observation 4
+            Environmental factors can significantly influence pregnancy outcomes, including physical hazards, stress levels, and support systems available to the mother.
+            Thought 5
+            I will synthesize these observations to create a comprehensive overview of potential health risks or protective factors.
+            Action 5
+            <finish>Comprehensive video-based pregnancy health analysis prepared</finish>
             `;
 
             // 9. Start chat session with the model
@@ -1878,21 +1956,43 @@ router.post("/predict", async (req, res) => {
 
     // 2. Gemini Multimodal Analysis:
     const prompt = `
-      Patient: ${patientId}
-      wellnessText: ${wellnessText}
-      Medical History: ${JSON.stringify(extractedMedicalHistory)}
-      SDOH Insights: ${JSON.stringify(combinedSDOHInsights)}
-      Air Quality Data: ${JSON.stringify(airQualityData)}
-      Patient Address: ${address}
-      Image/Video Analysis: ${combinedAnalysis}
-
-      Based on this information, provide a personalized risk assessment for:
-        - Diabetes
-        - Heart Disease
-        - ... (other relevant conditions)
-
-      Include specific recommendations for preventative measures, considering the patient's context.
-      Explain your reasoning for each risk assessment and recommendation.
+           Question
+           Provide a personalized health risk assessment for Patient: ${patientId}
+           Thought 1
+           I need to systematically analyze the patient's detailed information, including medical history, SDOH insights, and environmental data to create a comprehensive risk assessment.
+           Action 1
+           <search>patient ${patientId} medical context</search>
+           Observation 1
+           Patient data includes wellness text: "${wellnessText}", medical history: ${JSON.stringify(extractedMedicalHistory)}, and comprehensive contextual information.
+           Thought 2
+           I will first examine the medical history to identify existing risk factors for conditions like diabetes and heart disease.
+           Action 2
+           <lookup>medical history risk factors</lookup>
+           Observation 2
+           Medical history reveals: ${JSON.stringify(extractedMedicalHistory)} - key indicators that will inform risk assessments.
+           Thought 3
+           Next, I'll analyze the Social Determinants of Health (SDOH) to understand environmental and social risk modifiers.
+           Action 3
+           <search>SDOH risk impact</search>
+           Observation 3
+           SDOH insights show: ${JSON.stringify(combinedSDOHInsights)} - these factors will significantly influence health risk calculations.
+           Thought 4
+           I will integrate air quality data to assess additional environmental health risks.
+           Action 4
+           <lookup>air quality health risks</lookup>
+           Observation 4
+           Air quality data indicates: ${JSON.stringify(airQualityData)} - potential respiratory and cardiovascular risk factors.
+           Thought 5
+           I'll consider the patient's address and any additional context from image/video analysis.
+           Action 5
+           <search>address-based health risks</search>
+           Observation 5
+           Patient address: ${address}
+           Combined analysis: ${combinedAnalysis} - providing additional contextual insights.
+           Thought 6
+           I will synthesize all information to generate specific risk assessments for diabetes, heart disease, and other relevant conditions.
+           Action 6
+          <finish>Personalized health risk assessment for Patient ${patientId}</finish>
     `;
 
     const chatSession = model.startChat({ 
@@ -2009,15 +2109,42 @@ async function analyzeSDOHData(patientId) {
         let prompt = "";
         if (labels.length > 0 || extractedText !== "") {
           prompt = `
-            Analyze the following information extracted from an image for social determinants of health insights:
-            - Labels: ${labels.join(', ')}
-            - Text: ${extractedText}
-
-            Consider factors like:
-              - Access to healthy food options
-              - Neighborhood safety
-              - Environmental hazards
-              - Access to healthcare facilities
+            Question
+             Analyze image-extracted information for social determinants of health (SDOH) insights for labels: ${labels.join(', ')}
+            Thought 1
+             I need to systematically examine the extracted labels and text to identify potential social determinants of health that could impact an individual's well-being.
+            Action 1
+             <search>social determinants of health image analysis</search>
+            Observation 1
+              Comprehensive SDOH analysis requires careful interpretation of visual and textual cues that reveal environmental and social context.
+            Thought 2
+              I will first analyze the labels to understand the primary visual context and potential health-related indicators.
+            Action 2
+             <lookup>health insights from image labels</lookup>
+            Observation 2
+              Labels (${labels.join(', ')}) provide initial context about the environment, potential infrastructure, and surrounding conditions.
+            Thought 3
+              Next, I'll examine the extracted text for additional contextual information about the environment and potential health resources.
+            Action 3
+              <search>text-based health environment assessment</search>
+            Observation 3
+              Extracted text: "${extractedText}" may reveal details about local resources, community characteristics, or environmental conditions.
+            Thought 4
+              I will assess access to healthy food options based on the visual and textual information.
+            Action 4
+              <lookup>food access environmental indicators</lookup>
+            Observation 4
+              Analyzing labels and text for indicators of food retail, agricultural presence, or nutritional resources.
+            Thought 5
+              I will evaluate neighborhood safety, environmental hazards, and healthcare access through the extracted information.
+            Action 5
+              <search>neighborhood health infrastructure assessment</search>
+            Observation 5
+             Examining visual and textual cues for signs of community safety, environmental quality, and healthcare accessibility.
+            Thought 6
+             I will synthesize the observations to provide comprehensive SDOH insights from the image-extracted information.
+            Action 6
+             <finish>Comprehensive SDOH analysis from image extraction</finish>
           `;
         } else {
           prompt = `
