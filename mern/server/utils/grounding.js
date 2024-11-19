@@ -92,7 +92,45 @@ export async function Grounding(predictionOutput) {
 
   try {
     // Define the prompt for Gemini AI
-    const prompt = `Ground the following prediction output with factual information and cite your sources: "${predictionOutput}"`;  
+    const prompt = `
+    Question
+    Ground the prediction output: "${predictionOutput}" with factual information and reliable citations.
+    Thought 1
+    I need to systematically analyze the prediction output, breaking it down into key claims that require verification and fact-checking.
+    Action 1
+    <search>prediction output verification methodology</search>
+    Observation 1
+    Effective fact-checking requires a systematic approach of identifying specific claims, cross-referencing with multiple reliable sources, and evaluating the evidence.
+    Thought 2
+    I will first identify the key claims or statements within the prediction output that need factual verification.
+    Action 2
+    <lookup>claim identification techniques</lookup>
+    Observation 2
+    Carefully parse the prediction output to extract specific, verifiable statements that require factual grounding.
+    Thought 3
+    I will systematically search for reliable sources to confirm or contextualize each identified claim.
+    Action 3
+    <search>authoritative source verification</search>
+    Observation 3
+    Consulting peer-reviewed literature, academic publications, and reputable domain-specific sources to validate the prediction's claims.
+    Thought 4
+    I will critically evaluate the evidence, assessing the strength and reliability of supporting sources.
+    Action 4
+    <lookup>source credibility assessment</lookup>
+    Observation 4
+    Examining the quality of sources, looking for peer-reviewed research, expert consensus, and corroborating evidence.
+    Thought 5
+    I will synthesize the verified information, providing context and nuanced interpretation of the original prediction output.
+    Action 5
+    <search>contextual analysis techniques</search>
+    Observation 5
+    Integrating verified information to provide a comprehensive, well-grounded analysis of the original prediction.
+    Thought 6
+    I will compile the findings with appropriate citations and source attributions.
+    Action 6
+    <finish>Comprehensive fact-checked analysis of prediction output</finish>
+    
+    `;  
 
     // Start chat session with the model
     const chatSession = model.startChat({
