@@ -558,7 +558,16 @@
         });
 
         // Add click event listener to the marker
-        this.marker.addEventListener('gmp-click', () => this.showInfoWindow());
+        this.marker.addEventListener('gmp-click', async () => {
+        // Call zoomAndFlyToLocation when marker is clicked
+            await zoomAndFlyToLocation(this.map3DElement, {
+               lat: this.place.location.lat(),
+               lng: this.place.location.lng(),
+            });
+
+        // Show info window
+        this.showInfoWindow();
+    });
         
         // Append the marker to the map's 3D element
         this.map3DElement.append(this.marker);
@@ -616,7 +625,36 @@
 }
 
 
-// Add this JavaScript after your existing scripts
+async function zoomAndFlyToLocation(map3DElement, location) {
+    if (!map3DElement) return;
+
+    const initialHeading = map3DElement.heading || 0;
+
+    // Fly to the location
+    let currentHeading = initialHeading;
+    const steps = 100; // Number of frames for the animation
+    const rangeReduction = (map3DElement.range - 300) / steps; // Gradual zoom
+    const headingIncrement = 360 / steps; // Rotate the camera 360 degrees
+    const intervalDuration = 50; // Duration per frame in milliseconds
+
+    for (let i = 0; i < steps; i++) {
+        // Update the map's camera properties gradually
+        map3DElement.center = {
+            lat: location.lat,
+            lng: location.lng,
+            altitude: 30, // Zoom close to the pin
+        };
+        map3DElement.range -= rangeReduction;
+        map3DElement.heading = (currentHeading + headingIncrement) % 360; // Rotate around
+        map3DElement.tilt = 65;
+
+        currentHeading += headingIncrement;
+        await new Promise((resolve) => setTimeout(resolve, intervalDuration));
+    }
+
+    console.log("Camera zoomed and flew to the marker position.");
+}
+
 
 // Create overlay element
 const overlay = document.createElement('div');
