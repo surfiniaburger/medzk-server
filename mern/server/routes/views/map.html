@@ -19,49 +19,66 @@
         font-size: 13px;
         font-weight: 300;
       }
-      .pac-card {
-        background-color: #fff;
-        border: 0;
-        border-radius: 4px;
-        box-shadow: 0 1px 4px -1px rgba(0, 0, 0, 0.3);
-        margin: 10px;
-        padding: 0 0.5em;
-        font: 400 18px Roboto, Arial, sans-serif;
-        overflow: hidden;
-        font-family: Roboto;
-        padding: 0;
-        position: absolute;
-        left: 10px;
-        top: 50px;
-        z-index: 1000;
-      }
-      #pac-container {
-        padding-top: 12px;
-        padding-bottom: 12px;
-        margin-right: 12px;
-        border-radius: 2px;
-      }
-      #pac-input {
-        background-color: #fff;
-        font-family: Roboto;
-        font-size: 15px;
-        font-weight: 300;
-        margin-left: 12px;
-        padding: 0 11px 0 13px;
-        text-overflow: ellipsis;
-        width: 400px;
-      }
-      #pac-input:focus {
-        border-color: #4d90fe;
-      }
-      
-      #title {
-        color: #fff;
-        background-color: #4d90fe;
-        font-size: 14px;
-        font-weight: 500;
-        padding: 6px 12px;
-      }
+      #pac-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  max-width: 400px;
+  width: 90%; /* Responsive width */
+  margin: 20px auto; /* Center on the page */
+  box-sizing: border-box;
+}
+
+#title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+#pac-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.pac-input {
+  width: 100%; /* Full width input */
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.pac-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Media Query for Larger Screens */
+@media (min-width: 768px) {
+  #pac-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+    max-width: 600px;
+  }
+
+  #title {
+    flex: 1;
+    text-align: left;
+    margin-bottom: 0;
+  }
+
+  #pac-container {
+    flex: 2;
+  }
+}
       #api-results {
   position: fixed; /* Keeps it in the same spot during scroll */
   top: 50%; /* Center vertically */
