@@ -1164,83 +1164,7 @@ router.get("/video/search/:patientId", async (req, res) => {
 
 // ... (Your existing imports, constants, and helper functions)
 
-// Setup cache manager
-const cacheManager = new GoogleAICacheManager(process.env.GEMINI_API_KEY);
 
-const sdohAnalysisPrompt = `
-
-Analyze the provided image to identify potential social determinants of health (SDOH) factors for a pregnant woman.
-Thought 1
-I need to systematically examine the image across multiple dimensions of social determinants of health, focusing on factors that could directly impact maternal and fetal health.
-Action 1
-<search>social determinants of health pregnancy</search>
-Observation 1
-Social determinants of health encompass environmental, economic, and social conditions that significantly influence health outcomes, particularly for vulnerable populations like pregnant women.
- Thought 2
-I will first assess neighborhood safety, as this is a critical factor for physical and mental well-being during pregnancy.
-Action 2
-<lookup>neighborhood safety indicators</lookup>
-Observation 2
-Key safety indicators include physical environment condition, visible security measures, signs of community maintenance, and potential crime markers.
-Thought 3
-Next, I'll evaluate access to healthy food, which is crucial for proper nutrition during pregnancy.
-Action 3
-<search>nutrition access urban environment</search>
-Observation 3
-Food environment directly impacts maternal nutrition, with access to fresh foods being critical for healthy fetal development and maternal health.
-Thought 4
-I will examine housing quality and environmental conditions that could pose risks to maternal and fetal health.
-Action 4
-<lookup>housing health risks pregnancy</lookup>
-Observation 4
-Housing conditions can expose pregnant women to environmental hazards, impact stress levels, and influence overall health outcomes.
-Thought 5
-I'll assess transportation and social infrastructure as additional determinants of health access and social support.
-Action 5
-<search>transportation social support pregnancy</search> 
-Observation 5
-Transportation and community infrastructure significantly impact a pregnant woman's ability to access healthcare, maintain social connections, and manage daily needs.
-Thought 6
-I will synthesize these observations to provide a comprehensive assessment of potential health risks and protective factors.
-Action 6
-<finish>Comprehensive SDOH analysis for pregnant woman's health environment</finish>
-
-`
-
-// Persistent cache creation function
-async function createPersistentCache() {
-  const model = 'models/gemini-1.5-pro-001'; // Use stable model version
-  const displayName = 'SDOH Image Analysis Cache';
-  const systemInstruction = `
-    You are an expert medical AI assistant specializing in analyzing social determinants of health (SDOH) 
-    for pregnant women. Provide comprehensive, sensitive, and actionable insights from medical images.
-  `;
-
-  try {
-    // Create cache with a longer TTL (e.g., 24 hours)
-    const cache = await cacheManager.create({
-      model,
-      displayName,
-      systemInstruction,
-      ttlSeconds: 24 * 60 * 60, // 24 hours
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { 
-              text: sdohAnalysisPrompt
-            }
-          ]
-        }
-      ]
-    });
-
-    return cache;
-  } catch (error) {
-    console.error('Cache creation error:', error);
-    throw error;
-  }
-}
 
 
 // *** Image Upload Route ***
@@ -1256,26 +1180,9 @@ router.post("/upload/image", upload.array('images', 5),
       return res.status(400).json({ errors: errors.array() });
     }
 
-    
-
     try {
       const { patientId } = req.body;
       const images = req.files; 
-
-      let cache;
-      try {
-        const existingCaches = await cacheManager.list();
-        cache = existingCaches.cachedContents.find(
-          c => c.displayName === 'SDOH Image Analysis Cache'
-        );
-        
-        if (!cache) {
-          cache = await createPersistentCache();
-        }
-      } catch (cacheError) {
-        console.error('Cache retrieval error:', cacheError);
-        cache = await createPersistentCache();
-      }
 
       // Read image data as Buffer and store in an array
       const imageDataArray = images.map(image => ({
@@ -1283,37 +1190,126 @@ router.post("/upload/image", upload.array('images', 5),
         createdAt: new Date() // Add timestamp
       }));
 
-      // Get generative model using cached content
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const genModel = genAI.getGenerativeModelFromCachedContent(cache);
+      const cacheManager = new GoogleAICacheManager(process.env.API_KEY);
+      const ttlSeconds = 24 * 60 * 60; // 24 hours
+      const cachedImages = [];
+      const uncachedImages = [];
 
-         
- 
-     // Upload each image to Gemini for processing
-     const uploadedImages = await Promise.all(
-       images.map(image => uploadToGemini(image.path, image.mimetype))
-     );
- 
-     // Start chat session with the model, passing the image data for analysis
-     const chatSession = genModel.startChat({
-       generationConfig,
-       safetySettings,
-       history: [
-         {
-           role: "user",
-           parts: [
-             { text: prompt },
-             // Add the uploaded images to the chat session
-             ...uploadedImages.map(imageFile => ({
-               fileData: {
-                 mimeType: imageFile.mimeType,
-                 fileUri: imageFile.uri,
-               },
-             })),
-           ],
-         },
-       ],
-     });
+      // Deduplication and cache lookup
+      for (const image of images) {
+        const imageBuffer = fs.readFileSync(image.path);
+        const imageHash = crypto.createHash('sha256').update(imageBuffer).digest('hex');
+
+        // Check if image hash already exists in the cache
+        const cacheKey = `image-${imageHash}`;
+        const cachedResult = await cacheManager.get(cacheKey);
+
+        if (cachedResult) {
+          console.log(`Cache hit for image: ${image.originalname}`);
+          cachedImages.push(cachedResult);
+        } else {
+          console.log(`Cache miss for image: ${image.originalname}`);
+          uncachedImages.push({ buffer: imageBuffer, image });
+        }
+      }
+
+      // Upload uncached images and add to cache
+      for (const { buffer, image } of uncachedImages) {
+        const uploadedImage = await uploadToGemini(image.path, image.mimetype);
+
+        const cachedContent = await cacheManager.create({
+          model: 'models/gemini-1.5-flash-001',
+          displayName: `SDOH Analysis for Patient ${patientId}`,
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  fileData: {
+                    mimeType: image.mimetype,
+                    fileUri: uploadedImage.uri,
+                  },
+                },
+              ],
+            },
+          ],
+          ttlSeconds,
+        });
+
+        // Store in cache
+        const imageHash = crypto.createHash('sha256').update(buffer).digest('hex');
+        const cacheKey = `image-${imageHash}`;
+        await cacheManager.set(cacheKey, cachedContent);
+
+        cachedImages.push(cachedContent);
+      }
+
+
+      
+
+     
+
+      
+
+
+      // Define the prompt for Gemini AI
+     const prompt = `
+                        Analyze the provided image to identify potential social determinants of health (SDOH) factors for a pregnant woman.
+            Thought 1
+            I need to systematically examine the image across multiple dimensions of social determinants of health, focusing on factors that could directly impact maternal and fetal health.
+            Action 1
+            <search>social determinants of health pregnancy</search>
+            Observation 1
+            Social determinants of health encompass environmental, economic, and social conditions that significantly influence health outcomes, particularly for vulnerable populations like pregnant women.
+             Thought 2
+            I will first assess neighborhood safety, as this is a critical factor for physical and mental well-being during pregnancy.
+            Action 2
+           <lookup>neighborhood safety indicators</lookup>
+            Observation 2
+           Key safety indicators include physical environment condition, visible security measures, signs of community maintenance, and potential crime markers.
+           Thought 3
+           Next, I'll evaluate access to healthy food, which is crucial for proper nutrition during pregnancy.
+           Action 3
+          <search>nutrition access urban environment</search>
+          Observation 3
+          Food environment directly impacts maternal nutrition, with access to fresh foods being critical for healthy fetal development and maternal health.
+          Thought 4
+          I will examine housing quality and environmental conditions that could pose risks to maternal and fetal health.
+          Action 4
+          <lookup>housing health risks pregnancy</lookup>
+          Observation 4
+          Housing conditions can expose pregnant women to environmental hazards, impact stress levels, and influence overall health outcomes.
+          Thought 5
+          I'll assess transportation and social infrastructure as additional determinants of health access and social support.
+          Action 5
+          <search>transportation social support pregnancy</search> 
+          Observation 5
+          Transportation and community infrastructure significantly impact a pregnant woman's ability to access healthcare, maintain social connections, and manage daily needs.
+          Thought 6
+          I will synthesize these observations to provide a comprehensive assessment of potential health risks and protective factors.
+          Action 6
+          <finish>Comprehensive SDOH analysis for pregnant woman's health environment</finish>
+     `;  // Thanks to Gemini code assist
+
+     const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+
+     // Construct a `GenerativeModel` which uses the cache object.
+    const genModel = genAI.getGenerativeModelFromCachedContent(cachedImages);
+
+// Query the model.
+const result = await genModel.generateContent({
+  contents: [
+    {
+      role: 'user',
+      parts: [
+        {
+          text:
+           prompt
+        },
+      ],
+    },
+  ],
+});
 
      // Prepare the new document to be inserted into the database
      const newDocument = {
@@ -1339,13 +1335,10 @@ router.post("/upload/image", upload.array('images', 5),
     const sdohInsightsArray = await analyzeSDOHData(patientId);
  
      // Send the prompt and receive diagnostic results
-     const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
-     const geminiInsights = generatedContent.response.text();
+    // const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
+     const geminiInsights = result.response.text();
       console.log(geminiInsights)
       console.log(sdohInsightsArray)
-
-      // Log cache usage metrics
-      console.log('Cache Usage:', generatedContent.response.usageMetadata);
 
       // Store image URIs (or other relevant data) in your database
       // ... (Logic to associate image URIs with the patientId)
@@ -1354,7 +1347,6 @@ router.post("/upload/image", upload.array('images', 5),
         message: "image uploaded successfully",
         geminiInsights: geminiInsights,
         sdohInsights: sdohInsightsArray,
-        cachedContentUsed: true
       });
 
     } catch (error) {
@@ -1363,25 +1355,6 @@ router.post("/upload/image", upload.array('images', 5),
     }
   }
 );
-
-// Optional: Periodic cache management
-async function manageCaches() {
-  try {
-    const existingCaches = await cacheManager.list();
-    
-    // Remove caches older than 48 hours
-    for (const cache of existingCaches.cachedContents) {
-      if (Date.now() - new Date(cache.createTime) > 48 * 60 * 60 * 1000) {
-        await cacheManager.delete(cache.name);
-      }
-    }
-  } catch (error) {
-    console.error('Cache management error:', error);
-  }
-}
-
-// Run cache management periodically (e.g., daily)
-setInterval(manageCaches, 24 * 60 * 60 * 1000);
 
 
 
