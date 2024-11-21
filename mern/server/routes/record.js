@@ -1166,7 +1166,6 @@ router.get("/video/search/:patientId", async (req, res) => {
 
 
 
-
 // *** Image Upload Route ***
 router.post("/upload/image", upload.array('images', 5), 
   // Validation for image upload
@@ -1189,34 +1188,6 @@ router.post("/upload/image", upload.array('images', 5),
         data: fs.readFileSync(image.path),
         createdAt: new Date() // Add timestamp
       }));
-
-      const cacheManager = new GoogleAICacheManager(process.env.GEMINI_API_KEY);
-      const ttlSeconds = 24 * 60 * 60; // 24 hours
-      
-
-// Cache the uploaded images
-const cachedImages = await Promise.all(
-  uploadedImages.map(image => 
-    cacheManager.create({
-      model: 'models/gemini-1.5-flash-001',
-      displayName: `SDOH Analysis for Patient ${patientId}`,
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              fileData: {
-                mimeType: image.mimeType,
-                fileUri: image.uri,
-              },
-            },
-          ],
-        },
-      ],
-      ttlSeconds,
-    })
-  )
-);
 
       
 
@@ -1260,30 +1231,34 @@ const cachedImages = await Promise.all(
           <finish>Comprehensive SDOH analysis for pregnant woman's health environment</finish>
      `;  // Thanks to Gemini code assist
 
+
+     
+ 
      // Upload each image to Gemini for processing
      const uploadedImages = await Promise.all(
        images.map(image => uploadToGemini(image.path, image.mimetype))
      );
  
-     const genAI = new GoogleGenerativeAI(process.env.API_KEY);
-
-// Construct a `GenerativeModel` which uses the cache object.
-const genModel = genAI.getGenerativeModelFromCachedContent(cachedImages);
-
-// Query the model.
-const result = await genModel.generateContent({
-  contents: [
-    {
-      role: 'user',
-      parts: [
-        {
-          text:
-           prompt
-        },
-      ],
-    },
-  ],
-});
+     // Start chat session with the model, passing the image data for analysis
+     const chatSession = model.startChat({
+       generationConfig,
+       safetySettings,
+       history: [
+         {
+           role: "user",
+           parts: [
+             { text: prompt },
+             // Add the uploaded images to the chat session
+             ...uploadedImages.map(imageFile => ({
+               fileData: {
+                 mimeType: imageFile.mimeType,
+                 fileUri: imageFile.uri,
+               },
+             })),
+           ],
+         },
+       ],
+     });
 
      // Prepare the new document to be inserted into the database
      const newDocument = {
@@ -1309,8 +1284,8 @@ const result = await genModel.generateContent({
     const sdohInsightsArray = await analyzeSDOHData(patientId);
  
      // Send the prompt and receive diagnostic results
-    // const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
-     const geminiInsights = result.response.text();
+     const generatedContent = await retryWithBackoff(() => chatSession.sendMessage(prompt));
+     const geminiInsights = generatedContent.response.text();
       console.log(geminiInsights)
       console.log(sdohInsightsArray)
 
