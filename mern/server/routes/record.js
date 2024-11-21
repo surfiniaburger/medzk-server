@@ -1190,64 +1190,33 @@ router.post("/upload/image", upload.array('images', 5),
         createdAt: new Date() // Add timestamp
       }));
 
-      const cacheManager = new GoogleAICacheManager(process.env.API_KEY);
+      const cacheManager = new GoogleAICacheManager(process.env.GEMINI_API_KEY);
       const ttlSeconds = 24 * 60 * 60; // 24 hours
-      const cachedImages = [];
-      const uncachedImages = [];
-
-      // Deduplication and cache lookup
-      for (const image of images) {
-        const imageBuffer = fs.readFileSync(image.path);
-        const imageHash = crypto.createHash('sha256').update(imageBuffer).digest('hex');
-
-        // Check if image hash already exists in the cache
-        const cacheKey = `image-${imageHash}`;
-        const cachedResult = await cacheManager.get(cacheKey);
-
-        if (cachedResult) {
-          console.log(`Cache hit for image: ${image.originalname}`);
-          cachedImages.push(cachedResult);
-        } else {
-          console.log(`Cache miss for image: ${image.originalname}`);
-          uncachedImages.push({ buffer: imageBuffer, image });
-        }
-      }
-
-      // Upload uncached images and add to cache
-      for (const { buffer, image } of uncachedImages) {
-        const uploadedImage = await uploadToGemini(image.path, image.mimetype);
-
-        const cachedContent = await cacheManager.create({
-          model: 'models/gemini-1.5-flash-001',
-          displayName: `SDOH Analysis for Patient ${patientId}`,
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                {
-                  fileData: {
-                    mimeType: image.mimetype,
-                    fileUri: uploadedImage.uri,
-                  },
-                },
-              ],
-            },
-          ],
-          ttlSeconds,
-        });
-
-        // Store in cache
-        const imageHash = crypto.createHash('sha256').update(buffer).digest('hex');
-        const cacheKey = `image-${imageHash}`;
-        await cacheManager.set(cacheKey, cachedContent);
-
-        cachedImages.push(cachedContent);
-      }
-
-
       
 
-     
+// Cache the uploaded images
+const cachedImages = await Promise.all(
+  uploadedImages.map(image => 
+    cacheManager.create({
+      model: 'models/gemini-1.5-flash-001',
+      displayName: `SDOH Analysis for Patient ${patientId}`,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: image.mimeType,
+                fileUri: image.uri,
+              },
+            },
+          ],
+        },
+      ],
+      ttlSeconds,
+    })
+  )
+);
 
       
 
@@ -1291,10 +1260,15 @@ router.post("/upload/image", upload.array('images', 5),
           <finish>Comprehensive SDOH analysis for pregnant woman's health environment</finish>
      `;  // Thanks to Gemini code assist
 
+     // Upload each image to Gemini for processing
+     const uploadedImages = await Promise.all(
+       images.map(image => uploadToGemini(image.path, image.mimetype))
+     );
+ 
      const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 
-     // Construct a `GenerativeModel` which uses the cache object.
-    const genModel = genAI.getGenerativeModelFromCachedContent(cachedImages);
+// Construct a `GenerativeModel` which uses the cache object.
+const genModel = genAI.getGenerativeModelFromCachedContent(cachedImages);
 
 // Query the model.
 const result = await genModel.generateContent({
