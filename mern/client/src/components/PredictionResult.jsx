@@ -32,6 +32,7 @@ import {
     TooltipTrigger,
     TooltipProvider,
   } from "@/components/ui/tooltip";
+import Chat from './Chat';
 
 // Custom component to handle source citations
 const SourceCitation = ({ children }) => {
@@ -120,7 +121,7 @@ function PredictionResult({ predictionResult }) {
 
   if (!predictionResult) return null;
 
-  const { groundedPredictionOutput } = predictionResult;
+  const { groundedPredictionOutput, threadId } = predictionResult;
 
   // Process the markdown to handle source citations
   const processContent = (content) => {
@@ -197,7 +198,7 @@ function PredictionResult({ predictionResult }) {
         </DialogDescription>
       </DialogHeader>
       <div className="space-y-4 mt-4">
-        <ScrollArea className="max-h-[60vh]">
+        <ScrollArea className="max-h-[40vh]">
           <div className="px-1">
             <ReactMarkdown
               children={processContent(groundedPredictionOutput) || "No prediction available"}
@@ -208,24 +209,30 @@ function PredictionResult({ predictionResult }) {
           </div>
         </ScrollArea>
         <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" onClick={handleMapClick} className="h-8 w-8">
-              <MapPin className="h-4 w-4 text-blue-600" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>View Map</p>
-          </TooltipContent>
-        </Tooltip>
-        {loading && <p>Loading map data...</p>}
-        {mapData && (
-          <div className="mt-4">
-            <h4 className="font-bold">Map Information:</h4>
-            <pre>{JSON.stringify(mapData, null, 2)}</pre>
-          </div>
-        )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" onClick={handleMapClick} className="h-8 w-8">
+                <MapPin className="h-4 w-4 text-blue-600" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>View Map</p>
+            </TooltipContent>
+          </Tooltip>
+          {loading && <p>Loading map data...</p>}
+          {mapData && (
+            <div className="mt-4">
+              <h4 className="font-bold">Map Information:</h4>
+              <pre>{JSON.stringify(mapData, null, 2)}</pre>
+            </div>
+          )}
         </TooltipProvider>
+        
+        {/* Chat Section */}
+        <div className="border-t pt-4 mt-4">
+          <h3 className="text-lg font-semibold mb-4">Continue the Conversation</h3>
+          <Chat threadId={threadId} />
+        </div>
       </div>
     </>
   );
@@ -236,7 +243,7 @@ function PredictionResult({ predictionResult }) {
         <DialogTrigger asChild>
           <Button variant="outline">View Prediction Results</Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
           {DialogContentRender}
         </DialogContent>
       </Dialog>
@@ -269,6 +276,7 @@ function PredictionResult({ predictionResult }) {
 PredictionResult.propTypes = {
   predictionResult: PropTypes.shape({
     groundedPredictionOutput: PropTypes.string,
+    threadId: PropTypes.string,
   }),
 };
 
