@@ -10,14 +10,15 @@ import { MongoDBSaver } from "@langchain/langgraph-checkpoint-mongodb";
 import "dotenv/config";
 import { GroundConversation } from "./conversation-grounding.js";
 import { tool } from "@langchain/core/tools";
+import {z} from "zod";
 
 export async function conversationAgent(client, message, threadId, predictionData) {
  
   // Define the graph state with proper type parameters
   const GraphState = Annotation.Root({
-    messages: Annotation.Array(BaseMessage),
-    predictionContext: Annotation.Array([]), // Use Array if String is not available
-    lastResponse: Annotation.Array([]), // Similarly adjust lastResponse
+    messages: Annotation.Array<BaseMessage>([]),
+    predictionContext: Annotation.Array<string>([]), // Correct type usage
+    lastResponse: Annotation.Array<string>([]),     // Correct type usage
 });
 
   // Define the grounding function as a tool
