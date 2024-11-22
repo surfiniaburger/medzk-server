@@ -87,7 +87,7 @@ export async function conversationAgent(client, message, threadId, predictionDat
     .addEdge("ground", "__end__");
 
   // Initialize the MongoDB memory to persist state between graph runs
-  const checkpointer = new MongoDBSaver({ client, dbName });
+  const checkpointer = new MongoDBSaver({ client, dbName: "patients" });
 
   // Compile the graph
   const app = workflow.compile({ checkpointer });
