@@ -16,9 +16,9 @@ export async function conversationAgent(client, message, threadId, predictionDat
   // Define the graph state with proper type parameters
   const GraphState = Annotation.Root({
     messages: Annotation.Array<BaseMessage>([]),
-    predictionContext: Annotation.String(predictionData),
-    lastResponse: Annotation.String(""),
-  });
+    predictionContext: Annotation.Array<string>([]), // Use Array if String is not available
+    lastResponse: Annotation.Array<string>([]), // Similarly adjust lastResponse
+});
 
   // Define the grounding function as a tool
   const groundTool = tool(async ({ lastResponse }) => {
