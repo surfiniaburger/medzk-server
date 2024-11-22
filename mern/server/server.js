@@ -4,7 +4,7 @@ import records from "./routes/record.js";
 import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
-import conversation from "./routes/conversation.js";
+//import conversation from "./routes/conversation.js";
 
 const PORT = process.env.PORT || 5050;
 const app = express();
@@ -54,7 +54,7 @@ app.use(express.json());
 app.use("/record", records);
 
 // Load the conversation routes
-app.use("/conversation", conversation);
+//app.use("/conversation", conversation);
 
 
 // Start the Express server
