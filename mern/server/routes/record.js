@@ -2011,8 +2011,35 @@ router.post("/predict", async (req, res) => {
     
    // const webSearchQueries = groundedPredictionOutput.groundingMetadata?.webSearchQueries || [];
 
+   // Generate a unique thread ID for this prediction
+   const threadId = `${patientId}-${Date.now()}`;
+
+   // Store the prediction in a new collection
+   const predictionDocument = {
+    threadId,
+    patientId,
+    groundedPredictionOutput,
+    metadata: {
+      timestamp: new Date(),
+      airQualityData,
+      address,
+      combinedSDOHInsights,
+      combinedAnalysis,
+    },
+    conversationHistory: [{
+      role: 'assistant',
+      content: groundedPredictionOutput,
+      timestamp: new Date()
+    }]
+  };
+
+  await db.collection("predictions").insertOne(predictionDocument);
+
+
+
     res.status(200).json({ 
-        groundedPredictionOutput, 
+      threadId,
+      groundedPredictionOutput, 
     });
 
   } catch (error) {
