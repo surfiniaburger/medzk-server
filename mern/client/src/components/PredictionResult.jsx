@@ -208,7 +208,7 @@ function PredictionResult({ predictionResult }) {
             />
           </div>
         </ScrollArea>
-        <TooltipProvider>
+        {/* <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" onClick={handleMapClick} className="h-8 w-8">
@@ -228,11 +228,11 @@ function PredictionResult({ predictionResult }) {
           )}
         </TooltipProvider>
         
-        {/* Chat Section */}
+       
         <div className="border-t pt-4 mt-4">
           <h3 className="text-lg font-semibold mb-4">Continue the Conversation</h3>
           <Chat threadId={threadId} />
-        </div>
+        </div> */}
       </div>
     </>
   );
