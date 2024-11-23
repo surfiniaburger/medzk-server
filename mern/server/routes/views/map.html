@@ -357,10 +357,12 @@
         @media (max-width: 768px) {
     .dashboard {
         grid-template-columns: 1fr; /* Stack cards vertically on smaller screens */
+        padding: 10px; /* Reduce padding for smaller screens */
     }
 
     .card {
         width: 100%; /* Ensure cards take full width */
+        margin-bottom: 20px; /* Add space between stacked cards */
     }
 
     .gauge {
@@ -521,10 +523,11 @@
     background: white;
     border-radius: 15px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-    width: 80%;
+    width: 90%;
     max-width: 1200px;
     max-height: 80vh;
     overflow-y: auto;
+    padding: 20px; 
     display: none;
     animation: slideIn 0.3s ease-out;
     z-index: 999;
@@ -565,11 +568,6 @@
     background: #ff6b81;
 }
 
-/* Modify your existing dashboard styles */
-.dashboard {
-    padding: 30px;
-    margin-top: 20px;
-}
 
 /* Add overlay style */
 .overlay {
