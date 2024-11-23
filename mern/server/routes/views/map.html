@@ -33,6 +33,30 @@
   box-sizing: border-box;
 }
 
+
+  /* Home Icon Styling */
+.home-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-decoration: none;
+  color: #4d90fe;
+  font-size: 20px;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  margin: 0 auto;
+}
+
+.home-icon:hover {
+  background-color: #4d90fe;
+  color: white;
+  transform: scale(1.1);
+}
+
 #title {
   font-size: 1.2rem;
   font-weight: bold;
@@ -480,6 +504,8 @@
 
 #info-window { display: none; }
     </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+
 </head>
 
 <body>
@@ -488,6 +514,10 @@
         <div id="pac-container">
           <input class="pac-input" type="text" id="pac-input" name="pac-input" placeholder="Enter a location..." />
         </div>
+        <!-- Home Icon -->
+     <a href="https://medzk-server.vercel.app/" class="home-icon" target="_blank" title="Go to Home">
+       <i class="fas fa-home"></i>
+     </a>
       </div>
 
       

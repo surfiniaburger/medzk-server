@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Zero Kare</string>
-    <string name="title_activity_main">Zero Kare</string>
-    <string name="package_name">io.zero.kare</string>
-    <string name="custom_url_scheme">io.zero.kare</string>
-</resources>
