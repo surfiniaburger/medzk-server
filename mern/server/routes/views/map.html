@@ -326,6 +326,8 @@
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease;
+            width: 100%; /* Ensure cards take full width of the dashboard */
+            box-sizing: border-box; /* Include padding and border in element's total width and height */
         }
 
         .card:hover {
@@ -361,7 +363,7 @@
     }
 
     .card {
-        width: 100%; /* Ensure cards take full width */
+        
         margin-bottom: 20px; /* Add space between stacked cards */
     }
 
@@ -523,7 +525,7 @@
     background: white;
     border-radius: 15px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-    width: 100%;
+    width: 90%;
     max-width: 1200px;
     max-height: 80vh;
     overflow-y: auto;
@@ -643,13 +645,22 @@ body {
 
 /* Close Button */
 .popup-close-btn {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  font-size: 18px;
-  color: #666;
-  cursor: pointer;
-  font-weight: bold;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #ff4757;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    transition: all 0.2s;
+    z-index: 1001;
 }
 
 /* Responsive Card (reuse from your styles) */
