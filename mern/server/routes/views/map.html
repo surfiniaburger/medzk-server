@@ -252,14 +252,11 @@
 }
 
 .dashboard {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-            font-family: Arial, sans-serif;
-            margin-top: -20px;
+            display: flex;
+            flex-direction: row; /* Cards appear side-by-side initially */
+            width: 400%; /* Four cards, each 100% width of dashboard */
+            height: 100%; /* Match the height of the dashboard */
+            transition: transform 0.3s ease-in-out; /* Smooth transition */
           
         }
 
@@ -313,8 +310,7 @@
   box-shadow: 6px 6px 12px #d9d9d9, -6px -6px 12px #ffffff;
   border-radius: 12px;
   width: 300px;
-  overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  
 }
 
 .place-card:hover {
@@ -369,8 +365,7 @@
             list-style: none;
             padding: 0;
             max-height: 200px; /* Set a scrollable area for the list */
-    overflow-y: auto; /* Enable vertical scrolling */
-    overflow-x: hidden; /* Prevent horizontal overflow */
+            /* Prevent horizontal overflow */
         }
 
         .pollutant-item {
@@ -378,7 +373,7 @@
             padding: 10px;
             border-radius: 8px;
             background: #f5f5f5;
-            word-wrap: break-word; 
+            
         }
 
         .progress-bar {
@@ -439,20 +434,17 @@
     color: white;
 }
 
+/* Dashboard panel (big container) */
 .dashboard-panel {
-    position: fixed;
-    right: 30px;
-    bottom: 100px;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-    width: 80%;
-    max-width: 1200px;
-    max-height: 80vh;
-    overflow-y: auto;
-    display: none;
-    animation: slideIn 0.3s ease-out;
-    z-index: 999;
+  width: 100%; /* Full width of the dashboard */
+  height: 100%; /* Full height of the dashboard */
+  overflow: hidden;
+  position: relative;
+  background: #f8f8f8; /* Example background color */
+  border: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @keyframes slideIn {
@@ -488,12 +480,6 @@
 .panel-close-btn:hover {
     transform: rotate(90deg);
     background: #ff6b81;
-}
-
-/* Modify your existing dashboard styles */
-.dashboard {
-    padding: 30px;
-    margin-top: 20px;
 }
 
 /* Add overlay style */
@@ -744,6 +730,41 @@ document.addEventListener('keydown', (e) => {
         toggleDashboard();
     }
 });
+
+
+const wrapper = document.querySelector('.dashboard');
+const cards = document.querySelectorAll('.card');
+let currentIndex = 0; // Current visible card
+
+// Function to navigate to a specific card
+function navigateToCard(index) {
+  if (index < 0 || index >= cards.length) return; // Prevent navigating out of bounds
+  wrapper.style.transform = `translateX(-${index * 100}%)`;
+  currentIndex = index;
+}
+
+// Swipe gesture handling (for touch devices)
+let startX = 0;
+
+wrapper.addEventListener('touchstart', (e) => {
+  startX = e.touches[0].clientX;
+});
+
+wrapper.addEventListener('touchend', (e) => {
+  const endX = e.changedTouches[0].clientX;
+  if (endX < startX - 50) navigateToCard(currentIndex + 1); // Swipe left
+  if (endX > startX + 50) navigateToCard(currentIndex - 1); // Swipe right
+});
+
+setInterval(() => {
+  navigateToCard((currentIndex + 1) % cards.length); // Loop back to the first card
+}, 5000); // Slide every 5 seconds
+
+
+// Button navigation
+document.querySelector('#prev').addEventListener('click', () => navigateToCard(currentIndex - 1));
+document.querySelector('#next').addEventListener('click', () => navigateToCard(currentIndex + 1));
+
 
     
       async function init() {
