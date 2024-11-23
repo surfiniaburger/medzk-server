@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Navbar from "./Navbar";
 
 const EmbeddedHtml = () => {
     const API_BASE = process.env.NODE_ENV === 'production' 
@@ -13,6 +14,9 @@ const EmbeddedHtml = () => {
     };
 
     return (
+        <>
+
+        <Navbar/>
         <div style={{ position: "relative", width: "100%", height: "100vh" }}>
             {isLoading && (
                 <div
@@ -49,6 +53,9 @@ const EmbeddedHtml = () => {
                 onLoad={handleIframeLoad}
             />
         </div>
+        
+        </>
+        
     );
 };
 

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Home, Camera, Activity, BarChart2,  Video } from "lucide-react";
+import { Menu, X, Home, Activity, BarChart2,  Video, MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NavItem = ({ to, children, icon: Icon }) => {
@@ -55,7 +55,7 @@ export default function Navbar() {
   const navLinks = [
     { to: "/", label: "Home", icon: Home },
     { to: "/predict", label: "Predictions", icon: Activity },
-    { to: "/vision", label: "Image Analysis", icon: Camera },
+    { to: "/map", label: "3d Map", icon: MapIcon },
     { to: "/analytics", label: "Analytics", icon: BarChart2 },
     { to:  "/video-upload", label: "Video Analysis", icon: Video},
   ];
