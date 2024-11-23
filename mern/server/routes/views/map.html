@@ -269,6 +269,8 @@
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease;
+            overflow: hidden; /* Ensure content is constrained */
+            max-height: 300px; /* Set a reasonable maximum height */
         }
 
         .card:hover {
@@ -366,6 +368,9 @@
         .pollutant-list {
             list-style: none;
             padding: 0;
+            max-height: 200px; /* Set a scrollable area for the list */
+    overflow-y: auto; /* Enable vertical scrolling */
+    overflow-x: hidden; /* Prevent horizontal overflow */
         }
 
         .pollutant-item {
@@ -373,6 +378,7 @@
             padding: 10px;
             border-radius: 8px;
             background: #f5f5f5;
+            word-wrap: break-word; 
         }
 
         .progress-bar {
