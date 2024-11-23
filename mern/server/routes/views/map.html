@@ -309,7 +309,7 @@
 }
 
 .dashboard {
-            display: flex;
+            display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
             padding: 20px;
@@ -353,6 +353,30 @@
             transform-origin: 100px 100px;
             transition: stroke-dashoffset 1s ease;
         }
+
+        @media (max-width: 768px) {
+    .dashboard {
+        grid-template-columns: 1fr; /* Stack cards vertically on smaller screens */
+    }
+
+    .card {
+        width: 100%; /* Ensure cards take full width */
+    }
+
+    .gauge {
+        width: 150px; /* Adjust gauge size for mobile */
+        height: 150px;
+    }
+
+    .gauge-value {
+        font-size: 20px; /* Smaller font size for mobile */
+    }
+
+    #tempHumidityChart {
+        width: 100% !important; /* Ensure canvas takes full width */
+        height: auto !important; /* Maintain aspect ratio */
+    }
+}
 
 
         .place-cards-container {
