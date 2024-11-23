@@ -152,6 +152,90 @@ html, body {
     cursor: grabbing;
 }
 
+/* Bottom Drawer */
+.bottom-drawer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #4d90fe;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+}
+
+.bottom-drawer.open {
+    transform: translateY(0);
+}
+
+.drawer-toggle {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    background-color: #fff;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.drawer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+
+.drawer-content #title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+    color: white;
+}
+
+.drawer-content .pac-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.drawer-content .pac-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.drawer-content .home-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+    color: #4d90fe;
+    font-size: 20px;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    margin: 0 auto;
+}
+
+.drawer-content .home-icon:hover {
+    background-color: #4d90fe;
+    color: white;
+    transform: scale(1.1);
+}
+
 /* Info Card */
 .info-card {
     background: white;
@@ -549,6 +633,8 @@ html, body {
         height: 24px;
         font-size: 16px;
     }
+
+    #info-window {display:none}
 }
     </style>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
@@ -556,16 +642,19 @@ html, body {
 </head>
 
 <body>
-    <div class="pac-card draggable" id="pac-card">
-        <div id="title">Navigate to a place</div>
-        <div id="pac-container">
-          <input class="pac-input" type="text" id="pac-input" name="pac-input" placeholder="Enter a location..." />
+    <div class="bottom-drawer" id="bottomDrawer">
+        <div class="drawer-toggle" id="drawerToggle"></div>
+        <div class="drawer-content">
+            <div id="title">Navigate to a place</div>
+            <div id="pac-container">
+                <input class="pac-input" type="text" id="pac-input" name="pac-input" placeholder="Enter a location..." />
+            </div>
+            <!-- Home Icon -->
+            <a href="https://medzk-server.vercel.app/" class="home-icon" title="Go to Home">
+                <i class="fas fa-home"></i>
+            </a>
         </div>
-        <!-- Home Icon -->
-     <a href="https://medzk-server.vercel.app/" class="home-icon"  title="Go to Home">
-       <i class="fas fa-home"></i>
-     </a>
-      </div>
+    </div>
 
       
 
@@ -784,6 +873,22 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && dashboardPanel.style.display === 'block') {
         toggleDashboard();
     }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const drawerToggle = document.getElementById('drawerToggle');
+    const bottomDrawer = document.getElementById('bottomDrawer');
+
+    drawerToggle.addEventListener('click', function() {
+        bottomDrawer.classList.toggle('open');
+    });
+
+    // Close the drawer when clicking outside of it
+    document.addEventListener('click', function(event) {
+        if (!bottomDrawer.contains(event.target) && !drawerToggle.contains(event.target)) {
+            bottomDrawer.classList.remove('open');
+        }
+    });
 });
 
 
