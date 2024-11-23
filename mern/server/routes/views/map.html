@@ -4,142 +4,140 @@
 <head>
     <title>Zero Kare</title>
     <style>
-        html,
-        body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-      .pac-controls {
-        display: inline-block;
-        padding: 0px 11px;
-      }
-      .pac-controls label {
-        font-family: Roboto;
-        font-size: 13px;
-        font-weight: 300;
-      }
-      #pac-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background-color: #4d90fe;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 15px;
-  max-width: 400px;
-  width: 90%; /* Responsive width */
-  margin: 20px auto; /* Center on the page */
-  box-sizing: border-box;
+       /* General Styles */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
 }
 
+/* Responsive Card */
+#pac-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background-color: #4d90fe;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    max-width: 400px;
+    width: 90%;
+    margin: 20px auto;
+    box-sizing: border-box;
+}
 
-  /* Home Icon Styling */
+/* Home Icon */
 .home-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background-color: #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  text-decoration: none;
-  color: #4d90fe;
-  font-size: 20px;
-  transition: transform 0.3s ease, background-color 0.3s ease;
-  margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+    color: #4d90fe;
+    font-size: 20px;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    margin: 0 auto;
 }
 
 .home-icon:hover {
-  background-color: #4d90fe;
-  color: white;
-  transform: scale(1.1);
+    background-color: #4d90fe;
+    color: white;
+    transform: scale(1.1);
 }
 
+/* Title */
 #title {
-  font-size: 1.2rem;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 10px;
-  color: white; 
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+    color: white;
 }
 
+/* Input Container */
 #pac-container {
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
 }
 
 .pac-input {
-  width: 100%; /* Full width input */
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  box-sizing: border-box;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
 }
 
 .pac-input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
 }
 
 /* Media Query for Larger Screens */
 @media (min-width: 768px) {
-  #pac-card {
-    flex-direction: row;
-    align-items: center;
-    gap: 15px;
-    max-width: 600px;
-  }
+    #pac-card {
+        flex-direction: row;
+        align-items: center;
+        gap: 15px;
+        max-width: 600px;
+    }
 
-  #title {
-    flex: 1;
-    text-align: left;
-    margin-bottom: 0;
-  }
+    #title {
+        flex: 1;
+        text-align: left;
+        margin-bottom: 0;
+    }
 
-  #pac-container {
-    flex: 2;
-  }
+    #pac-container {
+        flex: 2;
+    }
 }
-      #api-results {
-  position: fixed; /* Keeps it in the same spot during scroll */
-  top: 50%; /* Center vertically */
-  left: 20px; /* Positioned slightly away from the left edge */
-  transform: translateY(-50%); /* Aligns center properly */
-  width: 250px; /* Smaller box */
-  background-color: #f9f9f9; /* Light background for better readability */
-  border: 1px solid #ddd; /* Subtle border */
-  border-radius: 8px; /* Rounded corners for modern look */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
-  padding: 16px; /* Inner spacing */
-  font-family: 'Arial', sans-serif; /* Modern font */
-  font-size: 14px; /* Readable text size */
-  display: none; /* Hidden initially */
-  z-index: 1000; /* Makes sure it stays above other elements */
+
+/* API Results */
+#api-results {
+    position: fixed;
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+    width: 250px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 16px;
+    font-family: 'Arial', sans-serif;
+    font-size: 14px;
+    display: none;
+    z-index: 1000;
 }
 
 #api-results h3 {
-  font-size: 16px;
-  color: #333; /* Darker text for better visibility */
-  margin-bottom: 8px;
-  text-align: center; /* Align title in the center */
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 8px;
+    text-align: center;
 }
 
 #api-results ul {
-  list-style-type: none; /* Removes bullet points */
-  padding: 0; /* No extra padding */
-  margin: 0; /* No extra margin */
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
 }
 
 #api-results ul li {
-  margin-bottom: 6px;
-  color: #555; /* Slightly muted text color */
-  font-size: 14px;
+    margin-bottom: 6px;
+    color: #555;
+    font-size: 14px;
 }
 
+/* Draggable Element */
 .draggable {
     position: absolute;
     cursor: grab;
@@ -150,16 +148,21 @@
     z-index: 1000;
 }
 
+.draggable:active {
+    cursor: grabbing;
+}
+
+/* Info Card */
 .info-card {
     background: white;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     padding: 15px;
-    max-width: 300px;  /* Reduced from 400px */
+    max-width: 300px;
     position: relative;
     animation: slideIn 0.3s ease-out;
     overflow: hidden;
-    font-size: 0.9rem;  /* Reduced base font size */
+    font-size: 0.9rem;
 }
 
 @keyframes slideIn {
@@ -181,14 +184,14 @@
     color: white;
     border: none;
     border-radius: 50%;
-    width: 24px;    /* Reduced from 30px */
-    height: 24px;   /* Reduced from 30px */
+    width: 24px;
+    height: 24px;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;  /* Reduced from 18px */
+    font-size: 16px;
 }
 
 .close-btn:hover {
@@ -197,25 +200,25 @@
 }
 
 .place-title {
-    font-size: 1.2em;  /* Reduced from 1.5em */
+    font-size: 1.2em;
     color: #2f3542;
     margin-bottom: 10px;
     padding-right: 30px;
 }
 
 .info-section {
-    margin: 5px 0;     /* Reduced from 8px */
-    padding: 5px 8px;  /* Reduced from 8px */
-    border-left: 2px solid #70a1ff;  /* Reduced from 3px */
+    margin: 5px 0;
+    padding: 5px 8px;
+    border-left: 2px solid #70a1ff;
     background: #f1f2f6;
     border-radius: 0 6px 6px 0;
-    line-height: 1.3;  /* Added for better text spacing */
+    line-height: 1.3;
 }
 
 .place-image {
     width: 100%;
-    height: 150px;    /* Fixed height */
-    object-fit: cover; /* Ensures image covers area without distortion */
+    height: 150px;
+    object-fit: cover;
     border-radius: 8px;
     margin: 10px 0;
     transition: transform 0.3s;
@@ -241,157 +244,94 @@
     color: #1e90ff;
 }
 
-/* Added to truncate long text */
 .truncate {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.draggable:active {
-    cursor: grabbing;
-}
 
+/* Dashboard */
 .dashboard {
-            display: flex;
-            flex-direction: row; /* Cards appear side-by-side initially */
-            width: 400%; /* Four cards, each 100% width of dashboard */
-            height: 100%; /* Match the height of the dashboard */
-            transition: transform 0.3s ease-in-out; /* Smooth transition */
-          
-        }
-
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-            overflow: hidden; /* Ensure content is constrained */
-            max-height: 300px; /* Set a reasonable maximum height */
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-        }
-
-        .gauge {
-            width: 200px;
-            height: 200px;
-            margin: 0 auto;
-            position: relative;
-        }
-
-        .gauge-bg {
-            fill: none;
-            stroke: #eee;
-            stroke-width: 20;
-        }
-
-        .gauge-progress {
-            fill: none;
-            stroke-width: 20;
-            stroke-linecap: round;
-            transform: rotate(-90deg);
-            transform-origin: 100px 100px;
-            transition: stroke-dashoffset 1s ease;
-        }
-
-
-        .place-cards-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  padding: 20px;
-  justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+    margin-top: -20px;
 }
 
-.place-card {
-  background: linear-gradient(145deg, #ffffff, #e6e6e6);
-  box-shadow: 6px 6px 12px #d9d9d9, -6px -6px 12px #ffffff;
-  border-radius: 12px;
-  width: 300px;
-  
+.card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
 }
 
-.place-card:hover {
-  transform: scale(1.05);
-  box-shadow: 8px 8px 16px #cccccc, -8px -8px 16px #ffffff;
+.card:hover {
+    transform: translateY(-5px);
 }
 
-.place-card img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-bottom: 2px solid #ccc;
+.gauge {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+    position: relative;
 }
 
-.place-card-content {
-  padding: 15px;
+.gauge-bg {
+    fill: none;
+    stroke: #eee;
+    stroke-width: 20;
 }
 
-.place-card h2 {
-  font-size: 1.2rem;
-  color: #333;
-  margin-bottom: 10px;
+.gauge-progress {
+    fill: none;
+    stroke-width: 20;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: 100px 100px;
+    transition: stroke-dashoffset 1s ease;
 }
 
-.place-card p {
-  font-size: 0.9rem;
-  color: #555;
-  margin-bottom: 8px;
+.gauge-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    font-weight: bold;
 }
 
-.place-card a {
-  text-decoration: none;
-  color: #007bff;
+.pollutant-list {
+    list-style: none;
+    padding: 0;
 }
 
-.place-card .rating {
-  font-weight: bold;
-  color: #ffaa00;
+.pollutant-item {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 8px;
+    background: #f5f5f5;
 }
 
+.progress-bar {
+    height: 10px;
+    background: #eee;
+    border-radius: 5px;
+    margin-top: 5px;
+    overflow: hidden;
+}
 
-        .gauge-value {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 24px;
-            font-weight: bold;
-        }
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 1s ease;
+}
 
-        .pollutant-list {
-            list-style: none;
-            padding: 0;
-            max-height: 200px; /* Set a scrollable area for the list */
-            /* Prevent horizontal overflow */
-        }
-
-        .pollutant-item {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 8px;
-            background: #f5f5f5;
-            
-        }
-
-        .progress-bar {
-            height: 10px;
-            background: #eee;
-            border-radius: 5px;
-            margin-top: 5px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            transition: width 1s ease;
-        }
-
-        /* Add these styles to your existing CSS */
-
+/* FAB Button */
 .fab-container {
     position: fixed;
     bottom: 30px;
@@ -434,17 +374,21 @@
     color: white;
 }
 
-/* Dashboard panel (big container) */
+/* Dashboard Panel */
 .dashboard-panel {
-  width: 100%; /* Full width of the dashboard */
-  height: 100%; /* Full height of the dashboard */
-  overflow: hidden;
-  position: relative;
-  background: #f8f8f8; /* Example background color */
-  border: 1px solid #ccc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    position: fixed;
+    right: 30px;
+    bottom: 100px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    width: 80%;
+    max-width: 1200px;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: none;
+    animation: slideIn 0.3s ease-out;
+    z-index: 999;
 }
 
 @keyframes slideIn {
@@ -482,7 +426,63 @@
     background: #ff6b81;
 }
 
-/* Add overlay style */
+/* Place Cards Container */
+.place-cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 20px;
+    justify-content: center;
+}
+
+.place-card {
+    background: linear-gradient(145deg, #ffffff, #e6e6e6);
+    box-shadow: 6px 6px 12px #d9d9d9, -6px -6px 12px #ffffff;
+    border-radius: 12px;
+    width: 300px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.place-card:hover {
+    transform: scale(1.05);
+    box-shadow: 8px 8px 16px #cccccc, -8px -8px 16px #ffffff;
+}
+
+.place-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 2px solid #ccc;
+}
+
+.place-card-content {
+    padding: 15px;
+}
+
+.place-card h2 {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.place-card p {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.place-card a {
+    text-decoration: none;
+    color: #007bff;
+}
+
+.place-card .rating {
+    font-weight: bold;
+    color: #ffaa00;
+}
+
+/* Overlay */
 .overlay {
     position: fixed;
     top: 0;
@@ -494,7 +494,62 @@
     z-index: 998;
 }
 
-#info-window { display: none; }
+/* Media Query for Mobile */
+@media (max-width: 767px) {
+    .dashboard {
+        grid-template-columns: 1fr;
+    }
+
+    .gauge {
+        width: 150px;
+        height: 150px;
+    }
+
+    .gauge-value {
+        font-size: 18px;
+    }
+
+    .place-card {
+        width: 100%;
+    }
+
+    .place-card img {
+        height: 150px;
+    }
+
+    .place-card-content {
+        padding: 10px;
+    }
+
+    .place-card h2 {
+        font-size: 1rem;
+    }
+
+    .place-card p {
+        font-size: 0.8rem;
+    }
+
+    .fab-button {
+        width: 50px;
+        height: 50px;
+    }
+
+    .fab-icon {
+        font-size: 20px;
+    }
+
+    .dashboard-panel {
+        right: 10px;
+        bottom: 80px;
+        width: 90%;
+    }
+
+    .panel-close-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 16px;
+    }
+}
     </style>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
 
@@ -732,40 +787,45 @@ document.addEventListener('keydown', (e) => {
 });
 
 
-const wrapper = document.querySelector('.dashboard');
-const cards = document.querySelectorAll('.card');
-let currentIndex = 0; // Current visible card
+document.addEventListener('DOMContentLoaded', function() {
+    const dashboardButton = document.getElementById('dashboardButton');
+    const dashboardPanel = document.getElementById('dashboardPanel');
+    const overlay = document.createElement('div');
+    overlay.classList.add('overlay');
 
-// Function to navigate to a specific card
-function navigateToCard(index) {
-  if (index < 0 || index >= cards.length) return; // Prevent navigating out of bounds
-  wrapper.style.transform = `translateX(-${index * 100}%)`;
-  currentIndex = index;
-}
+    dashboardButton.addEventListener('click', function() {
+        dashboardPanel.style.display = 'block';
+        document.body.appendChild(overlay);
+    });
 
-// Swipe gesture handling (for touch devices)
-let startX = 0;
+    document.addEventListener('click', function(event) {
+        if (event.target === overlay) {
+            dashboardPanel.style.display = 'none';
+            document.body.removeChild(overlay);
+        }
+    });
 
-wrapper.addEventListener('touchstart', (e) => {
-  startX = e.touches[0].clientX;
+    const panelCloseBtn = document.querySelector('.panel-close-btn');
+    panelCloseBtn.addEventListener('click', function() {
+        dashboardPanel.style.display = 'none';
+        document.body.removeChild(overlay);
+    });
+
+    // Example of conditional rendering based on screen size
+    function checkScreenSize() {
+        const isMobile = window.innerWidth <= 767;
+        const placeCardsContainer = document.querySelector('.place-cards-container');
+
+        if (isMobile) {
+            placeCardsContainer.style.flexDirection = 'column';
+        } else {
+            placeCardsContainer.style.flexDirection = 'row';
+        }
+    }
+
+    window.addEventListener('resize', checkScreenSize);
+    checkScreenSize();
 });
-
-wrapper.addEventListener('touchend', (e) => {
-  const endX = e.changedTouches[0].clientX;
-  if (endX < startX - 50) navigateToCard(currentIndex + 1); // Swipe left
-  if (endX > startX + 50) navigateToCard(currentIndex - 1); // Swipe right
-});
-
-setInterval(() => {
-  navigateToCard((currentIndex + 1) % cards.length); // Loop back to the first card
-}, 5000); // Slide every 5 seconds
-
-
-// Button navigation
-document.querySelector('#prev').addEventListener('click', () => navigateToCard(currentIndex - 1));
-document.querySelector('#next').addEventListener('click', () => navigateToCard(currentIndex + 1));
-
-
     
       async function init() {
         const { Map3DElement } = await google.maps.importLibrary("maps3d");
