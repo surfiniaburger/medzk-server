@@ -4,12 +4,13 @@
 <head>
     <title>Zero Kare</title>
     <style>
+
 /* General Styles */
 body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* Search Icon */
@@ -25,30 +26,54 @@ body {
   border-radius: 50%;
   padding: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
+  animation: shake 1s infinite alternate;
 }
 
-.search-icon:hover {
-  transform: scale(1.1);
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
 }
 
-/* Side Drawer */
-.side-drawer {
+/* Popup Styles */
+.popup {
+  display: none;
   position: fixed;
   top: 0;
-  right: -100%;
+  left: 0;
+  width: 100%;
   height: 100%;
-  width: 350px;
-  background-color: #f9f9f9;
-  box-shadow: -4px 0 6px rgba(0, 0, 0, 0.1);
-  transition: right 0.3s ease-in-out;
+  background: rgba(0, 0, 0, 0.5);
   z-index: 999;
-  overflow-y: auto;
+  justify-content: center;
+  align-items: center;
 }
 
-/* Active Drawer */
-.side-drawer.active {
-  right: 0;
+.popup-content {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+/* Close Button */
+.popup-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 18px;
+  color: #666;
+  cursor: pointer;
+  font-weight: bold;
 }
 
 /* Responsive Card (reuse from your styles) */
@@ -60,9 +85,8 @@ body {
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 15px;
-  margin: 20px auto;
   box-sizing: border-box;
-  width: 90%;
+  color: white;
 }
 
 .home-icon {
@@ -586,7 +610,7 @@ body {
         font-size: 16px;
     }
 
-    #info-window {display:none}
+
 }
     </style>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
@@ -596,27 +620,31 @@ body {
 <body>
     <div class="search-container">
         <!-- Search Icon -->
-        <i class="fas fa-search search-icon" title="Search"></i>
+        <i class="fas fa-search search-icon" id="searchIcon" title="Search"></i>
       
-        <!-- Side Drawer -->
-        <div class="side-drawer" id="side-drawer">
-          <div class="pac-card draggable" id="pac-card">
-            <div id="title">Navigate to a place</div>
-            <div id="pac-container">
-              <input
-                class="pac-input"
-                type="text"
-                id="pac-input"
-                name="pac-input"
-                placeholder="Enter a location..."
-              />
+        <!-- Popup -->
+        <div class="popup" id="popup">
+          <div class="popup-content">
+            <span class="popup-close-btn" id="popupCloseBtn">&times;</span>
+            <div class="pac-card draggable" id="pac-card">
+              <div id="title">Navigate to a place</div>
+              <div id="pac-container">
+                <input
+                  class="pac-input"
+                  type="text"
+                  id="pac-input"
+                  name="pac-input"
+                  placeholder="Enter a location..."
+                />
+              </div>
+              <a href="https://medzk-server.vercel.app/" class="home-icon" title="Go to Home">
+                <i class="fas fa-home"></i>
+              </a>
             </div>
-            <a href="https://medzk-server.vercel.app/" class="home-icon" title="Go to Home">
-              <i class="fas fa-home"></i>
-            </a>
           </div>
         </div>
       </div>
+      
       
       
 
@@ -879,10 +907,40 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-document.querySelector(".search-icon").addEventListener("click", () => {
-  const sideDrawer = document.getElementById("side-drawer");
-  sideDrawer.classList.toggle("active");
+document.addEventListener('DOMContentLoaded', function () {
+  const searchIcon = document.getElementById('searchIcon');
+  const popup = document.getElementById('popup');
+  const popupCloseBtn = document.getElementById('popupCloseBtn');
+
+  // Show popup and stop shaking animation
+  searchIcon.addEventListener('click', function () {
+    popup.style.display = 'flex';
+    searchIcon.style.animation = 'none';
+  });
+
+  // Close popup
+  popupCloseBtn.addEventListener('click', function () {
+    popup.style.display = 'none';
+    searchIcon.style.animation = 'shake 1s infinite alternate'; // Restart shake animation
+  });
+
+  // Close popup when clicking outside content
+  popup.addEventListener('click', function (event) {
+    if (event.target === popup) {
+      popup.style.display = 'none';
+      searchIcon.style.animation = 'shake 1s infinite alternate';
+    }
+  });
+
+  // Close popup when pressing Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && popup.style.display === 'flex') {
+      popup.style.display = 'none';
+      searchIcon.style.animation = 'shake 1s infinite alternate';
+    }
+  });
 });
+
 
     
       async function init() {
