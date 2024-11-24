@@ -729,7 +729,8 @@ body {
     <div id="info-window" class="draggable"></div>
       
 
-    
+    <div id="score-display">Score: 0</div>
+    <div id="timer-display">Time Remaining: 60 seconds</div>
 
 
   <div class="fab-container">
@@ -836,6 +837,8 @@ body {
         
         // Simulated fetch for additional data
         const data = await this.fetchData();
+
+        const task = this.assignTask(this.place); // New function to assign 
         
         // Populate and display the info window
         infoWindow.innerHTML = `
@@ -865,14 +868,16 @@ body {
         <div class="info-section" style="max-height: 60px; overflow-y: auto;">
             💭 ${this.place.reviews[0]?.text || 'No reviews yet'}
         </div>
+
+        <div class="task">${task}</div>
+            <button onclick="completeTask(${this.place.id})">Complete Task</button>
+        </div>
           </div>
 
         `;
         infoWindow.style.display = "block";
     }
-
-
-    
+  
     async fetchData() {
         // Simulated data fetching with a delay
         return new Promise((resolve) => {
@@ -881,6 +886,38 @@ body {
             }, 1000);
         });
     }
+
+    async assignTask(place) {
+    // Logic to assign a task based on the place
+    return `Answer this question about ${place.displayName}`;
+    }
+
+     async completeTask(placeId) {
+    // Logic to complete task and update score
+      updateScore(10); // Example point value for task completion
+    }
+}
+
+let playerScore = 0;
+
+function updateScore(points) {
+    playerScore += points;
+    document.getElementById('score-display').innerText = `Score: ${playerScore}`;
+}
+
+let timer;
+
+function startTimer(duration) {
+    let timeRemaining = duration;
+    timer = setInterval(() => {
+        if (timeRemaining <= 0) {
+            clearInterval(timer);
+            alert("Time's up!");
+            return;
+        }
+        timeRemaining--;
+        document.getElementById('timer-display').innerText = `Time Remaining: ${timeRemaining} seconds`;
+    }, 1000);
 }
 
 document.addEventListener('DOMContentLoaded', function () {
