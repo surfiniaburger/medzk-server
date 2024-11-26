@@ -745,6 +745,77 @@ body {
 
 #info-window { display: none; }
 
+#canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .celebrate-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1001;
+            transition: transform 0.3s ease;
+        }
+
+        .celebrate-btn:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .stop-btn {
+            background: #f44336;
+            display: none;
+        }
+
+        .stop-btn:hover {
+            background: #d32f2f;
+        }
+
+        .confetti-active {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .duration-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            display: none;
+            z-index: 1001;
+        }
+
+
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -756,9 +827,6 @@ body {
       
         <!-- Popup -->
         <div class="popup" id="popup">
-          
-            
-          
             <div class="pac-card " id="pac-card">
                 <span class="popup-close-btn" id="popupCloseBtn">&times;</span>
               <div id="title">Navigate to a place</div>
@@ -783,6 +851,16 @@ body {
       
 
     <div id="info-window" class="draggable"></div>
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
+    <div class="duration-indicator" id="durationIndicator">
+        Confetti Duration: <span id="durationCount">0</span>s
+    </div>
+    <div class="button-container">
+        <button class="control-btn celebrate-btn" id="celebrateBtn" onclick="createConfetti()">Celebrate! 🎉</button>
+        <button class="control-btn stop-btn" id="stopBtn" onclick="stopConfetti()">Stop 🛑</button>
+    </div>
 
   <div class="fab-container">
       <button class="fab-button" id="dashboardButton">
@@ -1052,9 +1130,12 @@ function showCustomAlert(message, type) {
     gsap.fromTo(alertModal, { scale: 0 }, { scale: 1, duration: 0.5, ease: "power2.out" });
 
     // Play sound effect for opening
-    const audio = new Audio('./toy-short'); // Add your sound file path
-    audio.play();
-    loadParticles()
+    const audio = new Audio('https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/toy-short.mp3'); // Add your sound file path
+    Promise.all([
+     audio.play(),
+     createConfetti()
+    ]);
+   
 }
 
 function closeCustomAlert() {
@@ -1075,11 +1156,145 @@ function confirmAlert() {
    closeCustomAlert(); // Close the alert when confirmed
 }
 
-function loadParticles() {
-    particlesJS.load('particles-js', './particles.json', function() {
-        console.log('callback - particles.js config loaded');
-    });
-}
+ // Confetti Implementation
+ const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const celebrateBtn = document.getElementById('celebrateBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const durationIndicator = document.getElementById('durationIndicator');
+        const durationCount = document.getElementById('durationCount');
+        
+        let isConfettiActive = false;
+        let confettiDuration = 0;
+        let durationInterval = null;
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        class Confetti {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = -10;
+                this.size = Math.random() * 5 + 5;
+                this.speed = Math.random() * 3 + 2;
+                this.angle = Math.random() * 360;
+                this.spin = Math.random() * 8 - 4;
+                this.color = `hsl(${Math.random() * 360}, 70%, 50%)`;
+            }
+            
+            update() {
+                this.y += this.speed;
+                this.angle += this.spin;
+                
+                if (this.y > canvas.height + 10) {
+                    this.reset();
+                }
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle * Math.PI / 180);
+                
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+                
+                ctx.restore();
+            }
+        }
+        
+        const confettiParticles = [];
+        let animationId = null;
+        
+        function createConfetti() {
+            if (isConfettiActive) return;
+            
+            isConfettiActive = true;
+            confettiDuration = 0;
+            
+            // Clear existing particles and animation
+            confettiParticles.length = 0;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            
+            // Create new particles
+            for (let i = 0; i < 100; i++) {
+                confettiParticles.push(new Confetti());
+            }
+            
+            // Update UI
+            celebrateBtn.classList.add('confetti-active');
+            stopBtn.style.display = 'block';
+            durationIndicator.style.display = 'block';
+            
+            // Start duration counter
+            durationInterval = setInterval(() => {
+                confettiDuration++;
+                durationCount.textContent = confettiDuration;
+                
+                // Auto-stop after 30 seconds
+                if (confettiDuration >= 30) {
+                    stopConfetti();
+                }
+            }, 1000);
+            
+            // Start animation
+            animate();
+            
+            // Play celebration sound
+            //const audio = new Audio('https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/toy-short.mp3');
+            //audio.play().catch(e => console.log('Audio play failed:', e));
+        }
+        
+        function stopConfetti() {
+            isConfettiActive = false;
+            
+            // Stop animation
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Reset particles
+            confettiParticles.length = 0;
+            
+            // Update UI
+            celebrateBtn.classList.remove('confetti-active');
+            stopBtn.style.display = 'none';
+            clearInterval(durationInterval);
+            
+            // Hide duration indicator after a delay
+            setTimeout(() => {
+                durationIndicator.style.display = 'none';
+            }, 2000);
+        }
+        
+        function animate() {
+            if (!isConfettiActive) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            confettiParticles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            
+            animationId = requestAnimationFrame(animate);
+        }
+
 
 
 
