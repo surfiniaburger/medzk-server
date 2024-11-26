@@ -1140,7 +1140,10 @@ function showCustomAlert(message, type) {
     } else if (type === "alert-error") {
         // Error: Play a different sound and skip confetti
         const errorAudio = new Audio('https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/baby-cry.mp3'); // Replace with your error sound URL
-        errorAudio.play();
+        
+        Promise.all([
+            errorAudio.play(),
+            ]);
     }
    
 }
