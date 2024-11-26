@@ -1132,14 +1132,14 @@ function showCustomAlert(message, type) {
 
     if (type === "alert-success") {
         // Success: Play original sound and show confetti
-        const successAudio = new Audio('./baby-laugh.mp3');
+        const successAudio = new Audio('https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/baby-laugh.mp3');
         Promise.all([
             successAudio.play(),
             createConfetti() // Show confetti only for success
         ]);
     } else if (type === "alert-error") {
         // Error: Play a different sound and skip confetti
-        const errorAudio = new Audio('./baby-cry.mp3'); // Replace with your error sound URL
+        const errorAudio = new Audio('https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/baby-cry.mp3'); // Replace with your error sound URL
         errorAudio.play();
     }
    
