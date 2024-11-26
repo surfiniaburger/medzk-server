@@ -1032,9 +1032,9 @@ let playerScores = {};
 
 // Function to complete a task and update scores
 function completeTask(placeId) {
-    const playerName = prompt("Enter your name:", "alert-error"); // Prompt for player name (or use a predefined name)
+    const playerName = prompt("Enter your name:"); // Prompt for player name (or use a predefined name)
     if (!playerName) {
-        showCustomAlert("Player name is required!");
+        showFailAlert("Player name is required!");
         return; // Exit if no name is provided
     }
     const pointsEarned = 10; // Points for completing a task
@@ -1048,7 +1048,7 @@ function completeTask(placeId) {
     // Update leaderboard
     updateLeaderboard(playerName, playerScores[playerName]);
 
-    showCustomAlert(`Task completed! You earned ${pointsEarned} points.`, "alert-success");
+    showCustomAlert(`Task completed! You earned ${pointsEarned} points.`);
      // Optionally update the dashboard display here
      upDashboard(); // Ensure this function updates the displayed score
 }
@@ -1110,42 +1110,42 @@ function renderLeaderboard() {
 }
 
 
-function showCustomAlert(message, type) {
+function showCustomAlert(message) {
     const alertModal = document.getElementById("custom-alert");
     const alertMessage = document.getElementById("alert-message");
 
     alertMessage.textContent = message; // Set the custom message
-
-    // Apply styles based on alert type
-    if (type === "alert-success") {
-        alertMessage.classList.add("alert-success");
-        alertMessage.classList.remove("alert-error");
-    } else if (type === "alert-error") {
-        alertMessage.classList.add("alert-error");
-        alertMessage.classList.remove("alert-success");
-    }
 
     alertModal.style.display = "block"; // Show modal
 
     // Animate modal appearance
     gsap.fromTo(alertModal, { scale: 0 }, { scale: 1, duration: 0.5, ease: "power2.out" });
 
-    if (type === "alert-success") {
+   
         // Success: Play original sound and show confetti
         const successAudio = new Audio('https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/baby-laugh.mp3');
         Promise.all([
             successAudio.play(),
             createConfetti() // Show confetti only for success
         ]);
-    } else if (type === "alert-error") {
-        // Error: Play a different sound and skip confetti
-        const errorAudio = new Audio('https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/baby-cry.mp3'); // Replace with your error sound URL
-        
-        Promise.all([
-            errorAudio.play(),
-            ]);
-    }
+}
+
+function showFailAlert(message) {
+    const alertModal = document.getElementById("custom-alert");
+    const alertMessage = document.getElementById("alert-message");
+    
+    alertMessage.textContent = message; // Set message
+    alertModal.style.display = "block"; // Show modal
+    
+    // Animate modal appearance
+    gsap.fromTo(alertModal, { scale: 0 }, { scale: 1, duration: 0.5, ease: "power2.out" });
+
+    // Play sound effect for opening
+    const audio = new Audio('https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/baby-cry.mp3'); // Add your sound file path
    
+     Promise.all([
+     audio.play(),
+    ]);
 }
 
 function closeCustomAlert() {
