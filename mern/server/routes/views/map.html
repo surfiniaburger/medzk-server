@@ -686,6 +686,22 @@ body {
   margin: 0 auto;
 }
 
+#alert-message {
+    font-size: 18px; /* Larger font size for better visibility */
+    color: #333; /* Dark gray color for text */
+    margin-bottom: 20px; /* Space below message */
+    text-align: center; /* Center align text */
+    font-weight: bold; /* Make text bold */
+}
+
+/* Optional: Add additional styles for different types of messages */
+.alert-success {
+    color: green; /* Green color for success messages */
+}
+
+.alert-error {
+    color: red; /* Red color for error messages */
+}
 
 #info-window { display: none; }
 
@@ -727,16 +743,20 @@ body {
       
 
     <div id="info-window" class="draggable"></div>
-      
-
-    
-
 
   <div class="fab-container">
       <button class="fab-button" id="dashboardButton">
           <span class="fab-icon">📊</span>
       </button>
   </div>
+
+  <div id="custom-alert" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeCustomAlert()">&times;</span>
+        <p id="alert-message"></p>
+        <button id="alert-ok-btn" onclick="confirmAlert()">OK</button>
+    </div>
+</div>
   
   <div class="dashboard-panel" id="dashboardPanel">
       <button class="panel-close-btn">×</button>
@@ -893,9 +913,9 @@ let playerScores = {};
 
 // Function to complete a task and update scores
 function completeTask(placeId) {
-    const playerName = prompt("Enter your name:"); // Prompt for player name (or use a predefined name)
+    const playerName = prompt("Enter your name:", "alert-error"); // Prompt for player name (or use a predefined name)
     if (!playerName) {
-        alert("Player name is required!");
+        showCustomAlert("Player name is required!");
         return; // Exit if no name is provided
     }
     const pointsEarned = 10; // Points for completing a task
@@ -909,7 +929,7 @@ function completeTask(placeId) {
     // Update leaderboard
     updateLeaderboard(playerName, playerScores[playerName]);
 
-    alert(`Task completed! You earned ${pointsEarned} points.`);
+    showCustomAlert(`Task completed! You earned ${pointsEarned} points.`, "alert-success");
      // Optionally update the dashboard display here
      upDashboard(); // Ensure this function updates the displayed score
 }
@@ -967,6 +987,57 @@ function renderLeaderboard() {
         const listItem = document.createElement('li');
         listItem.textContent = `${player.name}: ${player.score}`;
         leaderboardList.appendChild(listItem);
+    });
+}
+
+
+function showCustomAlert(message, type) {
+    const alertModal = document.getElementById("custom-alert");
+    const alertMessage = document.getElementById("alert-message");
+
+    alertMessage.textContent = message; // Set the custom message
+
+    // Apply styles based on alert type
+    if (type === "alert-success") {
+        alertMessage.classList.add("alert-success");
+        alertMessage.classList.remove("alert-error");
+    } else if (type === "alert-error") {
+        alertMessage.classList.add("alert-error");
+        alertMessage.classList.remove("alert-success");
+    }
+
+    alertModal.style.display = "block"; // Show modal
+
+    // Animate modal appearance
+    gsap.fromTo(alertModal, { scale: 0 }, { scale: 1, duration: 0.5, ease: "power2.out" });
+
+    // Play sound effect for opening
+    const audio = new Audio('./toy-short'); // Add your sound file path
+    audio.play();
+    loadParticles()
+}
+
+function closeCustomAlert() {
+    const alertModal = document.getElementById("custom-alert");
+    
+    // Animate modal closing effect
+    gsap.to(alertModal, { scale: 0, duration: 0.5, ease: "power2.in", onComplete: () => {
+        alertModal.style.display = 'none'; // Hide after animation
+        alertModal.innerHTML = ''; // Clear content if necessary
+        // // Play sound effect for closing
+        // const audio = new Audio('./Teni.mp3'); // Add your sound file path
+        // audio.play();
+       
+    }});
+}
+
+function confirmAlert() {
+   closeCustomAlert(); // Close the alert when confirmed
+}
+
+function loadParticles() {
+    particlesJS.load('particles-js', './particles.json', function() {
+        console.log('callback - particles.js config loaded');
     });
 }
 
