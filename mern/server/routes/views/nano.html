@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Quiz Master</title>
+    <style>
+        :root {
+            --primary-color: #ff97b7;
+            --secondary-color: #f8d7e3;
+            --correct-color: #4CAF50;
+            --wrong-color: #f44336;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #fdfbfb, #ffe4ed);
+        }
+
+        #api-info {
+            background: #e8f0fe;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .quiz-container {
+            max-width: 600px;
+            width: 90%;
+            perspective: 1000px;
+            display: none;
+        }
+
+        .loading {
+            font-size: 1.2rem;
+            color: #666;
+            text-align: center;
+        }
+
+        .card {
+            position: relative;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            display: none;
+        }
+
+        .card.active {
+            display: block;
+        }
+
+        .question {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .options {
+            display: grid;
+            gap: 10px;
+        }
+
+        .option {
+            padding: 15px 20px;
+            border: 2px solid var(--secondary-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .option:hover {
+            background: var(--secondary-color);
+        }
+
+        .option.correct {
+            background: var(--correct-color);
+            color: white;
+            border-color: var(--correct-color);
+        }
+
+        .option.wrong {
+            background: var(--wrong-color);
+            color: white;
+            border-color: var(--wrong-color);
+        }
+
+        .navigation {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .nav-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .nav-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .result {
+            font-size: 2rem;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .progress {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        #error-message {
+            display: none;
+            color: red;
+            padding: 1rem;
+            border: 1px solid red;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+
+        .input-container {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        #topic-input {
+            padding: 10px;
+            border: 2px solid var(--secondary-color);
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        #generate-btn {
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI-Powered Quiz Master</h1>
+    <div id="api-info"></div>
+    <div id="error-message"></div>
+    <div id="loading" class="loading">Generating quiz questions...</div>
+    <div class="quiz-container" id="quiz-container"></div>
+
+    <script>
+        const DEFAULT_TEMPERATURE = 0.7;
+        const DEFAULT_TOP_K = 40;
+        let session = null;
+        let currentCard = 1;
+        const quizContainer = document.getElementById("quiz-container");
+        let questions = [];
+
+   
+        async function initSession() {
+            if (!session) {
+                session = await self.ai.languageModel.create({
+                    temperature: DEFAULT_TEMPERATURE,
+                    topK: DEFAULT_TOP_K
+                });
+            }
+        }
+
+        async function generateQuiz(topic) {
+            const prompt = `write ONLY 3 multichoice quiz for expecting mothers in lagos, Nigeria include answers`;
+            const stream = await session.promptStreaming(prompt);
+            let fullResponse = "";
+
+            for await (const chunk of stream) {
+                fullResponse = chunk.trim();
+            }
+            console.log(fullResponse);
+            return fullResponse;
+        }
+
+        function parseQuizData(data) {
+    const questions = [];
+    const lines = data.split('\n').filter(line => line.trim() !== '');
+    let currentQuestion = null;
+
+    for (const line of lines) {
+        const cleanLine = line.replace(/\*\*/g, '').trim();
+        
+        if (cleanLine.match(/^\d+\.|Question:/i)) {
+            if (currentQuestion && currentQuestion.options.length > 0) {
+                questions.push(currentQuestion);
+            }
+            currentQuestion = {
+                question: cleanLine.replace(/^\d+\.|Question:/i, '').trim(),
+                options: [],
+                answer: null
+            };
+        } else if (cleanLine.match(/^[a-d]\)/i) && currentQuestion) {
+            const option = cleanLine.replace(/^[a-d]\)/i, '').trim();
+            currentQuestion.options.push(option);
+        } else if (cleanLine.toLowerCase().startsWith('answer:') && currentQuestion) {
+            const answerText = cleanLine.replace(/^answer:/i, '').trim();
+            const answerLetter = answerText.match(/^[a-d]\)/i)?.[0];
+            
+            if (answerLetter && currentQuestion.options.length >= answerLetter.charCodeAt(0) - 96) {
+                currentQuestion.answer = currentQuestion.options[answerLetter.charCodeAt(0) - 97];
+            } else {
+                currentQuestion.answer = currentQuestion.options[0]; // Fallback to first option
+            }
+        }
+    }
+
+    if (currentQuestion && currentQuestion.options.length > 0) {
+        questions.push(currentQuestion);
+    }
+
+    return questions.slice(0, 3);
+}
+
+function createQuizCards() {
+    const container = document.getElementById("quiz-container");
+    if (!container) return;
+    
+    container.innerHTML = ''; // Clear existing cards
+    
+    // Verify we have exactly 3 questions
+    const totalQuestions = Math.min(questions.length, 3);
+    
+    for (let index = 0; index < totalQuestions; index++) {
+        const q = questions[index];
+        const card = document.createElement("div");
+        card.id = `card${index + 1}`;
+        card.className = `card ${index === 0 ? 'active' : ''}`;
+        
+        // Find the correct answer index
+        const correctAnswerIndex = q.options.findIndex(option => 
+            option.toLowerCase() === q.answer.toLowerCase() ||
+            option.toLowerCase().includes(q.answer.toLowerCase()) ||
+            q.answer.toLowerCase().includes(option.toLowerCase())
+        );
+        
+        card.innerHTML = `
+            <div class="progress">${index + 1}/${totalQuestions}</div>
+            <div class="question">${q.question}</div>
+            <div class="options">
+                ${q.options.map((option, i) => `
+                    <div class="option" data-correct="${i === correctAnswerIndex}">${option}</div>
+                `).join('')}
+            </div>
+            <div class="result"></div>
+            <div class="navigation">
+                <button class="nav-button prev-btn" ${index === 0 ? 'disabled' : ''}>Previous</button>
+                <button class="nav-button next-btn" ${index === totalQuestions - 1 ? 'disabled' : ''}>Next</button>
+            </div>
+        `;
+        
+        container.appendChild(card);
+    }
+
+    // Add click handlers for options
+    document.querySelectorAll('.option').forEach(option => {
+        option.addEventListener('click', handleAnswer);
+    });
+
+    // Add navigation button handlers
+    document.querySelectorAll('.prev-btn').forEach(button => {
+        button.addEventListener('click', prevCard);
+    });
+    document.querySelectorAll('.next-btn').forEach(button => {
+        button.addEventListener('click', nextCard);
+    });
+}
+
+// Improved answer handling
+function handleAnswer(event) {
+    const option = event.target;
+    const card = option.closest('.card');
+    const result = card.querySelector('.result');
+    const nextButton = card.querySelector('.next-btn');
+    
+    // Prevent multiple answers
+    if (card.querySelector('.option.correct') || card.querySelector('.option.wrong')) {
+        return;
+    }
+    
+    const isCorrect = option.getAttribute('data-correct') === 'true';
+    
+    if (isCorrect) {
+        option.classList.add('correct');
+        result.textContent = '😊 Correct!';
+    } else {
+        option.classList.add('wrong');
+        // Find and highlight the correct answer
+        card.querySelector('[data-correct="true"]').classList.add('correct');
+        result.textContent = '😔 Incorrect';
+    }
+    
+    nextButton.disabled = false;
+}
+
+        function showCard(cardNumber) {
+            const cards = document.querySelectorAll('.card');
+            if (!cards.length) return;
+
+            cards.forEach(card => card.classList.remove('active'));
+            const nextCard = document.getElementById(`card${cardNumber}`);
+            if (nextCard) {
+                nextCard.classList.add('active');
+            }
+        }
+
+        function nextCard() {
+            if (currentCard < questions.length) {
+                currentCard++;
+                showCard(currentCard);
+            }
+        }
+
+        function prevCard() {
+            if (currentCard > 1) {
+                currentCard--;
+                showCard(currentCard);
+            }
+        }
+
+        const FALLBACK_QUESTIONS = [
+            {
+                question: "What is the recommended daily folic acid intake for pregnant women?",
+                options: ["400 micrograms daily", "100 micrograms daily", "800 micrograms daily", "200 micrograms daily"],
+                answer: "400 micrograms daily"
+            },
+            {
+                question: "Which trimester typically has the highest energy levels for most pregnant women?",
+                options: ["First Trimester", "Second Trimester", "Third Trimester", "Energy levels remain constant"],
+                answer: "Second Trimester"
+            },
+            {
+                question: "What is the recommended weight gain during pregnancy for women with normal BMI?",
+                options: ["11-15 kg", "5-9 kg", "20-25 kg", "25-30 kg"],
+                answer: "11-15 kg"
+            }
+        ];
+
+        async function handleGenerateQuiz() {
+            const loading = document.getElementById("loading");
+            const topic = document.getElementById("topic-input")?.value.trim() || "General Knowledge";
+            
+            if (!loading || !quizContainer) return;
+            
+            loading.style.display = "block";
+            quizContainer.style.display = "none";
+            
+            try {
+                await initSession();
+                const quizData = await generateQuiz(topic);
+                questions = parseQuizData(quizData);
+                
+                if (!questions || questions.length === 0) {
+                    console.warn("AI response parsing failed. Using fallback questions.");
+                    questions = FALLBACK_QUESTIONS;
+                }
+
+                createQuizCards();
+                loading.style.display = "none";
+                quizContainer.style.display = "block";
+                currentCard = 1;
+                showCard(1);
+            } catch (error) {
+                loading.style.display = "none";
+                const errorMessage = document.getElementById("error-message");
+                if (errorMessage) {
+                    errorMessage.style.display = "block";
+                    errorMessage.textContent = `Error generating quiz: ${error.message}`;
+                }
+            }
+        }
+
+        // Wait for DOM to be fully loaded before attaching event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const generateBtn = document.getElementById("generate-btn");
+            const topicInput = document.getElementById("topic-input");
+            
+            if (generateBtn) {
+                generateBtn.addEventListener("click", handleGenerateQuiz);
+            }
+            
+            if (topicInput) {
+                topicInput.addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") {
+                        handleGenerateQuiz();
+                    }
+                });
+            }
+
+            // Initialize first quiz
+            handleGenerateQuiz();
+        });
+    </script>
+</body>
+</html>
