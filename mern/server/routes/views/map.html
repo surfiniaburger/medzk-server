@@ -838,9 +838,7 @@ body {
     <div id="canvas-container">
         <canvas id="canvas"></canvas>
     </div>
-    <div class="duration-indicator" id="durationIndicator">
-        Confetti Duration: <span id="durationCount">0</span>s
-    </div>
+    
    
 
   <div class="fab-container">
@@ -854,6 +852,9 @@ body {
         <span class="close-btn" onclick="closeCustomAlert()">&times;</span>
         <p id="alert-message"></p>
         <button id="alert-ok-btn" onclick="confirmAlert()">OK</button>
+        <div class="duration-indicator" id="durationIndicator">
+            Confetti Duration: <span id="durationCount">0</span>s
+        </div>
         <div class="button-container">
             <button class="control-btn celebrate-btn" id="celebrateBtn" onclick="createConfetti()">Celebrate! 🎉</button>
             <button class="control-btn stop-btn" id="stopBtn" onclick="stopConfetti()">Stop 🛑</button>
@@ -873,10 +874,10 @@ body {
                   <text class="gauge-value" x="100" y="120" text-anchor="middle">0</text>
               </svg>
           </div>
-          <div class="card">
+          <!-- <div class="card">
               <h2>Temperature & Humidity</h2>
               <canvas id="tempHumidityChart"></canvas>
-          </div>
+          </div> -->
           <div class="card">
               <h2>Pollutants</h2>
               <ul class="pollutant-list" id="pollutantList"></ul>
