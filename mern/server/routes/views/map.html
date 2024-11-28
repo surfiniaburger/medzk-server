@@ -1030,6 +1030,11 @@ function completeTask(placeId) {
     }
     playerScores[playerName] += pointsEarned;
 
+      // Close and clear the info window
+      const infoWindow = document.getElementById('info-window');
+      infoWindow.style.display = 'none';
+      infoWindow.innerHTML = '';
+
     // Update leaderboard
     updateLeaderboard(playerName, playerScores[playerName]);
 
