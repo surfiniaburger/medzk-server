@@ -201,30 +201,30 @@
         }
 
         function parseQuizData(data) {
-    const questions = [];
-    const lines = data.split('\n').filter(line => line.trim() !== '');
-    let currentQuestion = null;
+         const questions = [];
+         const lines = data.split('\n').filter(line => line.trim() !== '');
+         let currentQuestion = null;
 
-    for (const line of lines) {
-        const cleanLine = line.replace(/\*\*/g, '').trim();
+        for (const line of lines) {
+           const cleanLine = line.replace(/\*\*/g, '').trim();
         
-        if (cleanLine.match(/^\d+\.|Question:/i)) {
-            if (currentQuestion && currentQuestion.options.length > 0) {
-                questions.push(currentQuestion);
-            }
-            currentQuestion = {
-                question: cleanLine.replace(/^\d+\.|Question:/i, '').trim(),
-                options: [],
-                answer: null
-            };
-        } else if (cleanLine.match(/^[a-d]\)/i) && currentQuestion) {
-            const option = cleanLine.replace(/^[a-d]\)/i, '').trim();
-            currentQuestion.options.push(option);
-        } else if (cleanLine.toLowerCase().startsWith('answer:') && currentQuestion) {
-            const answerText = cleanLine.replace(/^answer:/i, '').trim();
-            const answerLetter = answerText.match(/^[a-d]\)/i)?.[0];
+           if (cleanLine.match(/^\d+\.|Question:/i)) {
+               if (currentQuestion && currentQuestion.options.length > 0) {
+                  questions.push(currentQuestion);
+              }
+               currentQuestion = {
+                  question: cleanLine.replace(/^\d+\.|Question:/i, '').trim(),
+                  options: [],
+                  answer: null
+                };
+                } else if (cleanLine.match(/^[a-d]\)/i) && currentQuestion) {
+                   const option = cleanLine.replace(/^[a-d]\)/i, '').trim();
+                   currentQuestion.options.push(option);
+                } else if (cleanLine.toLowerCase().startsWith('answer:') && currentQuestion) {
+                    const answerText = cleanLine.replace(/^answer:/i, '').trim();
+                    const answerLetter = answerText.match(/^[a-d]\)/i)?.[0];
             
-            if (answerLetter && currentQuestion.options.length >= answerLetter.charCodeAt(0) - 96) {
+                  if (answerLetter && currentQuestion.options.length >= answerLetter.charCodeAt(0) - 96) {
                 currentQuestion.answer = currentQuestion.options[answerLetter.charCodeAt(0) - 97];
             } else {
                 currentQuestion.answer = currentQuestion.options[0]; // Fallback to first option
