@@ -1,0 +1,2817 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>3D Maps Codelab</title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        :root {
+            --primary-color: #ff97b7;
+            --secondary-color: #f8d7e3;
+            --correct-color: #4CAF50;
+            --wrong-color: #f44336;
+        }
+
+          /* New styles for advanced features */
+          .feature-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .feature-button {
+            background: #4d90fe;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .feature-button:hover {
+            background: #357ABD;
+            transform: translateY(-2px);
+        }
+
+        .feature-button i {
+            font-size: 18px;
+        }
+
+
+        .emergency-alert {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff4757;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            display: none;
+            animation: slideUp 0.3s ease-out;
+            z-index: 1002;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translate(-50%, 100%);
+            }
+            to {
+                transform: translate(-50%, 0);
+            }
+        }
+
+        
+
+        .community-panel {
+            position: fixed;
+            right: -400px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 350px;
+            background: white;
+            border-radius: 15px 0 0 15px;
+            padding: 20px;
+            transition: right 0.3s ease;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .community-panel.active {
+            right: 0;
+        }
+      .pac-controls {
+        display: inline-block;
+        padding: 0px 11px;
+      }
+      .pac-controls label {
+        font-family: Roboto;
+        font-size: 13px;
+        font-weight: 300;
+      }
+      .pac-card {
+        background-color: #fff;
+        border: 0;
+        border-radius: 4px;
+        box-shadow: 0 1px 4px -1px rgba(0, 0, 0, 0.3);
+        margin: 10px;
+        padding: 0 0.5em;
+        font: 400 18px Roboto, Arial, sans-serif;
+        overflow: hidden;
+        font-family: Roboto;
+        padding: 0;
+        position: absolute;
+        left: 10px;
+        top: 50px;
+        z-index: 1000;
+      }
+      #pac-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.pac-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.pac-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Media Query for Larger Screens */
+@media (min-width: 768px) {
+    #pac-card {
+        flex-direction: row;
+        align-items: center;
+        gap: 15px;
+        max-width: 600px;
+    }
+
+    #title {
+        flex: 1;
+        text-align: left;
+        margin-bottom: 0;
+    }
+
+    #pac-container {
+        flex: 2;
+    }
+}
+
+      .feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            font-size: 18px;
+            text-align: center;
+            border-radius: 5px;
+        }
+      
+      #title {
+        color: #fff;
+        background-color: #4d90fe;
+        font-size: 14px;
+        font-weight: 500;
+        padding: 6px 12px;
+      }
+      #api-results {
+  position: fixed; /* Keeps it in the same spot during scroll */
+  top: 50%; /* Center vertically */
+  left: 20px; /* Positioned slightly away from the left edge */
+  transform: translateY(-50%); /* Aligns center properly */
+  width: 250px; /* Smaller box */
+  background-color: #f9f9f9; /* Light background for better readability */
+  border: 1px solid #ddd; /* Subtle border */
+  border-radius: 8px; /* Rounded corners for modern look */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+  padding: 16px; /* Inner spacing */
+  font-family: 'Arial', sans-serif; /* Modern font */
+  font-size: 14px; /* Readable text size */
+  display: none; /* Hidden initially */
+  z-index: 1000; /* Makes sure it stays above other elements */
+}
+
+#api-results h3 {
+  font-size: 16px;
+  color: #333; /* Darker text for better visibility */
+  margin-bottom: 8px;
+  text-align: center; /* Align title in the center */
+}
+
+#api-results ul {
+  list-style-type: none; /* Removes bullet points */
+  padding: 0; /* No extra padding */
+  margin: 0; /* No extra margin */
+}
+
+#api-results ul li {
+  margin-bottom: 6px;
+  color: #555; /* Slightly muted text color */
+  font-size: 14px;
+}
+
+.draggable {
+    position: absolute;
+    cursor: grab;
+    padding: 10px;
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.info-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    max-width: 300px;  /* Reduced from 400px */
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+    overflow: hidden;
+    font-size: 0.9rem;  /* Reduced base font size */
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #ff4757;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;    /* Reduced from 30px */
+    height: 24px;   /* Reduced from 30px */
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;  /* Reduced from 18px */
+}
+
+.close-btn:hover {
+    transform: rotate(90deg);
+    background: #ff6b81;
+}
+
+.place-title {
+    font-size: 1.2em;  /* Reduced from 1.5em */
+    color: #2f3542;
+    margin-bottom: 10px;
+    padding-right: 30px;
+}
+
+.info-section {
+    margin: 5px 0;     /* Reduced from 8px */
+    padding: 5px 8px;  /* Reduced from 8px */
+    border-left: 2px solid #70a1ff;  /* Reduced from 3px */
+    background: #f1f2f6;
+    border-radius: 0 6px 6px 0;
+    line-height: 1.3;  /* Added for better text spacing */
+}
+
+.place-image {
+    width: 100%;
+    height: 150px;    /* Fixed height */
+    object-fit: cover; /* Ensures image covers area without distortion */
+    border-radius: 8px;
+    margin: 10px 0;
+    transition: transform 0.3s;
+}
+
+.rating {
+    background: #ffd32a;
+    color: #2f3542;
+    padding: 3px 8px;
+    border-radius: 15px;
+    display: inline-block;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.author-link {
+    color: #70a1ff;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.author-link:hover {
+    color: #1e90ff;
+}
+
+/* Added to truncate long text */
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.draggable:active {
+    cursor: grabbing;
+}
+
+.dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            font-family: Arial, sans-serif;
+            margin-top: -20px;
+          
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .quiz-card{
+            display: none;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: absolute;
+            width: 100%;
+            top: 0;
+            transition: transform 0.6s ease-in-out, opacity 0.6s ease-in-out;
+            opacity: 0;
+            transform: translateX(100%);
+        }
+
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card.active {
+            display: block;
+        }
+
+        .quiz-card.active {
+             display: block;
+             opacity: 1;
+             transform: translateX(0);
+        }
+
+        .quiz-card.previous {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+
+        .loading {
+            font-size: 1.2rem;
+            color: #666;
+            text-align: center;
+        }
+
+        .gauge {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: #eee;
+            stroke-width: 20;
+        }
+
+        .gauge-progress {
+            fill: none;
+            stroke-width: 20;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: 100px 100px;
+            transition: stroke-dashoffset 1s ease;
+        }
+
+
+        .place-cards-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 20px;
+  justify-content: center;
+}
+
+.place-card {
+  background: linear-gradient(145deg, #ffffff, #e6e6e6);
+  box-shadow: 6px 6px 12px #d9d9d9, -6px -6px 12px #ffffff;
+  border-radius: 12px;
+  width: 300px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.place-card:hover {
+  transform: scale(1.05);
+  box-shadow: 8px 8px 16px #cccccc, -8px -8px 16px #ffffff;
+}
+
+.place-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-bottom: 2px solid #ccc;
+}
+
+.place-card-content {
+  padding: 15px;
+}
+
+.place-card h2 {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.place-card p {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.place-card a {
+  text-decoration: none;
+  color: #007bff;
+}
+
+.place-card .rating {
+  font-weight: bold;
+  color: #ffaa00;
+}
+
+
+        .gauge-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .pollutant-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .pollutant-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f5f5f5;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #eee;
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 1s ease;
+        }
+
+        /* Add these styles to your existing CSS */
+
+.fab-container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 1000;
+}
+
+.fab-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #4d90fe;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.fab-button:hover {
+    background: #357ABD;
+    transform: scale(1.1);
+    animation: none;
+}
+
+.fab-icon {
+    font-size: 24px;
+    color: white;
+}
+
+.dashboard-panel {
+    position: fixed;
+    right: 30px;
+    bottom: 100px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    width: 80%;
+    max-width: 1200px;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: none;
+    animation: slideIn 0.3s ease-out;
+    z-index: 999;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.panel-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #ff4757;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    transition: all 0.2s;
+    z-index: 1001;
+}
+
+.panel-close-btn:hover {
+    transform: rotate(90deg);
+    background: #ff6b81;
+}
+
+/* Modify your existing dashboard styles */
+.dashboard {
+    padding: 30px;
+    margin-top: 20px;
+}
+
+/* Add overlay style */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 998;
+}
+
+/* General Styles */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Search Icon */
+.search-icon {
+  font-size: 24px;
+  color: #4d90fe;
+  cursor: pointer;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  background: #fff;
+  border-radius: 50%;
+  padding: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: shake 1s infinite alternate;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+/* Popup Styles */
+.popup {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  justify-content: center;
+  align-items: center;
+}
+
+
+
+/* Close Button */
+.popup-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 18px;
+  color: #666;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* Responsive Card (reuse from your styles) */
+#pac-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #4d90fe;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  box-sizing: border-box;
+  color: white;
+}
+
+.home-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  color: #4d90fe;
+  font-size: 20px;
+  margin: 0 auto;
+}
+
+#game-dashboard {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    border-radius: 5px;
+}
+
+#game-dashboard p {
+    margin: 5px 0;
+}
+
+#task-progress {
+    width: 100%;
+}
+
+
+
+#info-window { display: none; }
+.leaderboard {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.leaderboard h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.leaderboard ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.leaderboard li {
+    padding: 5px 0;
+}
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+  border-radius: 10px;
+  box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 25px;
+  font-size: 35px;
+  font-weight: bold;
+  color: #000;
+  cursor: pointer;
+}
+
+
+
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .celebrate-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1001;
+            transition: transform 0.3s ease;
+        }
+
+       
+
+        .stop-btn {
+            background: #f44336;
+            display: none;
+        }
+
+        
+
+        .confetti-active {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .duration-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            display: none;
+            z-index: 1001;
+        }
+
+        .question {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .option {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0;
+    background: rgba(255, 255, 255, 0.2);
+    transition: width 0.3s ease;
+  }
+
+  .option:hover::after {
+    width: 100%;
+  }
+
+  .option.selected {
+    background: var(--secondary-color);
+    color: white;
+  }
+
+  .option.correct {
+    animation: pulse-green 0.5s;
+  }
+
+  .option.wrong {
+    animation: pulse-red 0.5s;
+  }
+
+        .navigation {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        @keyframes pulse-green {
+    0% { transform: scale(1); background: white; }
+    50% { transform: scale(1.05); background: var(--correct-color); }
+    100% { transform: scale(1); background: var(--correct-color); }
+  }
+
+  @keyframes pulse-red {
+    0% { transform: scale(1); background: white; }
+    50% { transform: scale(1.05); background: var(--wrong-color); }
+    100% { transform: scale(1); background: var(--wrong-color); }
+  }
+
+
+        .nav-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .nav-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .result {
+            font-size: 2rem;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .progress {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        #error-message {
+            display: none;
+            color: red;
+            padding: 1rem;
+            border: 1px solid red;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+
+        .input-container {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        #topic-input {
+            padding: 10px;
+            border: 2px solid var(--secondary-color);
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        #generate-btn {
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        #api-info {
+            background: #e8f0fe;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .quiz-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 600px;
+            width: 90%;
+            perspective: 1000px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .loading {
+            font-size: 1.2rem;
+            color: #666;
+            text-align: center;
+        }
+        .close-quiz-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: transform 0.3s;
+        }
+
+        .close-quiz-btn:hover {
+            transform: rotate(90deg);
+        }
+
+        .loading-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 1001;
+  }
+
+  .loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid blue;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .loading-text {
+    margin-top: 20px; 
+    color:blue;
+    font-size: 1.2rem;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .score-display {
+    text-align: center;
+    font-size: 1.5rem;
+    margin: 20px 0;
+    color: blue;
+  }
+
+
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="search-container">
+        <!-- Search Icon -->
+        <i class="fas fa-search search-icon" id="searchIcon" title="Search"></i>
+      
+        <!-- Popup -->
+        <div class="popup" id="popup">
+          <div class="popup-content">
+            
+            <div class="pac-card " id="pac-card">
+                <span class="popup-close-btn" id="popupCloseBtn">&times;</span>
+              <div id="title">Navigate to a place</div>
+              <div id="pac-container">
+                <input
+                  class="pac-input"
+                  type="text"
+                  id="pac-input"
+                  name="pac-input"
+                  placeholder="Enter a location..."
+                />
+              </div>
+              <a href="https://medzk-server.vercel.app/" class="home-icon" title="Go to Home">
+                <i class="fas fa-home"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="particles-js" style="position: absolute; width: 100%; height: 100%; z-index: -1;"></div>
+
+      
+    <div id="info-window" class="draggable"></div>
+    <div id="map-container"></div>
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
+    <div class="duration-indicator" id="durationIndicator">
+        Confetti Duration: <span id="durationCount">0</span>s
+    </div>
+    
+  <div class="fab-container">
+      <button class="fab-button" id="dashboardButton">
+          <span class="fab-icon">📊</span>
+      </button>
+  </div>
+
+  <div id="custom-alert" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="quiz.closeAlert()">&times;</span>
+        <p id="alert-message"></p>
+        <button id="alert-ok-btn">OK</button>
+       
+        <div class="button-container">
+            <button class="control-btn celebrate-btn" id="celebrateBtn" onclick="quiz.createConfetti()">Celebrate! 🎉</button>
+            <button class="control-btn stop-btn" id="stopBtn" onclick="quiz.stopConfetti()">Stop 🛑</button>
+        </div>
+
+    </div>
+</div>
+  
+  <div class="dashboard-panel" id="dashboardPanel">
+      <button class="panel-close-btn">×</button>
+      <div class="dashboard">
+          <!-- Your existing dashboard content -->
+          <div class="card">
+              <h2>Air Quality Index</h2>
+              <svg class="gauge" viewBox="0 0 200 200">
+                  <circle class="gauge-bg" cx="100" cy="100" r="90"/>
+                  <circle class="gauge-progress" cx="100" cy="100" r="90"/>
+                  <text class="gauge-value" x="100" y="120" text-anchor="middle">0</text>
+              </svg>
+          </div>
+          <div class="card">
+              <h2>Temperature & Humidity</h2>
+              <canvas id="tempHumidityChart"></canvas>
+          </div>
+          <div class="card">
+              <h2>Pollutants</h2>
+              <ul class="pollutant-list" id="pollutantList"></ul>
+          </div>
+          <div class="card">
+              <h2>Health Recommendations</h2>
+              <div id="recommendations" style="padding: 20px;"></div>
+          </div>
+          <div id="leaderboard" class="leaderboard card">
+            <h2>Leaderboard</h2>
+            <ul id="leaderboard-list">
+                <!-- Player scores will be dynamically inserted here -->
+            </ul>
+        </div>
+      </div>
+  </div>
+
+  
+    <div id="error-message"></div>
+   
+  <div class="quiz-container" id="quiz-container">
+    <button class="close-quiz-btn" onclick="quiz.closeAlert()">×</button>
+  </div>
+
+  <!-- Template variables for API keys -->
+  <script>
+    window.GOOGLE_MAPS_API_KEY = '{{GOOGLE_MAPS_API_KEY}}';
+    window.OPENWEATHER_API_KEY = '{{OPENWEATHER_API_KEY}}';
+  </script>
+
+  
+
+  
+
+
+    <!-- Required External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    
+
+    <!-- Google Maps Libraries -->
+    <script async defer>
+        (g => { var h, a, k, p = "The Google Maps JavaScript API", c = "google", l = "importLibrary", q = "__ib__", m = document, b = window; b = b[c] || (b[c] = {}); var d = b.maps || (b.maps = {}), r = new Set, e = new URLSearchParams, u = () => h || (h = new Promise(async (f, n) => { await (a = m.createElement("script")); e.set("libraries", [...r] + ""); for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]); e.set("callback", c + ".maps." + q); a.src = `https://maps.${c}apis.com/maps/api/js?` + e; d[q] = f; a.onerror = () => h = n(Error(p + " could not load.")); a.nonce = m.querySelector("script[nonce]")?.nonce || ""; m.head.append(a) })); d[l] ? console.warn(p + " only loads once. Ignoring:", g) : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)) })({
+            key: window.GOOGLE_MAPS_API_KEY,
+            v: "alpha",
+        });
+    </script>
+<script>
+
+
+let map3DElement = null;
+      let placesService = null;
+      let advancedFeatures = null;
+
+
+      class InteractiveMarker {
+    constructor(map3DElement, place) {
+        this.map3DElement = map3DElement;
+        this.place = place;
+        this.marker = null;
+    }
+
+ 
+
+    async create() {
+        // Import Marker3DInteractiveElement
+        const { Marker3DInteractiveElement } = await google.maps.importLibrary("maps3d");
+              
+        // Create an instance of Marker3DInteractiveElement
+        this.marker = new Marker3DInteractiveElement({
+            position: {
+                lat: this.place.location.lat(),
+                lng: this.place.location.lng(),
+                altitude: 0, // Assuming altitude is optional
+            },
+            label: this.place.name,
+            sizePreserved: true, // Preserve marker size regardless of zoom
+        });
+
+        // Add click event listener to the marker
+         this.marker.addEventListener('gmp-click', async () => {
+        // Call zoomAndFlyToLocation when marker is clicked
+            await zoomAndFlyToLocation(this.map3DElement, {
+               lat: this.place.location.lat(),
+               lng: this.place.location.lng(),
+            });
+
+        // Show info window
+        this.showInfoWindow();
+    });
+        
+        // Append the marker to the map's 3D element
+        this.map3DElement.append(this.marker);
+    }
+     
+    async showInfoWindow() {
+        const infoWindow = document.getElementById("info-window");
+        
+        // Simulated fetch for additional data
+        const data = await this.fetchData();
+        
+        // Populate and display the info window
+        infoWindow.innerHTML = `
+           <div class="info-card">
+        <button class="close-btn" id="close-btn"   onclick="const infoWindow = document.getElementById('info-window'); infoWindow.style.display='none'; infoWindow.innerHTML='';">×</button>
+        
+        <h2 class="place-title truncate">
+            🏢 ${this.place.displayName}
+        </h2>
+        
+        <img src="${this.place.photos && this.place.photos.length > 0 ? 
+           this.place.photos[0].getURI({ maxHeight: 150 }) : 
+           'https://raw.githubusercontent.com/surfiniaburger/medzk-server/cd1afb17e0058ecf887f340ea8c1839f8925c716/mern/client/src/assets/groot.jpg'}"
+            alt="${this.place.displayName}"
+            class="place-image"
+            onerror="this.src='https://raw.githubusercontent.com/surfiniaburger/medzk-server/cd1afb17e0058ecf887f340ea8c1839f8925c716/mern/client/src/assets/groot.jpg'">
+        
+        <div class="info-section truncate">
+            📍 ${this.place.formattedAddress || "Address not available"}
+        </div>
+        
+        <div class="info-section">
+            <span class="rating">⭐ ${this.place.reviews[0]?.rating || 'N/A'}</span>
+            👤 ${this.place.reviews[0]?.authorAttribution?.displayName || "Anonymous"}
+        </div>
+        
+        <div class="info-section" style="max-height: 60px; overflow-y: auto;">
+            💭 ${this.place.reviews[0]?.text || 'No reviews yet'}
+        </div>
+          <button onclick="completeTask('${this.place.id}', '${this.place.formattedAddress}')">Take Quiz</button>
+          </div>
+
+        `;
+        infoWindow.style.display = "block";
+    } 
+    async fetchData() {
+        // Simulated data fetching with a delay
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve(`Simulated info for ${this.place.displayName}`);
+            }, 1000);
+        });
+    }
+}
+
+
+class Quiz {
+    constructor() {
+        this.currentScore = 0;
+        this.totalQuestions = 0;
+        this.answeredQuestions = new Set();
+        this.questions = [];
+        this.currentPlaceId = null; // Add currentPlaceId to the Quiz class
+        this.currentCard = 1;
+        this.playerScores = {}; // playerScores is now a property of the Quiz class
+        this.audio = {};  // For storing audio elements
+
+        this.canvas = document.getElementById('canvas'); // Get canvas element once
+        this.ctx = this.canvas.getContext('2d');
+        this.confettiParticles = [];
+        this.isConfettiActive = false;  // Confetti flag within the class
+        this.confettiDuration = 0;
+        this.durationInterval = null;
+        this.celebrateBtn = document.getElementById('celebrateBtn');
+        this.stopBtn = document.getElementById('stopBtn');
+        this.durationIndicator = document.getElementById('durationIndicator');
+
+        // Call resizeCanvas initially and on resize
+        this.resizeCanvas();
+        window.addEventListener('resize', this.resizeCanvas.bind(this)); // Bind 'this'
+    }
+
+    parseQuizData(data) {
+        const questions = [];
+        const lines = data.split('\n').filter(line => line.trim() !== '');
+        let currentQuestion = null;
+
+        for (const line of lines) {
+            const cleanLine = line.replace(/\*\*/g, '').trim();
+
+            if (cleanLine.match(/^\d+\.|Question:|question/i)) {
+                if (currentQuestion && currentQuestion.options.length > 0) {
+                    // Clean up the options array to remove the answer line
+                    if (currentQuestion.options.some(opt => opt.toLowerCase().includes('answer:'))) {
+                        currentQuestion.options = currentQuestion.options.filter(opt => 
+                            !opt.toLowerCase().includes('answer:')
+                        );
+                    }
+                    questions.push(currentQuestion);
+                }
+
+                currentQuestion = {
+                    question: cleanLine.replace(/^\d+\.|Question:|question/i, '').trim(),
+                    options: [],
+                    answer: ''
+                };
+            } else if (cleanLine.match(/^[a-d]\)|[A-D]\)/i) && currentQuestion) {
+                const option = cleanLine.replace(/^[a-d]\)|[A-D]\)/i, '').trim();
+                currentQuestion.options.push(option);
+            } else if (cleanLine.toLowerCase().startsWith('answer:')) {
+                // Extract just the option text from the answer line
+                const answerText = cleanLine.split('answer:')[1].trim();
+                currentQuestion.answer = answerText;
+            }
+        }
+
+        // Process the last question
+        if (currentQuestion && currentQuestion.options.length > 0) {
+            // Clean up the options array for the last question
+            if (currentQuestion.options.some(opt => opt.toLowerCase().includes('answer:'))) {
+                currentQuestion.options = currentQuestion.options.filter(opt => 
+                    !opt.toLowerCase().includes('answer:')
+                );
+            }
+            questions.push(currentQuestion);
+        }
+
+        // Clean up the questions
+        return questions.map(q => ({
+            ...q,
+            options: q.options.filter(opt => 
+                opt && !opt.toLowerCase().includes('answer:') && 
+                !opt.toLowerCase().includes('please note:')
+            ),
+            answer: q.answer.replace(/^[a-d]\)|[A-D]\)/i, '').trim()
+        }));
+    }
+
+    createQuizCards() {
+        const container = document.getElementById("quiz-container");
+        if (!container) return;
+
+        container.innerHTML = '<button class="close-quiz-btn" onclick="quiz.closeQuiz()">×</button>';
+
+        this.totalQuestions = Math.min(this.questions.length, 3);
+
+        for (let index = 0; index < this.totalQuestions; index++) {
+            const q = this.questions[index];
+            
+            // Validate question data
+            if (!q || !q.question || !Array.isArray(q.options)) {
+                console.error('Invalid question data:', q);
+                continue;
+            }
+
+            const card = document.createElement("div");
+            card.id = `card${index + 1}`;
+            card.className = `card ${index === 0 ? 'active' : ''}`;
+            
+            // Find the correct answer index by comparing the cleaned answer text
+            const normalizedAnswer = q.answer.toLowerCase().trim();
+            const correctAnswerIndex = q.options.findIndex(option => {
+                const normalizedOption = option.toLowerCase().trim();
+                return normalizedOption === normalizedAnswer ||
+                       normalizedOption.includes(normalizedAnswer) ||
+                       normalizedAnswer.includes(normalizedOption);
+            });
+
+            const finalCorrectIndex = correctAnswerIndex === -1 ? 0 : correctAnswerIndex;
+            
+            card.innerHTML = `
+                <div class="progress">${index + 1}/${this.totalQuestions}</div>
+                <div class="question">${q.question}</div>
+                <div class="options">
+                    ${q.options.map((option, i) => `
+                        <div class="option" data-correct="${i === finalCorrectIndex}">${option}</div>
+                    `).join('')}
+                </div>
+                
+                <div class="navigation">
+                     ${index === this.totalQuestions - 1 ? 
+                        '<button class="nav-button final-submit">Submit Quiz</button>' :
+                        '<button class="nav-button next-btn" disabled>Next</button>'
+                    }
+                </div>
+            `;
+            
+            container.appendChild(card);
+        }
+
+        document.querySelectorAll('.option').forEach(option => {
+            option.addEventListener('click', this.handleAnswer.bind(this));
+        });
+    }
+
+
+    handleAnswer(event) {
+        const currentCard = event.target.closest('.card');
+        const cardNumber = parseInt(currentCard.id.replace('card', ''));
+        const options = currentCard.querySelectorAll('.option');
+        const nextBtn = currentCard.querySelector('.next-btn');
+        const submitBtn = currentCard.querySelector('.final-submit');
+
+        // Use this.answeredQuestions and this.currentScore
+        if (!this.answeredQuestions.has(cardNumber)) {
+            const isCorrect = event.target.dataset.correct === 'true';
+            if (isCorrect) this.currentScore++;
+            this.answeredQuestions.add(cardNumber);
+        }
+
+        // Remove previous selections
+    options.forEach(opt => opt.classList.remove('selected'));
+    event.target.classList.add('selected');
+    
+    const isCorrect = event.target.dataset.correct === 'true';
+    
+    // Show correct/wrong feedback
+    options.forEach(opt => {
+        if (opt.dataset.correct === 'true') {
+            opt.classList.add('correct');
+        } else if (opt === event.target && !isCorrect) {
+            opt.classList.add('wrong');
+        }
+        opt.style.pointerEvents = 'none'; // Prevent multiple answers
+    });
+    
+    // Enable next button
+    if (nextBtn) {
+        nextBtn.disabled = false;
+        nextBtn.addEventListener('click', () => this.nextCard(), { once: true });
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.addEventListener('click', this.showFinalScore.bind(this), { once: true });
+    }
+    }
+
+
+
+    showFinalScore() {
+         const container = document.getElementById("quiz-container");
+         const scorePercentage = Math.round((this.currentScore / this.totalQuestions) * 100); // Round to nearest whole number
+
+    
+    container.innerHTML = `
+        <div class="score-display">
+            <h2>Quiz Complete!</h2>
+            <p>Your Score: ${this.currentScore}/${this.totalQuestions} (${scorePercentage}%)</p>
+            <button class="close-quiz-btn" onclick="quiz.closeQuiz()">*</button>
+        </div>
+    `;
+
+        this.playerScores[this.currentPlaceId] = { // Use this.playerScores and this.currentPlaceId
+            score: this.currentScore,                // Use this.currentScore
+            total: this.totalQuestions,             // Use this.totalQuestions
+            percentage: scorePercentage,
+            timestamp: new Date().toISOString()
+        };
+
+        this.handleQuizCompletion();
+        
+
+    }
+
+    handleQuizCompletion(scorePercentage) {
+    if (scorePercentage > 50) {
+        this.createConfetti();  // Confetti for scores > 50
+        this.playAudio('baby-laugh');
+        this.updatePlayerScore(this.currentPlaceId, 10);
+       // this.showAlert(`Congratulations! You scored ${scorePercentage}% and earned 10 points!`, null, true); // No sound here, already played
+
+    } else {
+        this.playAudio('no-no');
+      //  this.showAlert(`You scored ${scorePercentage}%. Keep learning!`, null, false); // No sound here, already played
+        //Consider removing points or providing different feedback if needed
+    }
+}
+
+
+    updatePlayerScore(placeId, points) {
+        const playerId = localStorage.getItem('currentPlayerId') || 'default';
+        this.playerScores = JSON.parse(localStorage.getItem('playerScores')) || {}; // Use this.playerScores
+
+        if (!this.playerScores[playerId]) {
+            this.playerScores[playerId] = 0;
+        }
+
+        this.playerScores[playerId] += points;
+        localStorage.setItem('playerScores', JSON.stringify(this.playerScores));
+
+        // If updateLeaderboard is outside the class, call it with the Quiz instance:
+        updateLeaderboard(this, playerId, this.playerScores[playerId]); // Pass 'this' (Quiz instance)
+    }
+
+    
+    closeQuiz = () => { // Class property function
+        // Use this.questions
+        const container = document.getElementById("quiz-container");
+        container.style.display = 'none';
+        container.innerHTML = '';
+
+        this.currentScore = 0; // reset score within the class
+        this.answeredQuestions.clear(); // reset answered questions within the class
+        this.questions = [];
+        this.currentCard = 1;  // Reset currentCard
+    }
+
+    nextCard() { // No longer needs currentCard as argument; uses this.currentCard
+        const nextCardId = `card${this.currentCard + 1}`;
+        const nextCard = document.getElementById(nextCardId);
+
+        const currentCard = document.getElementById(`card${this.currentCard}`);
+        if (currentCard) {
+            currentCard.classList.add('previous');
+            currentCard.classList.remove('active');
+        }
+
+        if (nextCard) {
+            nextCard.classList.add('active');
+            this.currentCard++; // Increment currentCard
+        }  else { //All cards done - call submit
+            this.showFinalScore()
+        }
+    }
+    
+    playAudio(soundId) {
+        if (!this.audio[soundId]) {  // Check if audio element already exists
+            this.audio[soundId] = new Audio(`https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/${soundId}.mp3`); // Or .wav, etc.
+        }
+        this.audio[soundId].play().catch(error => {
+            console.error("Error playing audio:", error);  // Handle potential playback issues
+        });
+    }
+
+    showAlert(message, soundId = null, success = true) {
+        const alertModal = document.getElementById("custom-alert");
+        const alertMessage = document.getElementById("alert-message");
+
+        if (alertModal && alertMessage) {
+            alertMessage.textContent = message;
+            alertModal.style.display = "block";
+
+            if (soundId) {
+                this.playAudio(soundId);
+            }
+
+            const alertOkBtn = document.getElementById("alert-ok-btn");
+            if (alertOkBtn) {
+                alertOkBtn.onclick = () => {
+                    alertModal.style.display = "none";  // Hide the modal *first*
+                  if (success) { 
+                      this.createConfetti();  // Confetti for success only
+                   }
+                   this.stopConfetti(); // Always stop after alert is closed
+
+                };
+            }
+
+         } else {
+           console.error("Alert modal or message element not found!");
+        }
+    }
+
+    closeAlert() {
+        const alertModal = document.getElementById("custom-alert");
+        if (alertModal) {
+            alertModal.style.display = "none";
+        } else {
+             console.error("Alert modal not found!");
+        }
+    }
+
+    createConfetti() {
+        if (this.isConfettiActive) return;
+
+        this.isConfettiActive = true;
+        this.confettiDuration = 0;
+        this.durationCount = document.getElementById('durationCount'); // Get the element
+        this.celebrateBtn = document.getElementById('celebrateBtn');
+        this.stopBtn = document.getElementById('stopBtn');
+        this.durationIndicator = document.getElementById('durationIndicator');
+
+        // Clear existing particles
+        this.confettiParticles = []; // Or confettiParticles.length = 0; if you prefer
+        if (this.animationId) { // Check using this.animationId
+            cancelAnimationFrame(this.animationId);
+        }
+
+        for (let i = 0; i < 100; i++) {
+            this.confettiParticles.push(new this.Confetti(this.ctx)); // Create Confetti instances and pass ctx
+        }
+
+        // Update UI using class properties
+        this.celebrateBtn.classList.add('confetti-active');
+        this.stopBtn.style.display = 'block';
+        this.durationIndicator.style.display = 'block';
+
+        // Start duration counter
+        this.durationInterval = setInterval(() => {  // Use this.durationInterval
+            this.confettiDuration++;
+            this.durationCount.textContent = this.confettiDuration;
+
+            if (this.confettiDuration >= 30) {
+                this.stopConfetti(); // Use this.stopConfetti
+            }
+        }, 1000);
+
+        this.animate(); // Call animate method of Quiz class
+    }
+
+
+    animate() { // animate is now part of the Quiz class
+        this.animationId = requestAnimationFrame(this.animate.bind(this)); // Use this.animationId
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.confettiParticles.forEach(particle => {
+            particle.update();
+        });
+    }
+    
+
+    stopConfetti() {
+    this.isConfettiActive = false;
+    clearInterval(this.durationInterval);
+    if (this.celebrateBtn) {  // Check if the button element exists
+       this.celebrateBtn.classList.remove('confetti-active'); 
+    }
+    if (this.stopBtn){ // Check if the button element exists
+       this.stopBtn.style.display = 'none';
+    }
+    if (this.durationIndicator){
+       this.durationIndicator.style.display = 'none';
+    }
+
+    if (this.animationId) {
+        cancelAnimationFrame(this.animationId);
+    }
+}
+
+
+    resizeCanvas() {  // Now a method of the Quiz class
+        if (this.canvas) { // check if canvas element exists before using it
+            this.canvas.width = window.innerWidth; // use 'this.canvas' here
+            this.canvas.height = window.innerHeight;// use 'this.canvas' here
+        } else {
+            console.error("Canvas element not found!");
+        }
+    }
+
+    // Inner Confetti class
+Confetti = class {
+    constructor(ctx) {
+        this.ctx = ctx;
+        this.x = Math.random() * ctx.canvas.width;
+        this.y = -20; // Start slightly off-screen at the top
+        this.width = Math.random() * 5 + 2;  // Vary the width
+        this.height = this.width * 0.7; // Height based on width
+        this.opacity = Math.random(); // Initial opacity for fade-in effect
+        this.velocityY = Math.random() * 2 + 1;
+        this.velocityX = (Math.random() < 0.5 ? -1 : 1) * Math.random();
+        this.rotationalSpeed = Math.random() * 0.2 - 0.1;
+        this.rotation = 0; // Initial rotation
+        this.color = `hsl(${Math.random() * 360}, 100%, 50%)`; // Random vibrant color
+    }
+
+
+    update() {
+
+
+        if (this.y > this.ctx.canvas.height) {
+            this.y = -10; // Reset above the top edge
+            this.x = Math.random() * this.ctx.canvas.width; // Place horizontally randomly
+            this.opacity = Math.random(); // Reset opacity for variation
+        }
+    
+        this.x += this.velocityX;
+        this.y += this.velocityY;
+        this.rotation += this.rotationalSpeed;  // Update rotation
+
+
+        this.draw();
+    }
+
+
+
+
+    draw() {
+
+        this.ctx.save();  // Save context state before transformations
+        this.ctx.globalAlpha = this.opacity; // Apply opacity
+        this.ctx.translate(this.x + this.width / 2, this.y + this.height / 2); // Move to center
+        this.ctx.rotate(this.rotation); // Rotate
+        this.ctx.translate(-(this.x + this.width / 2), -(this.y + this.height / 2)); // Move back
+
+        this.ctx.fillStyle = this.color;
+        this.ctx.fillRect(this.x, this.y, this.width, this.height);
+
+
+        this.ctx.restore(); // Restore to original context state
+    }
+
+};
+
+}
+
+const quiz = new Quiz(); // Create a single Quiz instance
+
+//Call quiz.nextCard() instead of nextCard(currentCard) within the handleAnswer
+function nextCard(currentCard) {
+    quiz.nextCard();
+}
+
+const FALLBACK_QUESTIONS = [
+            {
+                question: "What is the recommended daily folic acid intake for pregnant women?",
+                options: ["400 micrograms daily", "100 micrograms daily", "800 micrograms daily", "200 micrograms daily"],
+                answer: "400 micrograms daily"
+            },
+            {
+                question: "Which trimester typically has the highest energy levels for most pregnant women?",
+                options: ["First Trimester", "Second Trimester", "Third Trimester", "Energy levels remain constant"],
+                answer: "Second Trimester"
+            },
+            {
+                question: "What is the recommended weight gain during pregnancy for women with normal BMI?",
+                options: ["11-15 kg", "5-9 kg", "20-25 kg", "25-30 kg"],
+                answer: "11-15 kg"
+            }
+        ];
+
+        const DEFAULT_TEMPERATURE = 0.7;
+        const DEFAULT_TOP_K = 40;
+        let session = null;
+        let currentCard = 1;
+        const quizContainer = document.getElementById("quiz-container");
+        let questions = [];
+
+   
+        async function initSession() {
+            if (!session) {
+                session = await self.ai.languageModel.create({
+                    temperature: DEFAULT_TEMPERATURE,
+                    topK: DEFAULT_TOP_K
+                });
+            }
+        }
+
+        async function generateQuiz(prompt) {
+            const stream = await session.promptStreaming(prompt);
+            let fullResponse = "";
+
+            for await (const chunk of stream) {
+                fullResponse = chunk.trim();
+            }
+            console.log(fullResponse);
+            return fullResponse;
+        }
+
+
+async function completeTask(placeId, placeAddress) {
+
+    quiz.currentPlaceId = placeId; // Update the currentPlaceId in the quiz instance
+    quiz.currentScore = 0;       // reset the values
+    quiz.answeredQuestions.clear();
+    quiz.questions = [];
+    showLoadingAnimation();
+    const quizContainer = document.getElementById("quiz-container");
+    const infoWindow = document.getElementById("info-window");
+
+     try {
+        // Initialize AI session if not already done
+        await initSession();
+        
+        // Generate location-specific quiz
+        const prompt = `write ONLY 3 multichoice quiz for expecting mothers in ${placeAddress} include answers`;
+        const quizData = await generateQuiz(prompt);
+
+        quiz.questions = quiz.parseQuizData(quizData);  //  Use quiz.questions
+
+        if (!quiz.questions || quiz.questions.length === 0) {
+            quiz.questions = FALLBACK_QUESTIONS;
+        }
+
+
+        hideLoadingAnimation();
+
+        // Create and display quiz using the Quiz instance methods
+        quiz.createQuizCards(); // Call the method on the Quiz instance
+
+        infoWindow.style.display = "none";
+        quizContainer.style.display = "block";
+
+    } catch (error) {
+        hideLoadingAnimation();
+        console.error("Quiz generation error:", error);
+        quiz.showAlert("Failed to load quiz. Please try again.", null, false); // Explicitly set success to false
+    }
+}
+
+
+// Call createConfetti directly
+// createConfetti();
+
+
+
+
+function showLoadingAnimation() {
+    const loader = document.createElement('div');
+    loader.className = 'loading-container';
+    loader.innerHTML = `
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Generating your quiz...</div>
+    `;
+    document.body.appendChild(loader);
+}
+
+function hideLoadingAnimation() {
+    const loader = document.querySelector('.loading-container');
+    if (loader) loader.remove();
+}
+
+// In your HTML, update onclick handlers:
+// ... onclick="quiz.closeQuiz()" ...
+document.addEventListener('DOMContentLoaded', function () {
+  const searchIcon = document.getElementById('searchIcon');
+  const popup = document.getElementById('popup');
+  const popupCloseBtn = document.getElementById('popupCloseBtn');
+
+  // Show popup and stop shaking animation
+  searchIcon.addEventListener('click', function () {
+    popup.style.display = 'flex';
+    searchIcon.style.animation = 'none';
+  });
+
+  // Close popup
+  popupCloseBtn.addEventListener('click', function () {
+    popup.style.display = 'none';
+    searchIcon.style.animation = 'shake 1s infinite alternate'; // Restart shake animation
+  });
+
+  // Close popup when clicking outside content
+  popup.addEventListener('click', function (event) {
+    if (event.target === popup) {
+      popup.style.display = 'none';
+      searchIcon.style.animation = 'shake 1s infinite alternate';
+    }
+  });
+
+  // Close popup when pressing Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && popup.style.display === 'flex') {
+      popup.style.display = 'none';
+      searchIcon.style.animation = 'shake 1s infinite alternate';
+    }
+  });
+});
+
+function updateLeaderboard(quizInstance, playerId, score) {
+    const leaderboardList = document.getElementById('leaderboard-list');
+    if (!leaderboardList) {
+        console.error("Leaderboard element not found!");
+        return;
+    }
+    
+    // Clear the existing leaderboard
+    leaderboardList.innerHTML = '';
+    
+     const sortedScores = Object.entries(quizInstance.playerScores)
+        .sort(([, a], [, b]) => b.score - a.score); // Sort in descending order
+
+    sortedScores.forEach(([id, playerData]) => {
+        const listItem = document.createElement('li');
+        listItem.textContent = `${id}: ${playerData.score} points`;
+        leaderboardList.appendChild(listItem);
+    });
+}
+
+
+async function zoomAndFlyToLocation(map3DElement, location) {
+    if (!map3DElement) return;
+
+    const initialHeading = map3DElement.heading || 0;
+
+    // Fly to the location
+    let currentHeading = initialHeading;
+    const steps = 100; // Number of frames for the animation
+    const rangeReduction = (map3DElement.range - 300) / steps; // Gradual zoom
+    const headingIncrement = 360 / steps; // Rotate the camera 360 degrees
+    const intervalDuration = 50; // Duration per frame in milliseconds
+
+    for (let i = 0; i < steps; i++) {
+        // Update the map's camera properties gradually
+        map3DElement.center = {
+            lat: location.lat,
+            lng: location.lng,
+            altitude: 30, // Zoom close to the pin
+        };
+        map3DElement.range -= rangeReduction;
+        map3DElement.heading = (currentHeading + headingIncrement) % 360; // Rotate around
+        map3DElement.tilt = 65;
+
+        currentHeading += headingIncrement;
+        await new Promise((resolve) => setTimeout(resolve, intervalDuration));
+    }
+
+    console.log("Camera zoomed and flew to the marker position.");
+}
+
+// Create overlay element
+const overlay = document.createElement('div');
+overlay.className = 'overlay';
+document.body.appendChild(overlay);
+
+// Get elements
+const dashboardButton = document.getElementById('dashboardButton');
+const dashboardPanel = document.getElementById('dashboardPanel');
+const closeBtn = document.querySelector('.panel-close-btn');
+
+// Toggle dashboard
+function toggleDashboard() {
+    const isVisible = dashboardPanel.style.display === 'block';
+    
+    if (isVisible) {
+        dashboardPanel.style.display = 'none';
+        overlay.style.display = 'none';
+    } else {
+        dashboardPanel.style.display = 'block';
+        overlay.style.display = 'block';
+    }
+}
+
+// Event listeners
+dashboardButton.addEventListener('click', toggleDashboard);
+closeBtn.addEventListener('click', toggleDashboard);
+overlay.addEventListener('click', toggleDashboard);
+
+// Optional: Close dashboard when pressing Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && dashboardPanel.style.display === 'block') {
+        toggleDashboard();
+    }
+});
+
+    
+      async function init() {
+        const { Map3DElement } = await google.maps.importLibrary("maps3d");
+        map3DElement = new Map3DElement({
+          center: { lat: 0, lng: 0, altitude: 16000000 },
+         // Adjust as needed
+        });
+
+        //await initializeMapAndElements();
+        document.body.append(map3DElement);
+        initAutocomplete();
+        initPlacesService();
+      }
+    
+      async function initAutocomplete() {
+        const { Autocomplete } = await google.maps.importLibrary("places");
+        const autocomplete = new Autocomplete(
+          document.getElementById("pac-input"),
+          {
+            fields: ["geometry", "name", "place_id"],
+          }
+        );
+    
+        autocomplete.addListener("place_changed", () => {
+          const place = autocomplete.getPlace();
+          if (!place.geometry || !place.geometry.viewport) {
+            window.alert("No viewport for input: " + place.name);
+            return;
+          }
+          zoomToViewport(place.geometry);
+        });
+      }
+    
+      async function zoomToViewport(geometry) {
+        const { AltitudeMode, Polyline3DElement } = await google.maps.importLibrary("maps3d");
+        let viewport = geometry.viewport;
+        let locationPoints = [
+          { lat: viewport.getNorthEast().lat(), lng: viewport.getNorthEast().lng() },
+          { lat: viewport.getSouthWest().lat(), lng: viewport.getNorthEast().lng() },
+          { lat: viewport.getSouthWest().lat(), lng: viewport.getSouthWest().lng() },
+          { lat: viewport.getNorthEast().lat(), lng: viewport.getSouthWest().lng() },
+          { lat: viewport.getNorthEast().lat(), lng: viewport.getNorthEast().lng() }
+        ];
+    
+        let locationPolyline = new Polyline3DElement({
+          altitudeMode: AltitudeMode.CLAMP_TO_GROUND,
+          strokeColor: "blue",
+          strokeWidth: 10,
+          coordinates: locationPoints,
+        });
+        map3DElement.append(locationPolyline);
+    
+        let elevation = await getElevationForPoint(geometry.location);
+        if (map3DElement) {
+          map3DElement.center = { lat: geometry.location.lat(), lng: geometry.location.lng(), altitude: elevation + 50 };
+          map3DElement.heading = 0;
+          map3DElement.range = 1000;
+          map3DElement.tilt = 65;
+        }
+    
+        initNearbySearch(geometry.location);
+        await fetchEnvironmentalData(geometry.location);
+      }
+    
+      async function initPlacesService() {
+        const { PlacesService } = await google.maps.importLibrary("places");
+        placesService = new PlacesService(map3DElement);
+      }
+      async function initNearbySearch(location) {
+    if (!placesService) {
+        console.error("PlacesService not initialized.");
+        return;
+    }
+
+    const { Place, SearchNearbyRankPreference } = await google.maps.importLibrary("places");
+    let center = new google.maps.LatLng(location.lat(), location.lng());
+    const request = {
+        fields: ["displayName", "location","formattedAddress", "photos", "reviews",  "editorialSummary", "businessStatus"],
+        locationRestriction: {
+            center: center,
+            radius: 1000, // Search within 1km
+        },
+        includedPrimaryTypes: ["hospital"],
+        rankPreference: SearchNearbyRankPreference.POPULARITY,
+        language: "en-US",
+        region: "us",
+        maxResultCount: 10,
+    };
+
+    try {
+        const { places } = await Place.searchNearby(request);
+
+        if (places && places.length > 0) { // Ensure there are places available
+            console.log("Nearby Search Results:", places);
+
+            places.forEach((place, index) => {
+                // Check if location data is present
+                if (place.location) { // Correctly access the location property
+                    const lat = place.location.lat(); // Access latitude using lat() method
+                    const lng = place.location.lng(); // Access longitude using lng() method
+                    
+                    console.log(`Location of Place ${index + 1}:`, {
+                        lat: lat,
+                        lng: lng
+                    });
+
+                    // Create an interactive marker for each place
+                    const marker = new InteractiveMarker(map3DElement, place);
+                    marker.create();
+                } else {
+                    console.error(`Place ${index + 1} location data is missing.`);
+                }
+            });
+        } else {
+            console.log("No results found.");
+        }
+    } catch (error) {
+        console.error("Nearby search failed:", error);
+    }
+}
+
+      function addMarker(place) {
+        const { Marker3DElement } = google.maps.maps3d;
+        const marker = new Marker3DElement({
+          position: {
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+            altitude: 0, // Adjust if necessary
+          },
+          label: place.name,
+          sizePreserved: true,
+        });
+        map3DElement.append(marker);
+      }
+    
+      async function getElevationForPoint(location) {
+        const { ElevationService } = await google.maps.importLibrary("elevation");
+        const elevatorService = new google.maps.ElevationService();
+        const elevationResponse = await elevatorService.getElevationForLocations({
+          locations: [location],
+        });
+    
+        if (!(elevationResponse.results && elevationResponse.results.length)) {
+          window.alert("Insufficient elevation data.");
+          return 0;
+        }
+        return elevationResponse.results[0].elevation || 10;
+      }
+      async function fetchEnvironmentalData(location) {
+    const googleAirQualityUrl = `https://airquality.googleapis.com/v1/currentConditions:lookup?key=${window.GOOGLE_MAPS_API_KEY}`;
+    const openWeatherAirQualityUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${location.lat()}&lon=${location.lng()}&appid=${window.OPENWEATHER_API_KEY}`;
+    const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${location.lat()}&lon=${location.lng()}&appid=${window.OPENWEATHER_API_KEY}`;
+
+
+    const googlePayload = {
+        universalAqi: true,
+        location: {
+            latitude: location.lat(),
+            longitude: location.lng(),
+        },
+        extraComputations: [
+            "HEALTH_RECOMMENDATIONS",
+            "DOMINANT_POLLUTANT_CONCENTRATION",
+            "POLLUTANT_CONCENTRATION",
+            "LOCAL_AQI",
+            "POLLUTANT_ADDITIONAL_INFO",
+        ],
+        languageCode: "en",
+    };
+
+    try {
+        // Try Google Air Quality API first
+        const googleAirQualityResponse = await fetch(googleAirQualityUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(googlePayload),
+        });
+
+        if (!googleAirQualityResponse.ok) {
+            throw new Error("Google Air Quality API request failed");
+        }
+
+        const googleAirQualityData = await googleAirQualityResponse.json();
+        displayEnvironmentalData({
+            source: 'google',
+            data: googleAirQualityData
+        });
+
+    } catch (googleError) {
+        console.warn("Falling back to OpenWeather API due to error:", googleError);
+
+        try {
+            // Fallback to OpenWeather API
+            const [airQualityResponse, weatherResponse] = await Promise.all([
+                fetch(openWeatherAirQualityUrl),
+                fetch(weatherUrl),
+            ]);
+
+            const airQualityData = await airQualityResponse.json();
+            const weatherData = await weatherResponse.json();
+
+            displayEnvironmentalData({
+                source: 'openweather',
+                data: {
+                    airQuality: airQualityData,
+                    weather: weatherData
+                }
+            });
+        } catch (fallbackError) {
+            console.error("Failed to fetch environmental data:", fallbackError);
+            displayError("Unable to fetch environmental data. Please try again later.");
+        }
+    }
+}
+
+
+function displayEnvironmentalData({ source, data }) {
+    // Format data for visualization based on the source
+    let formattedData = {
+        aqi: 0,
+        temperature: [],
+        humidity: [],
+        pollutants: [],
+        recommendations: ''
+    };
+
+    if (source === 'google') {
+      console.log("I used google")
+        // Format Google API data
+        formattedData = {
+            aqi: data.indexes[0].aqi,
+            temperature: [20, 21, 22, 23, 24, 25, 24, 23], // Default temperature data as Google API doesn't provide this
+            humidity: [50, 52, 54, 53, 52, 51, 50, 49], // Default humidity data
+            pollutants: data.pollutants.map(pollutant => ({
+                name: pollutant.displayName,
+                value: pollutant.concentration.value,
+                unit: pollutant.concentration.units,
+                max: getPollutantMaxValue(pollutant.displayName),
+                color: getPollutantColor(pollutant.displayName)
+            })),
+            recommendations: data.healthRecommendations.generalPopulation
+        };
+    } else if (source === 'openweather') {
+        // Format OpenWeather API data
+        const airQuality = data.airQuality.list[0];
+        const weather = data.weather;
+        
+        // Generate time-series data for temperature and humidity
+        const currentHour = new Date().getHours();
+        const tempData = [];
+        const humidityData = [];
+        for (let i = 0; i < 8; i++) {
+            tempData.push((weather.main.temp - 273.15).toFixed(1));
+            humidityData.push(weather.main.humidity);
+        }
+
+        formattedData = {
+            aqi: airQuality.main.aqi * 20, // Convert OpenWeather 1-5 scale to 0-100 scale
+            temperature: tempData,
+            humidity: humidityData,
+            pollutants: [
+                {
+                    name: 'PM2.5',
+                    value: airQuality.components.pm2_5,
+                    unit: 'μg/m³',
+                    max: 50,
+                    color: '#FF6384'
+                },
+                {
+                    name: 'PM10',
+                    value: airQuality.components.pm10,
+                    unit: 'μg/m³',
+                    max: 100,
+                    color: '#36A2EB'
+                },
+                {
+                    name: 'NO2',
+                    value: airQuality.components.no2,
+                    unit: 'μg/m³',
+                    max: 100,
+                    color: '#FFCE56'
+                },
+                {
+                    name: 'O3',
+                    value: airQuality.components.o3,
+                    unit: 'μg/m³',
+                    max: 100,
+                    color: '#4BC0C0'
+                }
+            ],
+            recommendations: getAQIRecommendation(airQuality.main.aqi)
+        };
+    }
+
+    // Update the dashboard with formatted data
+    updateDashboard(formattedData);
+}
+
+// Helper function to get max values for pollutants
+function getPollutantMaxValue(pollutantName) {
+    const maxValues = {
+        'PM2.5': 50,
+        'PM10': 100,
+        'NO2': 100,
+        'O3': 100,
+        'CO': 10000,
+        'SO2': 350
+    };
+    return maxValues[pollutantName] || 100;
+}
+
+// Helper function to get colors for pollutants
+function getPollutantColor(pollutantName) {
+    const colors = {
+        'PM2.5': '#FF6384',
+        'PM10': '#36A2EB',
+        'NO2': '#FFCE56',
+        'O3': '#4BC0C0',
+        'CO': '#9966FF',
+        'SO2': '#FF9F40'
+    };
+    return colors[pollutantName] || '#999999';
+}
+
+// Helper function to get AQI recommendations
+function getAQIRecommendation(aqiLevel) {
+    const recommendations = {
+        1: "Air quality is good. Perfect for outdoor activities!",
+        2: "Air quality is fair. Most people can continue outdoor activities.",
+        3: "Air quality is moderate. Sensitive individuals should limit prolonged outdoor exposure.",
+        4: "Air quality is poor. Avoid prolonged outdoor activities.",
+        5: "Air quality is very poor. Stay indoors if possible."
+    };
+    return recommendations[aqiLevel] || "No specific recommendations available.";
+}
+
+// Function to handle errors
+function displayError(message) {
+    const formattedData = {
+        aqi: 0,
+        temperature: Array(8).fill(0),
+        humidity: Array(8).fill(0),
+        pollutants: [],
+        recommendations: `Error: ${message}`
+    };
+    updateDashboard(formattedData);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const draggables = document.querySelectorAll(".draggable");
+
+    draggables.forEach((element) => {
+        element.addEventListener("mousedown", (e) => {
+            let shiftX = e.clientX - element.getBoundingClientRect().left;
+            let shiftY = e.clientY - element.getBoundingClientRect().top;
+
+            const moveAt = (pageX, pageY) => {
+                element.style.left = pageX - shiftX + "px";
+                element.style.top = pageY - shiftY + "px";
+            };
+
+            const onMouseMove = (event) => {
+                moveAt(event.pageX, event.pageY);
+            };
+
+            document.addEventListener("mousemove", onMouseMove);
+
+            element.addEventListener("mouseup", () => {
+                document.removeEventListener("mousemove", onMouseMove);
+                element.onmouseup = null;
+            });
+
+            // Prevent default drag-and-drop behavior
+            element.ondragstart = () => false;
+        });
+    });
+});
+
+
+
+class Marker3DInteractiveElement {
+  constructor({ position, label, iconUrl, interactive = true }) {
+    this.position = position;
+    this.label = label;
+    this.iconUrl = iconUrl;
+    this.interactive = interactive;
+    this.marker = null;
+  }
+
+  async create(map3DElement) {
+    const { Marker3DElement } = await google.maps.importLibrary("maps3d");
+    this.marker = new Marker3DElement({
+      position: this.position,
+      label: this.label,
+      icon: this.iconUrl,
+      sizePreserved: true,
+    });
+    map3DElement.append(this.marker);
+
+    if (this.interactive) {
+      this.marker.addEventListener("click", () => {
+        new PlaceClick().handleClick(this.position);
+      });
+    }
+  }
+}
+
+class PlaceClick {
+  handleClick(position) {
+    alert(`Clicked on marker at: ${position.lat}, ${position.lng}`);
+    // Fetch and display more detailed information or navigate on the map
+  }
+}
+
+class Model3DElement {
+  constructor({ position, modelUrl }) {
+    this.position = position;
+    this.modelUrl = modelUrl;
+    this.model = null;
+  }
+
+  async create(map3DElement) {
+    const { Model3DElement } = await google.maps.importLibrary("maps3d");
+    this.model = new Model3DElement({
+      position: this.position,
+      model: this.modelUrl,
+      scale: 1,
+    });
+    map3DElement.append(this.model);
+  }
+}
+
+async function initializeMapAndElements() {
+  if (!map3DElement) {
+    console.error("map3DElement is not initialized.");
+    return;
+  }
+
+  const mapCenter = { lat: 40.748817, lng: -73.985428 }; // Example location
+
+  try {
+    // Add an interactive marker
+    const interactiveMarker = new google.maps.maps3d.Marker3DInteractiveElement({
+      position: mapCenter,
+      label: "Empire State Building",
+    });
+
+    interactiveMarker.addEventListener("gmp-click", () => {
+      alert("Clicked on: Empire State Building");
+    });
+
+    map3DElement.append(interactiveMarker);
+
+    // Add a 3D model
+    const model = new google.maps.maps3d.Model3DElement({
+      position: mapCenter,
+      src: "https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/client/src/assets/groot-model.glb",
+      scale: 1.0, // Adjust as needed
+    });
+
+    map3DElement.append(model);
+  } catch (error) {
+    console.error("Failed to initialize map and elements:", error);
+  }
+}   
+
+
+function updateDashboard(data) {
+            // Update AQI Gauge
+            updateGauge(data.aqi);
+            
+            // Update Temperature & Humidity Chart
+            updateTempHumidityChart(data.temperature, data.humidity);
+            
+            // Update Pollutants
+            updatePollutants(data.pollutants);
+            
+            // Update Recommendations
+            updateRecommendations(data.recommendations);
+        }
+
+        // Gauge animation
+        function updateGauge(value) {
+            const progress = document.querySelector('.gauge-progress');
+            const valueText = document.querySelector('.gauge-value');
+            const circumference = 2 * Math.PI * 90;
+            const offset = circumference - (value / 500) * circumference;
+            
+            progress.style.strokeDasharray = circumference;
+            progress.style.strokeDashoffset = offset;
+            
+            // Color based on AQI value
+            let color;
+            if (value <= 50) color = '#00C853';
+            else if (value <= 100) color = '#FFD600';
+            else if (value <= 150) color = '#FF6D00';
+            else color = '#D50000';
+            
+            progress.style.stroke = color;
+            
+            gsap.to(valueText, {
+                innerHTML: Math.round(value),
+                duration: 1,
+                snap: { innerHTML: 1 }
+            });
+        }
+
+        let tempHumidityChart = null;
+
+        // Temperature & Humidity Chart
+        function updateTempHumidityChart(temp, humidity) {
+            const ctx = document.getElementById('tempHumidityChart').getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (tempHumidityChart) {
+                 tempHumidityChart.destroy();
+             }
+            tempHumidityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['12am', '3am', '6am', '9am', '12pm', '3pm', '6pm', '9pm'],
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: temp,
+                        borderColor: '#FF6384',
+                        tension: 0.4,
+                        fill:false
+                    }, {
+                        label: 'Humidity (%)',
+                        data: humidity,
+                        borderColor: '#36A2EB',
+                        tension: 0.4,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    },
+                    scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(1);
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+                }
+            });
+        }
+
+        // Optional: Clean up function to be called when needed
+       function destroyCharts() {
+       if (tempHumidityChart) {
+          tempHumidityChart.destroy();
+          tempHumidityChart = null;
+        }
+      }
+
+        // Pollutants List
+        function updatePollutants(pollutants) {
+            const list = document.getElementById('pollutantList');
+            list.innerHTML = '';
+            
+            pollutants.forEach(pollutant => {
+                const item = document.createElement('li');
+                item.className = 'pollutant-item';
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>${pollutant.name}</span>
+                        <span>${pollutant.value} ${pollutant.unit}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="background: ${pollutant.color};"></div>
+                    </div>
+                `;
+                list.appendChild(item);
+                
+                // Animate progress bar
+                setTimeout(() => {
+                    item.querySelector('.progress-fill').style.width = `${(pollutant.value / pollutant.max) * 100}%`;
+                }, 100);
+            });
+        }
+
+        // Health Recommendations
+        function updateRecommendations(recommendations) {
+            const container = document.getElementById('recommendations');
+            container.innerHTML = `
+                <div style="opacity: 0; transform: translateY(20px);">
+                    ${recommendations}
+                </div>
+            `;
+            
+            gsap.to(container.children[0], {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                ease: "power2.out"
+            });
+        }
+
+
+        // Emergency Response System
+        class EmergencyResponseSystem {
+            constructor(map3DElement) {
+                this.map3DElement = map3DElement;
+                this.emergencyMarkers = new Map();
+                this.responders = new Map();
+            }
+
+            async initializeEmergencySystem() {
+                // Initialize WebSocket connection for real-time updates
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                document.getElementById('emergencyBtn').addEventListener('click', () => {
+                    this.simulateEmergency();
+                });
+            }
+
+            async simulateEmergency() {
+                const emergencyAlert = document.getElementById('emergencyAlert');
+                emergencyAlert.textContent = "Emergency services notified! Help is on the way.";
+                emergencyAlert.style.display = 'block';
+                
+                // Create emergency marker
+                const position = this.map3DElement.center;
+                await this.createEmergencyMarker(position, 'MEDICAL', 3);
+                
+                setTimeout(() => {
+                    emergencyAlert.style.display = 'none';
+                }, 5000);
+            }
+
+            async createEmergencyMarker(location, type, severity) {
+                const { Marker3DElement } = await google.maps.importLibrary("maps3d");
+                
+                const marker = new Marker3DElement({
+                    position: location,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: severity * 10,
+                        fillColor: this.getEmergencyColor(type),
+                        fillOpacity: 0.7,
+                        strokeWeight: 2
+                    },
+                    animation: google.maps.Animation.BOUNCE
+                });
+
+                this.map3DElement.append(marker);
+                return marker;
+            }
+
+            getEmergencyColor(type) {
+                const colors = {
+                    'FIRE': '#FF4444',
+                    'MEDICAL': '#33B5E5',
+                    'POLICE': '#AA66CC',
+                    'NATURAL_DISASTER': '#FFBB33'
+                };
+                return colors[type] || '#666666';
+            }
+        }
+
+        
+
+       
+
+        // Community Features
+        class CommunityFeatures {
+            constructor(map3DElement) {
+                this.map3DElement = map3DElement;
+                this.events = new Map();
+            }
+
+            async initializeSocialFeatures() {
+                document.getElementById('communityBtn').addEventListener('click', () => {
+                    this.toggleCommunityPanel();
+                });
+
+                document.getElementById('createEventBtn').addEventListener('click', () => {
+                    this.createNewEvent();
+                });
+
+                await this.loadCommunityEvents();
+            }
+
+            toggleCommunityPanel() {
+                const panel = document.getElementById('communityPanel');
+                panel.classList.toggle('active');
+            }
+
+            async loadCommunityEvents() {
+                // Simulate loading events
+                const events = [
+                    { id: 1, name: 'Community Cleanup', date: '2024-02-01', attendees: 15 },
+                    { id: 2, name: 'Local Market', date: '2024-02-05', attendees: 30 },
+                ];
+
+                const eventsList = document.getElementById('eventsList');
+                eventsList.innerHTML = events.map(event => `
+                    <div class="event-card">
+                        <h4>${event.name}</h4>
+                        <p>📅 ${event.date}</p>
+                        <p>👥 ${event.attendees} attending</p>
+                    </div>
+                `).join('');
+            }
+
+            createNewEvent() {
+                // Implement event creation logic
+                alert('Event creation coming soon!');
+            }
+        }
+
+
+        class ScavengerHuntGame {
+    constructor(map3DElement) {
+        this.map3DElement = map3DElement;
+        this.score = 0;
+        this.currentTask = 0;
+        this.tasks = [];
+        this.timer = null;
+    }
+
+    start() {
+        this.loadTasks();
+        this.displayDashboard();
+        this.startTimer();
+    }
+
+    loadTasks() {
+        this.tasks = [
+            { clue: "Find the highest-rated hospital", validate: (place) => place.reviews[0]?.rating > 4.5 },
+            { clue: "Locate a hospital offering emergency services", validate: (place) => place.businessStatus === "OPERATIONAL" }
+        ];
+    }
+
+    completeTask(place) {
+        if (this.tasks[this.currentTask].validate(place)) {
+            this.score += 10;
+            this.currentTask++;
+            this.showFeedback("Correct! New clue unlocked.");
+        } else {
+            this.showFeedback("Try Again!");
+        }
+
+        if (this.currentTask >= this.tasks.length) {
+            this.endGame();
+        }
+    }
+
+    startTimer() {
+        let timeRemaining = 300; // 5-minute challenge
+        this.timer = setInterval(() => {
+            timeRemaining--;
+            this.updateTimerDisplay(timeRemaining);
+            if (timeRemaining <= 0) this.endGame();
+        }, 1000);
+    }
+
+    endGame() {
+        clearInterval(this.timer);
+        alert(`Game Over! Your Score: ${this.score}`);
+        this.reset();
+    }
+
+    reset() {
+        this.score = 0;
+        this.currentTask = 0;
+        this.tasks = [];
+    }
+
+    displayDashboard() {
+        // Add HTML/CSS for the game dashboard
+        const dashboardHTML = `
+            <div id="game-dashboard">
+                <h3>Scavenger Hunt</h3>
+                <p>Task: ${this.tasks[this.currentTask]?.clue || "None"}</p>
+                <p>Score: ${this.score}</p>
+                <p>Time Remaining: <span id="time-remaining">5:00</span></p>
+            </div>`;
+        document.body.insertAdjacentHTML("beforeend", dashboardHTML);
+    }
+
+    updateTimerDisplay(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const secondsRemaining = seconds % 60;
+        document.getElementById("time-remaining").innerText = `${minutes}:${secondsRemaining < 10 ? '0' : ''}${secondsRemaining}`;
+    }
+
+    showFeedback(message) {
+        const feedbackElement = document.createElement("div");
+        feedbackElement.className = "feedback";
+        feedbackElement.innerText = message;
+        document.body.appendChild(feedbackElement);
+
+        setTimeout(() => feedbackElement.remove(), 2000);
+    }
+}
+
+class PowerUp {
+    constructor(map3DElement, position, type) {
+        this.map3DElement = map3DElement;
+        this.position = position;
+        this.type = type;
+    }
+
+    create() {
+        const marker = new Marker3DInteractiveElement({
+            position: this.position,
+            label: this.type,
+            sizePreserved: true
+        });
+
+        marker.addEventListener("gmp-click", () => {
+            this.activate();
+        });
+
+        this.map3DElement.append(marker);
+    }
+
+    activate() {
+        if (this.type === "Hint") {
+            alert("Hint: Check the north side of the map!");
+        } else if (this.type === "Double Points") {
+            window.game.score += 20;
+        }
+    }
+}
+
+init();
+</script>
+</body>
+</html>
