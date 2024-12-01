@@ -1342,6 +1342,8 @@ class AirParticle {
         this.opacity = 1; // Initial opacity
         this.size = 2 + Math.random() * 3; // Initial size
 
+
+        if(Overlay3DElement){
         //3D Model of particle
           this.particle = new Overlay3DElement({
               position: this.position,
@@ -1352,6 +1354,10 @@ class AirParticle {
           });
 
           map3DElement.overlay3Ds.append(this.particle);
+
+        } else {
+         console.error("Overlay3DElement not yet available in AirParticle constructor");
+       }
     }
 
     update(windData) { // Update based on wind data if available
@@ -1417,10 +1423,11 @@ class AirParticle {
 
 
 
-
+let Overlay3DElement;
 
 async function visualizeAirflow(map3DElement) { // Assuming map3DElement is your Map3DElement instance
-    const { Overlay3DElement } = await google.maps.importLibrary("maps3d");
+    const { Overlay3DElement: Overlay3DElementImported } = await google.maps.importLibrary("maps3d"); // Import explicitly within the function
+    Overlay3DElement = Overlay3DElementImported; // Assign to the global or appropriately scoped variable
     const numParticles = 50; // Adjust as needed
     const particles = [];
 
