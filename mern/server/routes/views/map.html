@@ -1333,6 +1333,122 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
+
+class AirParticle {
+    constructor(position, direction) {
+        this.position = position; // { lat, lng, altitude }
+        this.direction = direction; // { latDelta, lngDelta, altitudeDelta }
+        this.speed = 0.0001 + Math.random() * 0.0002; // Adjust speed as needed
+        this.opacity = 1; // Initial opacity
+        this.size = 2 + Math.random() * 3; // Initial size
+
+        //3D Model of particle
+          this.particle = new Overlay3DElement({
+              position: this.position,
+              object: {
+                  geometry: { type: "Sphere", radius: this.size },
+                  material: { color: "blue", opacity: this.opacity }, // Start with a base color
+              },
+          });
+
+          map3DElement.overlay3Ds.append(this.particle);
+    }
+
+    update(windData) { // Update based on wind data if available
+          // Simple wind effect: add wind direction to particle direction
+        if (windData) {
+            this.direction.latDelta += windData.latDelta * this.speed ;
+            this.direction.lngDelta += windData.lngDelta * this.speed ;
+        }
+
+
+        this.position.lat += this.direction.latDelta * this.speed;
+        this.position.lng += this.direction.lngDelta * this.speed;
+        this.position.altitude += this.direction.altitudeDelta * this.speed;
+
+
+         //Boundary Check/Reset
+          const bounds = map3DElement.getBounds();
+        if (!bounds.contains(this.position) || this.position.altitude <= 0) {
+              this.reset();
+        }
+
+
+        // Update particle's properties
+        this.particle.position = this.position;
+
+        // Example color change based on altitude (customize as needed)
+         let color = "blue"; // Default color
+        if (this.position.altitude > 50) {
+            color = "green";
+        } else if (this.position.altitude > 25) {
+           color = "yellow";
+        }
+
+
+        this.particle.object.material.color = color;
+
+        this.opacity -= 0.005; // Decrease opacity over time
+        this.particle.object.material.opacity = Math.max(0, this.opacity);
+
+        if (this.opacity <= 0) {
+            this.reset();
+        }
+
+    }
+
+
+    reset() {
+        // Reset position (randomly within map bounds)
+        const bounds = map3DElement.getBounds();
+        this.position = {
+            lat: bounds.getSouthWest().lat() + Math.random() * (bounds.getNorthEast().lat() - bounds.getSouthWest().lat()),
+            lng: bounds.getSouthWest().lng() + Math.random() * (bounds.getNorthEast().lng() - bounds.getSouthWest().lng()),
+            altitude: 10 + Math.random() * 90, // Random altitude
+        };
+        this.direction = {
+            latDelta: (Math.random() - 0.5) * 0.001, // Random direction
+            lngDelta: (Math.random() - 0.5) * 0.001,
+            altitudeDelta: Math.random() - 0.5, // Random vertical direction
+        };
+        this.opacity = 1; // Reset opacity
+    }
+}
+
+
+
+
+
+async function visualizeAirflow(map3DElement) { // Assuming map3DElement is your Map3DElement instance
+    const { Overlay3DElement } = await google.maps.importLibrary("maps3d");
+    const numParticles = 50; // Adjust as needed
+    const particles = [];
+
+    for (let i = 0; i < numParticles; i++) {
+        particles.push(new AirParticle({ lat: 0, lng: 0, altitude: 50 }, { latDelta: 0, lngDelta: 0, altitudeDelta: 0 })); // Initial position and direction
+
+    }
+
+
+    function animate() { // Animation loop
+
+
+        // Example mock wind data (replace with actual data if available)
+        const windData = {
+            latDelta: Math.sin(Date.now() / 5000) * 0.0002, // Simulate changing wind
+            lngDelta: Math.cos(Date.now() / 3000) * 0.0003
+        };
+
+        particles.forEach(particle => particle.update(windData));
+
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+}
+
+
+
 async function zoomAndFlyToLocation(map3DElement, location) {
     if (!map3DElement) return;
 
@@ -1410,6 +1526,7 @@ document.addEventListener('keydown', (e) => {
         document.body.append(map3DElement);
         initAutocomplete();
         initPlacesService();
+        await visualizeAirflow(map3DElement);
 
       }
     
