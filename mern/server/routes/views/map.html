@@ -920,7 +920,6 @@ body {
       let map3DElement = null;
       let placesService = null;
       let advancedFeatures = null;
-      let Overlay3DElement;
 
 
       class InteractiveMarker {
@@ -1333,146 +1332,157 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
-
-
-class AirParticle {
-    constructor(map3DElement, position, direction) {
-        this.position = position; // { lat, lng, altitude }
-        this.direction = direction; // { latDelta, lngDelta, altitudeDelta }
-        this.speed = 0.0001 + Math.random() * 0.0002; // Adjust speed as needed
-        this.opacity = 1; // Initial opacity
-        this.size = 2 + Math.random() * 3; // Initial size
-        this.map3DElement = map3DElement; 
-
-
-        if(Overlay3DElement){
-        //3D Model of particle
-          this.particle = new Overlay3DElement({
-              position: this.position,
-              object: {
-                  geometry: { type: "Sphere", radius: this.size },
-                  material: { color: "blue", opacity: this.opacity }, // Start with a base color
-              },
-          });
-
-          this.map3DElement.overlay3Ds.append(this.particle);
-
-        } else {
-         console.error("Overlay3DElement not yet available in AirParticle constructor");
-       }
+class AirflowVisualizer {
+    constructor(map3DElement) {
+        this.map3DElement = map3DElement;
+        this.particles = [];
+        this.isAnimating = false;
+        this.particleCount = 200; // Reduced for better performance
+        this.windSpeed = 1;
+        this.windDirection = 0;
+        this.pollutionLevel = 0;
+        
+        // Initialize the visualization system
+        this.init();
     }
 
-    update(windVector) { // Update based on wind data if available
-          // Simple wind effect: add wind direction to particle direction
-          if (windVector) { // Check if windVector is defined and has properties
-               if(this.direction && windVector && windVector.latDelta !== undefined && windVector.lngDelta !== undefined){
-                    this.direction.latDelta += windVector.latDelta;
-                    this.direction.lngDelta += windVector.lngDelta;
-               } else {
-                   console.log("windVector or its properties are undefined"); //Log for debugging
-               }
+    async init() {
+        // Import required 3D elements
+        const { Overlay3DElement } = await google.maps.importLibrary("maps3d");
+        this.Overlay3DElement = Overlay3DElement;
+        
+        // Create particle container to manage particle lifecycle
+        this.particleContainer = document.createElement('div');
+        this.particleContainer.style.position = 'absolute';
+        this.particleContainer.style.width = '100%';
+        this.particleContainer.style.height = '100%';
+        this.particleContainer.style.pointerEvents = 'none';
+        this.map3DElement.appendChild(this.particleContainer);
+    }
 
-           }
-
-
-        this.position.lat += this.direction.latDelta * this.speed;
-        this.position.lng += this.direction.lngDelta * this.speed;
-        this.position.altitude += this.direction.altitudeDelta * this.speed;
-
-
-
-        if (this.map3DElement){ //Check if map3DElement is initialized
-              //Boundary Check/Reset
-              const bounds = map3DElement.getBounds();
-              if (!bounds.contains(this.position) || this.position.altitude <= 0) {
-              this.reset();
+    createParticle(location) {
+        // Create a custom 3D overlay for each particle
+        const particle = new this.Overlay3DElement({
+            position: {
+                lat: location.lat + (Math.random() - 0.5) * 0.01,
+                lng: location.lng + (Math.random() - 0.5) * 0.01,
+                altitude: Math.random() * 300  // Random height up to 300 meters
+            },
+            scale: {
+                x: 5,  // Size of particle
+                y: 5,
+                z: 5
             }
-    }
+        });
 
-
-        // Update particle's properties
-        this.particle.position = this.position;
-
-        // Example color change based on altitude (customize as needed)
-         let color = "blue"; // Default color
-        if (this.position.altitude > 50) {
-            color = "green";
-        } else if (this.position.altitude > 25) {
-           color = "yellow";
-        }
-
-
-        this.particle.object.material.color = color;
-
-        this.opacity -= 0.005; // Decrease opacity over time
-        this.particle.object.material.opacity = Math.max(0, this.opacity);
-
-        if (this.opacity <= 0) {
-            this.reset();
-        }
-
-    }
-
-
-    reset() {
-        // Reset position (randomly within map bounds)
-        const bounds = map3DElement.getBounds();
-        this.position = {
-            lat: bounds.getSouthWest().lat() + Math.random() * (bounds.getNorthEast().lat() - bounds.getSouthWest().lat()),
-            lng: bounds.getSouthWest().lng() + Math.random() * (bounds.getNorthEast().lng() - bounds.getSouthWest().lng()),
-            altitude: 10 + Math.random() * 90, // Random altitude
+        // Create the visual element for the particle
+        const element = document.createElement('div');
+        element.className = 'air-particle';
+        element.style.cssText = `
+            width: 8px;
+            height: 8px;
+            background: rgba(200, 200, 200, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+        `;
+        
+        // Attach the visual element to the overlay
+        particle.element = element;
+        particle.append(element);
+        
+        // Add particle properties for animation
+        particle.velocity = {
+            lat: (Math.random() - 0.5) * 0.0001,
+            lng: (Math.random() - 0.5) * 0.0001,
+            altitude: (Math.random() - 0.5) * 2
         };
-        this.direction = {
-            latDelta: (Math.random() - 0.5) * 0.001, // Random direction
-            lngDelta: (Math.random() - 0.5) * 0.001,
-            altitudeDelta: Math.random() - 0.5, // Random vertical direction
+        particle.lifetime = 0;
+        particle.maxLife = Math.random() * 200 + 100;
+
+        // Add particle to the map
+        this.map3DElement.append(particle);
+        return particle;
+    }
+
+    updateParticle(particle) {
+        // Get current position
+        const position = particle.position;
+        
+        // Apply wind effect
+        position.lat += Math.cos(this.windDirection) * this.windSpeed * 0.00001;
+        position.lng += Math.sin(this.windDirection) * this.windSpeed * 0.00001;
+        
+        // Add turbulence
+        position.lat += particle.velocity.lat;
+        position.lng += particle.velocity.lng;
+        position.altitude += particle.velocity.altitude;
+
+        // Keep particles within bounds
+        if (position.altitude < 0) position.altitude = 0;
+        if (position.altitude > 500) position.altitude = 500;
+
+        // Update particle color based on pollution level
+        const r = Math.min(255, this.pollutionLevel * 2);
+        const opacity = Math.min(0.8, 0.2 + (this.pollutionLevel / 100) * 0.6);
+        particle.element.style.background = `rgba(${r}, ${200 - r}, ${200 - r}, ${opacity})`;
+
+        // Update particle position
+        particle.position = position;
+
+        // Update lifetime
+        particle.lifetime++;
+        return particle.lifetime < particle.maxLife;
+    }
+
+    start(location, environmentalData) {
+        if (this.isAnimating) return;
+        this.isAnimating = true;
+        
+        // Set parameters based on environmental data
+        this.updateParameters(environmentalData);
+
+        const animate = () => {
+            if (!this.isAnimating) return;
+
+            // Update existing particles
+            this.particles = this.particles.filter(particle => {
+                const alive = this.updateParticle(particle);
+                if (!alive) {
+                    particle.remove(); // Remove dead particles from the map
+                    return false;
+                }
+                return true;
+            });
+
+            // Add new particles
+            while (this.particles.length < this.particleCount) {
+                this.particles.push(this.createParticle(location));
+            }
+
+            requestAnimationFrame(animate);
         };
-        this.opacity = 1; // Reset opacity
-    }
-}
 
-
-
-
-
-async function visualizeAirflow(map3DElement) { // Assuming map3DElement is your Map3DElement instance
-    const { Overlay3DElement: Overlay3DElementImported } = await google.maps.importLibrary("maps3d"); // Import explicitly within the function
-    Overlay3DElement = Overlay3DElementImported; // Assign to the global or appropriately scoped variable
-    const numParticles = 50; // Adjust as needed
-    const particles = [];
-
-    for (let i = 0; i < numParticles; i++) {
-        particles.push(new AirParticle({ lat: 0, lng: 0, altitude: 50 }, { latDelta: 0, lngDelta: 0, altitudeDelta: 0 })); // Initial position and direction
-
+        animate();
     }
 
-
-    function animate() { // Animation loop
-
-
-        // Example mock wind data (replace with actual data if available)
-        const windData = {
-            wind: {
-                speed: Math.random(), // Example speed value
-                deg: Math.random() * 360 // Example degree value
-               }
-        };
-
-        // Convert wind speed/degrees to lat/lng deltas
-        const windRadians = windData.wind.deg * Math.PI / 180;
-                const windSpeedFactor = 0.0005; // Adjust factor for desired effect
-
-                const windVector = {
-                    latDelta: windData.wind.speed * Math.sin(windRadians) * windSpeedFactor,
-                    lngDelta: windData.wind.speed * Math.cos(windRadians) * windSpeedFactor,
-                };
-
-        particles.forEach(particle => particle.update(windVector));
-
-        requestAnimationFrame(animate);
+    updateParameters(environmentalData) {
+        // Update visualization parameters based on environmental data
+        this.pollutionLevel = environmentalData.aqi || 0;
+        this.windSpeed = environmentalData.windSpeed || 1;
+        this.windDirection = ((environmentalData.windDirection || 0) * Math.PI / 180);
+        
+        // Adjust particle count based on pollution level
+        this.particleCount = Math.min(300, 100 + this.pollutionLevel);
     }
 
-    animate();
+    stop() {
+        this.isAnimating = false;
+        // Remove all particles from the map
+        this.particles.forEach(particle => {
+            particle.remove();
+        });
+        this.particles = [];
+    }
 }
 
 
@@ -1552,12 +1562,8 @@ document.addEventListener('keydown', (e) => {
 
         //await initializeMapAndElements();
         document.body.append(map3DElement);
-
-        await visualizeAirflow(map3DElement);
-
         initAutocomplete();
         initPlacesService();
-        
 
       }
     
@@ -1760,6 +1766,25 @@ document.addEventListener('keydown', (e) => {
             console.error("Failed to fetch environmental data:", fallbackError);
             displayError("Unable to fetch environmental data. Please try again later.");
         }
+    }
+
+
+    try {
+        const environmentalData = {
+            aqi: googleAirQualityData.indexes[0].aqi,
+            windSpeed: weatherData.wind.speed,
+            windDirection: weatherData.wind.deg
+        };
+
+        // Initialize and start visualization
+        if (!window.airflowVisualizer) {
+            window.airflowVisualizer = new AirflowVisualizer(map3DElement);
+        }
+        
+        window.airflowVisualizer.start(location, environmentalData);
+
+    } catch (error) {
+        console.error('Error initializing airflow visualization:', error);
     }
 }
 
