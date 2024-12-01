@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Minimal Prompt API Test with System Prompt</title>
+</head>
+<body>
+  <div id="output"></div>
+  <script>
+    async function testPrompt() {
+      try {
+        const capabilities = await self.ai.languageModel.capabilities();
+        console.log("Capabilities:", capabilities); // Log capabilities
+
+        if (capabilities.available !== "no") {
+          const session = await self.ai.languageModel.create({
+            systemPrompt: "You are a simple prompt executor.  You will execute the given prompt directly and output the result without any additional commentary or assistance."
+          });
+
+          const promptText = "Simply repeat this text back: Test Prompt"; // Explicit test prompt
+
+          console.log("Sending Prompt:", promptText); // Log the prompt being sent
+
+          const result = await session.prompt(promptText);
+          
+          console.log("Raw Result:", result);  // Log raw result
+
+          document.getElementById('output').textContent = result;
+
+        } else {
+          document.getElementById('output').textContent = "AI model not available.";
+        }
+      } catch (error) {
+        document.getElementById('output').textContent = `Error: ${error.message}`;
+        console.error("Error:", error);
+      }
+    }
+
+    testPrompt();
+  </script>
+</body>
+</html>
