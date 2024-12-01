@@ -1352,16 +1352,25 @@ class AirflowVisualizer {
         this.isInitialized = false; // Add initialization flag
     
         
-        // Initialize the visualization system
-        this.init();
+         // Initialize immediately
+         this.initPromise = this.init();
     }
 
     async init() {
         try {
+            // Wait for the map to be fully loaded
+            await new Promise(resolve => {
+                if (this.map3DElement.isConnected) {
+                    resolve();
+                } else {
+                    this.map3DElement.addEventListener('load', resolve, { once: true });
+                }
+            });
+
             // Import the Overlay3DElement class
             const { Overlay3DElement } = await google.maps.importLibrary("maps3d");
             this.Overlay3DElement = Overlay3DElement; // Store the class
-            this.isInitialized = true; // Set initialization flag
+           
             
             // Create particle container
             this.particleContainer = document.createElement('div');
@@ -1370,11 +1379,22 @@ class AirflowVisualizer {
             this.particleContainer.style.height = '100%';
             this.particleContainer.style.pointerEvents = 'none';
             this.map3DElement.appendChild(this.particleContainer);
+
+            this.isInitialized = true; // Set initialization flag
             
             console.log("AirflowVisualizer initialized successfully");
         } catch (error) {
             console.error("Failed to initialize AirflowVisualizer:", error);
             throw error;
+        }
+    }
+
+    async ensureInitialized() {
+        if (!this.isInitialized) {
+            await this.initPromise;
+        }
+        if (!this.Overlay3DElement) {
+            throw new Error("Overlay3DElement is not available after initialization");
         }
     }
 
@@ -1428,78 +1448,85 @@ class AirflowVisualizer {
     }
 
     updateParticle(particle) {
-        // Get current position
-        const position = particle.position;
-        
-        // Apply wind effect
-        position.lat += Math.cos(this.windDirection) * this.windSpeed * 0.00001;
-        position.lng += Math.sin(this.windDirection) * this.windSpeed * 0.00001;
-        
-        // Add turbulence
-        position.lat += particle.velocity.lat;
-        position.lng += particle.velocity.lng;
-        position.altitude += particle.velocity.altitude;
+        try {
+            if (!particle) return false;
 
-        // Keep particles within bounds
-        if (position.altitude < 0) position.altitude = 0;
-        if (position.altitude > 500) position.altitude = 500;
+            // Get current position
+            const position = particle.position;
+            
+            // Apply wind effect
+            position.lat += Math.cos(this.windDirection) * this.windSpeed * 0.00001;
+            position.lng += Math.sin(this.windDirection) * this.windSpeed * 0.00001;
+            
+            // Add turbulence
+            position.lat += particle.velocity.lat;
+            position.lng += particle.velocity.lng;
+            position.altitude += particle.velocity.altitude;
 
-        // Update particle color based on pollution level
-        const r = Math.min(255, this.pollutionLevel * 2);
-        const opacity = Math.min(0.8, 0.2 + (this.pollutionLevel / 100) * 0.6);
-        particle.element.style.background = `rgba(${r}, ${200 - r}, ${200 - r}, ${opacity})`;
+            // Keep particles within bounds
+            if (position.altitude < 0) position.altitude = 0;
+            if (position.altitude > 500) position.altitude = 500;
 
-        // Update particle position
-        particle.position = position;
+            // Update particle color based on pollution level
+            const r = Math.min(255, this.pollutionLevel * 2);
+            const opacity = Math.min(0.8, 0.2 + (this.pollutionLevel / 100) * 0.6);
+            particle.element.style.background = `rgba(${r}, ${200 - r}, ${200 - r}, ${opacity})`;
 
-        // Update lifetime
-        particle.lifetime++;
-        return particle.lifetime < particle.maxLife;
+            // Update particle position
+            particle.position = position;
+
+            // Update lifetime
+            particle.lifetime++;
+            return particle.lifetime < particle.maxLife;
+        } catch (error) {
+            console.error("Failed to update particle:", error);
+            return false;
+        }
     }
-
+   
     async start(location, environmentalData) {
-        // Wait for initialization if necessary
-        if (!this.isInitialized) {
-            console.log("Waiting for initialization...");
-            await this.init();
-        }
+        try {
+            // Ensure initialization is complete
+            await this.ensureInitialized();
+            
+            if (this.isAnimating) return;
+            this.isAnimating = true;
+            this.location = location;
+            
+            // Set parameters based on environmental data
+            this.updateParameters(environmentalData);
 
-        // Verify Overlay3DElement is available
-        if (!this.Overlay3DElement) {
-            console.error("Overlay3DElement is not available. Cannot visualize airflow.");
-            return;
-        }
+            const animate = () => {
+                if (!this.isAnimating) return;
 
-        if (this.isAnimating) return;
-        this.isAnimating = true;
-        this.location = location;
-        
-        // Set parameters based on environmental data
-        this.updateParameters(environmentalData);
+                // Update existing particles
+                this.particles = this.particles.filter(particle => {
+                    const alive = this.updateParticle(particle);
+                    if (!alive) {
+                        particle.remove();
+                        return false;
+                    }
+                    return true;
+                });
 
-        const animate = () => {
-            if (!this.isAnimating) return;
-
-            // Update existing particles
-            this.particles = this.particles.filter(particle => {
-                const alive = this.updateParticle(particle);
-                if (!alive) {
-                    particle.remove();
-                    return false;
+                // Add new particles
+                while (this.particles.length < this.particleCount) {
+                    const newParticle = this.createParticle(location);
+                    if (newParticle) {
+                        this.particles.push(newParticle);
+                    }
                 }
-                return true;
-            });
 
-            // Add new particles
-            while (this.particles.length < this.particleCount) {
-                this.particles.push(this.createParticle(location));
-            }
+                requestAnimationFrame(animate);
+            };
 
-            requestAnimationFrame(animate);
-        };
-
-        animate();
+            animate();
+        } catch (error) {
+            console.error("Failed to start visualization:", error);
+            this.isAnimating = false;
+        }
     }
+
 
     updateParameters(environmentalData) {
         // Update visualization parameters based on environmental data
@@ -1515,7 +1542,9 @@ class AirflowVisualizer {
         this.isAnimating = false;
         // Remove all particles from the map
         this.particles.forEach(particle => {
-            particle.remove();
+            if (particle && particle.remove) {
+                particle.remove();
+            }
         });
         this.particles = [];
     }
