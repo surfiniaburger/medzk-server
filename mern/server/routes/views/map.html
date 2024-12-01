@@ -1722,6 +1722,8 @@ document.addEventListener('keydown', (e) => {
         languageCode: "en",
     };
 
+    let environmentalData = null;
+
     try {
         // Try Google Air Quality API first
         const googleAirQualityResponse = await fetch(googleAirQualityUrl, {
@@ -1737,10 +1739,22 @@ document.addEventListener('keydown', (e) => {
         }
 
         const googleAirQualityData = await googleAirQualityResponse.json();
+        
+        // Get weather data for wind information
+        const weatherResponse = await fetch(weatherUrl);
+        const weatherData = await weatherResponse.json();
+
         displayEnvironmentalData({
             source: 'google',
             data: googleAirQualityData
         });
+
+        // Set environmental data for visualization
+        environmentalData = {
+            aqi: googleAirQualityData.indexes[0].aqi,
+            windSpeed: weatherData.wind.speed,
+            windDirection: weatherData.wind.deg
+        };
 
     } catch (googleError) {
         console.warn("Falling back to OpenWeather API due to error:", googleError);
@@ -1762,32 +1776,37 @@ document.addEventListener('keydown', (e) => {
                     weather: weatherData
                 }
             });
+
+            // Set environmental data using OpenWeather data
+            environmentalData = {
+                aqi: airQualityData.list[0].main.aqi * 20, // Convert 1-5 scale to 0-100
+                windSpeed: weatherData.wind.speed,
+                windDirection: weatherData.wind.deg
+            };
+
         } catch (fallbackError) {
             console.error("Failed to fetch environmental data:", fallbackError);
             displayError("Unable to fetch environmental data. Please try again later.");
+            return; // Exit if we can't get any environmental data
         }
     }
 
+    // Initialize airflow visualization if we have environmental data
+    if (environmentalData) {
+        try {
+            // Initialize and start visualization
+            if (!window.airflowVisualizer) {
+                window.airflowVisualizer = new AirflowVisualizer(map3DElement);
+            }
+            
+            window.airflowVisualizer.start(location, environmentalData);
 
-    try {
-        const environmentalData = {
-            aqi: googleAirQualityData.indexes[0].aqi,
-            windSpeed: weatherData.wind.speed,
-            windDirection: weatherData.wind.deg
-        };
-
-        // Initialize and start visualization
-        if (!window.airflowVisualizer) {
-            window.airflowVisualizer = new AirflowVisualizer(map3DElement);
+        } catch (error) {
+            console.error('Error initializing airflow visualization:', error);
+            displayError("Unable to initialize airflow visualization.");
         }
-        
-        window.airflowVisualizer.start(location, environmentalData);
-
-    } catch (error) {
-        console.error('Error initializing airflow visualization:', error);
     }
 }
-
 
 function displayEnvironmentalData({ source, data }) {
     // Format data for visualization based on the source
