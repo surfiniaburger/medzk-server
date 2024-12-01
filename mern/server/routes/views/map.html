@@ -1341,6 +1341,8 @@ class AirflowVisualizer {
         this.windSpeed = 1;
         this.windDirection = 0;
         this.pollutionLevel = 0;
+        this.Overlay3DElement = null; // Initialize to null
+    
         
         // Initialize the visualization system
         this.init();
@@ -1348,8 +1350,8 @@ class AirflowVisualizer {
 
     async init() {
         // Import required 3D elements
-        const { Overlay3DElement } = await google.maps.importLibrary("maps3d");
-        this.Overlay3DElement = Overlay3DElement;
+        const { Overlay3DElement: Overlay3DElementImported } = await google.maps.importLibrary("maps3d");
+        this.Overlay3DElement = Overlay3DElementImported; // Assign the class here
         
         // Create particle container to manage particle lifecycle
         this.particleContainer = document.createElement('div');
@@ -1361,6 +1363,11 @@ class AirflowVisualizer {
     }
 
     createParticle(location) {
+        if (!this.Overlay3DElement) {  //Check before creating particle
+            console.error("Overlay3DElement is not available yet.");
+            return;  //or throw error to stop visualization if critical
+        }
+
         // Create a custom 3D overlay for each particle
         const particle = new this.Overlay3DElement({
             position: {
@@ -1435,6 +1442,10 @@ class AirflowVisualizer {
     }
 
     start(location, environmentalData) {
+        if (!this.Overlay3DElement) {
+            console.error("Overlay3DElement is not available in start method. Cannot visualize airflow.");
+            return; // Or throw an error
+        }
         if (this.isAnimating) return;
         this.isAnimating = true;
         
