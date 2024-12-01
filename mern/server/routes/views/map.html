@@ -1640,6 +1640,8 @@ polygons.forEach(polygon => {
         languageCode: "en",
     };
 
+    let environmentalData = null; // Initialize environmentalData
+
     try {
         // Try Google Air Quality API first
         const googleAirQualityResponse = await fetch(googleAirQualityUrl, {
@@ -1655,18 +1657,32 @@ polygons.forEach(polygon => {
         }
 
         const googleAirQualityData = await googleAirQualityResponse.json();
-
-         //Call visualizeAQIExtrudedPolygons after updating markersData
-   if (environmentalData) {
-        markersData.forEach((markerData) => {
-            markerData.aqi = environmentalData.aqi || 50; // Set AQI. Default 50 if not available
-        });
-         visualizeAQIExtrudedPolygons(map3DElement, markersData);
-     }
+   
         displayEnvironmentalData({
             source: 'google',
             data: googleAirQualityData
         });
+
+        if (googleAirQualityData && googleAirQualityData.indexes && googleAirQualityData.indexes.length > 0) {
+        environmentalData = {  // Correctly set environmentalData here if successful.
+
+            aqi: googleAirQualityData.indexes[0].aqi || 50, // Handle missing AQI
+
+        };
+    } else {
+
+      console.error("Invalid or missing AQI data from Google Air Quality API.");
+    }
+
+    // Now call visualizeAQIExtrudedPolygons *after* environmentalData is set
+    if (environmentalData){  // Only visualize if data was fetched
+        if(markersData.length > 0){
+            visualizeAQIExtrudedPolygons(map3DElement, markersData);
+
+        }
+
+
+    }
 
     } catch (googleError) {
         console.warn("Falling back to OpenWeather API due to error:", googleError);
@@ -1682,12 +1698,6 @@ polygons.forEach(polygon => {
             const weatherData = await weatherResponse.json();
 
             //Call visualizeAQIExtrudedPolygons after updating markersData
-   if (environmentalData) {
-        markersData.forEach((markerData) => {
-            markerData.aqi = environmentalData.aqi || 50; // Set AQI. Default 50 if not available
-        });
-         visualizeAQIExtrudedPolygons(map3DElement, markersData);
-     }
 
             displayEnvironmentalData({
                 source: 'openweather',
@@ -1696,6 +1706,29 @@ polygons.forEach(polygon => {
                     weather: weatherData
                 }
             });
+            if (airQualityData && airQualityData.list && airQualityData.list[0] && airQualityData.list[0].main) {
+        environmentalData = {  // Correctly set environmentalData from OpenWeather *inside* the successful try
+
+            aqi: airQualityData.list[0].main.aqi * 20 || 50, // Handle missing AQI
+
+        };
+
+    } else {
+        console.error("Invalid or missing AQI data from OpenWeather API.");
+    }
+
+
+
+      // Now call visualizeAQIExtrudedPolygons *after* environmentalData is set
+       if (environmentalData){  // Only visualize if data was fetched
+             if(markersData.length > 0){
+                visualizeAQIExtrudedPolygons(map3DElement, markersData);
+             }
+
+       }
+
+
+
         } catch (fallbackError) {
             console.error("Failed to fetch environmental data:", fallbackError);
             displayError("Unable to fetch environmental data. Please try again later.");
