@@ -1335,12 +1335,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 class AirParticle {
-    constructor(position, direction) {
+    constructor(map3DElement, position, direction) {
         this.position = position; // { lat, lng, altitude }
         this.direction = direction; // { latDelta, lngDelta, altitudeDelta }
         this.speed = 0.0001 + Math.random() * 0.0002; // Adjust speed as needed
         this.opacity = 1; // Initial opacity
         this.size = 2 + Math.random() * 3; // Initial size
+        this.map3DElement = map3DElement; 
 
 
         if(Overlay3DElement){
@@ -1353,7 +1354,7 @@ class AirParticle {
               },
           });
 
-          map3DElement.overlay3Ds.append(this.particle);
+          this.map3DElement.overlay3Ds.append(this.particle);
 
         } else {
          console.error("Overlay3DElement not yet available in AirParticle constructor");
@@ -1373,11 +1374,14 @@ class AirParticle {
         this.position.altitude += this.direction.altitudeDelta * this.speed;
 
 
-         //Boundary Check/Reset
-          const bounds = map3DElement.getBounds();
-        if (!bounds.contains(this.position) || this.position.altitude <= 0) {
+
+        if (this.map3DElement){ //Check if map3DElement is initialized
+              //Boundary Check/Reset
+              const bounds = map3DElement.getBounds();
+              if (!bounds.contains(this.position) || this.position.altitude <= 0) {
               this.reset();
-        }
+            }
+    }
 
 
         // Update particle's properties
@@ -1531,9 +1535,12 @@ document.addEventListener('keydown', (e) => {
 
         //await initializeMapAndElements();
         document.body.append(map3DElement);
+
+        await visualizeAirflow(map3DElement);
+        
         initAutocomplete();
         initPlacesService();
-        await visualizeAirflow(map3DElement);
+        
 
       }
     
