@@ -1349,6 +1349,7 @@ class AirflowVisualizer {
         this.windDirection = 0;
         this.pollutionLevel = 0;
         this.Overlay3DElement = null; // Initialize to null
+        this.isInitialized = false; // Add initialization flag
     
         
         // Initialize the visualization system
@@ -1356,24 +1357,31 @@ class AirflowVisualizer {
     }
 
     async init() {
-        const { Overlay3DElement: Overlay3DElementClass } = await google.maps.importLibrary("maps3d");
-           this.Overlay3DElement = Overlay3DElementClass; // Assign the correct class
-          this.isInitialized = true; // Set initialization flag
-
-        
-        // Create particle container to manage particle lifecycle
-        this.particleContainer = document.createElement('div');
-        this.particleContainer.style.position = 'absolute';
-        this.particleContainer.style.width = '100%';
-        this.particleContainer.style.height = '100%';
-        this.particleContainer.style.pointerEvents = 'none';
-        this.map3DElement.appendChild(this.particleContainer);
+        try {
+            // Import the Overlay3DElement class
+            const { Overlay3DElement } = await google.maps.importLibrary("maps3d");
+            this.Overlay3DElement = Overlay3DElement; // Store the class
+            this.isInitialized = true; // Set initialization flag
+            
+            // Create particle container
+            this.particleContainer = document.createElement('div');
+            this.particleContainer.style.position = 'absolute';
+            this.particleContainer.style.width = '100%';
+            this.particleContainer.style.height = '100%';
+            this.particleContainer.style.pointerEvents = 'none';
+            this.map3DElement.appendChild(this.particleContainer);
+            
+            console.log("AirflowVisualizer initialized successfully");
+        } catch (error) {
+            console.error("Failed to initialize AirflowVisualizer:", error);
+            throw error;
+        }
     }
 
     createParticle(location) {
         if (!this.Overlay3DElement) {  //Check before creating particle
             console.error("Overlay3DElement is not available yet.");
-            return;  //or throw error to stop visualization if critical
+            return null;  //or throw error to stop visualization if critical
         }
 
         // Create a custom 3D overlay for each particle
@@ -1449,15 +1457,22 @@ class AirflowVisualizer {
         return particle.lifetime < particle.maxLife;
     }
 
-    start(location, environmentalData) {
-        if (!this.Overlay3DElement) {
-            console.error("Overlay3DElement is not available in start method. Cannot visualize airflow.");
-            return; // Or throw an error
+    async start(location, environmentalData) {
+        // Wait for initialization if necessary
+        if (!this.isInitialized) {
+            console.log("Waiting for initialization...");
+            await this.init();
         }
+
+        // Verify Overlay3DElement is available
+        if (!this.Overlay3DElement) {
+            console.error("Overlay3DElement is not available. Cannot visualize airflow.");
+            return;
+        }
+
         if (this.isAnimating) return;
         this.isAnimating = true;
-        this.location = location; // Store location in the class
-        
+        this.location = location;
         
         // Set parameters based on environmental data
         this.updateParameters(environmentalData);
@@ -1469,7 +1484,7 @@ class AirflowVisualizer {
             this.particles = this.particles.filter(particle => {
                 const alive = this.updateParticle(particle);
                 if (!alive) {
-                    particle.remove(); // Remove dead particles from the map
+                    particle.remove();
                     return false;
                 }
                 return true;
