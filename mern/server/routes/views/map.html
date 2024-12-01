@@ -920,6 +920,7 @@ body {
       let map3DElement = null;
       let placesService = null;
       let advancedFeatures = null;
+      let Overlay3DElement;
 
 
       class InteractiveMarker {
@@ -1361,12 +1362,17 @@ class AirParticle {
        }
     }
 
-    update(windData) { // Update based on wind data if available
+    update(windVector) { // Update based on wind data if available
           // Simple wind effect: add wind direction to particle direction
-        if (windData) {
-            this.direction.latDelta += windData.latDelta * this.speed ;
-            this.direction.lngDelta += windData.lngDelta * this.speed ;
-        }
+          if (windVector) { // Check if windVector is defined and has properties
+               if(this.direction && windVector && windVector.latDelta !== undefined && windVector.lngDelta !== undefined){
+                    this.direction.latDelta += windVector.latDelta;
+                    this.direction.lngDelta += windVector.lngDelta;
+               } else {
+                   console.log("windVector or its properties are undefined"); //Log for debugging
+               }
+
+           }
 
 
         this.position.lat += this.direction.latDelta * this.speed;
@@ -1427,7 +1433,7 @@ class AirParticle {
 
 
 
-let Overlay3DElement;
+
 
 async function visualizeAirflow(map3DElement) { // Assuming map3DElement is your Map3DElement instance
     const { Overlay3DElement: Overlay3DElementImported } = await google.maps.importLibrary("maps3d"); // Import explicitly within the function
@@ -1446,11 +1452,22 @@ async function visualizeAirflow(map3DElement) { // Assuming map3DElement is your
 
         // Example mock wind data (replace with actual data if available)
         const windData = {
-            latDelta: Math.sin(Date.now() / 5000) * 0.0002, // Simulate changing wind
-            lngDelta: Math.cos(Date.now() / 3000) * 0.0003
+            wind: {
+                speed: Math.random(), // Example speed value
+                deg: Math.random() * 360 // Example degree value
+               }
         };
 
-        particles.forEach(particle => particle.update(windData));
+        // Convert wind speed/degrees to lat/lng deltas
+        const windRadians = windData.wind.deg * Math.PI / 180;
+                const windSpeedFactor = 0.0005; // Adjust factor for desired effect
+
+                const windVector = {
+                    latDelta: windData.wind.speed * Math.sin(windRadians) * windSpeedFactor,
+                    lngDelta: windData.wind.speed * Math.cos(windRadians) * windSpeedFactor,
+                };
+
+        particles.forEach(particle => particle.update(windVector));
 
         requestAnimationFrame(animate);
     }
@@ -1537,7 +1554,7 @@ document.addEventListener('keydown', (e) => {
         document.body.append(map3DElement);
 
         await visualizeAirflow(map3DElement);
-        
+
         initAutocomplete();
         initPlacesService();
         
