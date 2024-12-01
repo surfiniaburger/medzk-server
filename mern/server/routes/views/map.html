@@ -67,15 +67,8 @@
             to {
                 transform: translate(-50%, 0);
             }
-
         }
 
-
-        .air-particle {
-    transform: translate(-50%, -50%);
-    transition: background-color 0.5s ease;
-    will-change: transform, opacity;
-}
         
 
         .community-panel {
@@ -1348,62 +1341,26 @@ class AirflowVisualizer {
         this.windSpeed = 1;
         this.windDirection = 0;
         this.pollutionLevel = 0;
-        this.Overlay3DElement = null; // Initialize to null
-        this.isInitialized = false; // Add initialization flag
-    
         
-         // Initialize immediately
-         this.initPromise = this.init();
+        // Initialize the visualization system
+        this.init();
     }
 
     async init() {
-        try {
-            // Wait for the map to be fully loaded
-            await new Promise(resolve => {
-                if (this.map3DElement.isConnected) {
-                    resolve();
-                } else {
-                    this.map3DElement.addEventListener('load', resolve, { once: true });
-                }
-            });
-
-            // Import the Overlay3DElement class
-            const { Overlay3DElement } = await google.maps.importLibrary("maps3d");
-            this.Overlay3DElement = Overlay3DElement; // Store the class
-           
-            
-            // Create particle container
-            this.particleContainer = document.createElement('div');
-            this.particleContainer.style.position = 'absolute';
-            this.particleContainer.style.width = '100%';
-            this.particleContainer.style.height = '100%';
-            this.particleContainer.style.pointerEvents = 'none';
-            this.map3DElement.appendChild(this.particleContainer);
-
-            this.isInitialized = true; // Set initialization flag
-            
-            console.log("AirflowVisualizer initialized successfully");
-        } catch (error) {
-            console.error("Failed to initialize AirflowVisualizer:", error);
-            throw error;
-        }
-    }
-
-    async ensureInitialized() {
-        if (!this.isInitialized) {
-            await this.initPromise;
-        }
-        if (!this.Overlay3DElement) {
-            throw new Error("Overlay3DElement is not available after initialization");
-        }
+        // Import required 3D elements
+        const { Overlay3DElement } = await google.maps.importLibrary("maps3d");
+        this.Overlay3DElement = Overlay3DElement;
+        
+        // Create particle container to manage particle lifecycle
+        this.particleContainer = document.createElement('div');
+        this.particleContainer.style.position = 'absolute';
+        this.particleContainer.style.width = '100%';
+        this.particleContainer.style.height = '100%';
+        this.particleContainer.style.pointerEvents = 'none';
+        this.map3DElement.appendChild(this.particleContainer);
     }
 
     createParticle(location) {
-        if (!this.Overlay3DElement) {  //Check before creating particle
-            console.error("Overlay3DElement is not available yet.");
-            return null;  //or throw error to stop visualization if critical
-        }
-
         // Create a custom 3D overlay for each particle
         const particle = new this.Overlay3DElement({
             position: {
@@ -1448,85 +1405,65 @@ class AirflowVisualizer {
     }
 
     updateParticle(particle) {
-        try {
-            if (!particle) return false;
+        // Get current position
+        const position = particle.position;
+        
+        // Apply wind effect
+        position.lat += Math.cos(this.windDirection) * this.windSpeed * 0.00001;
+        position.lng += Math.sin(this.windDirection) * this.windSpeed * 0.00001;
+        
+        // Add turbulence
+        position.lat += particle.velocity.lat;
+        position.lng += particle.velocity.lng;
+        position.altitude += particle.velocity.altitude;
 
-            // Get current position
-            const position = particle.position;
-            
-            // Apply wind effect
-            position.lat += Math.cos(this.windDirection) * this.windSpeed * 0.00001;
-            position.lng += Math.sin(this.windDirection) * this.windSpeed * 0.00001;
-            
-            // Add turbulence
-            position.lat += particle.velocity.lat;
-            position.lng += particle.velocity.lng;
-            position.altitude += particle.velocity.altitude;
+        // Keep particles within bounds
+        if (position.altitude < 0) position.altitude = 0;
+        if (position.altitude > 500) position.altitude = 500;
 
-            // Keep particles within bounds
-            if (position.altitude < 0) position.altitude = 0;
-            if (position.altitude > 500) position.altitude = 500;
+        // Update particle color based on pollution level
+        const r = Math.min(255, this.pollutionLevel * 2);
+        const opacity = Math.min(0.8, 0.2 + (this.pollutionLevel / 100) * 0.6);
+        particle.element.style.background = `rgba(${r}, ${200 - r}, ${200 - r}, ${opacity})`;
 
-            // Update particle color based on pollution level
-            const r = Math.min(255, this.pollutionLevel * 2);
-            const opacity = Math.min(0.8, 0.2 + (this.pollutionLevel / 100) * 0.6);
-            particle.element.style.background = `rgba(${r}, ${200 - r}, ${200 - r}, ${opacity})`;
+        // Update particle position
+        particle.position = position;
 
-            // Update particle position
-            particle.position = position;
-
-            // Update lifetime
-            particle.lifetime++;
-            return particle.lifetime < particle.maxLife;
-        } catch (error) {
-            console.error("Failed to update particle:", error);
-            return false;
-        }
+        // Update lifetime
+        particle.lifetime++;
+        return particle.lifetime < particle.maxLife;
     }
-   
-    async start(location, environmentalData) {
-        try {
-            // Ensure initialization is complete
-            await this.ensureInitialized();
-            
-            if (this.isAnimating) return;
-            this.isAnimating = true;
-            this.location = location;
-            
-            // Set parameters based on environmental data
-            this.updateParameters(environmentalData);
 
-            const animate = () => {
-                if (!this.isAnimating) return;
+    start(location, environmentalData) {
+        if (this.isAnimating) return;
+        this.isAnimating = true;
+        
+        // Set parameters based on environmental data
+        this.updateParameters(environmentalData);
 
-                // Update existing particles
-                this.particles = this.particles.filter(particle => {
-                    const alive = this.updateParticle(particle);
-                    if (!alive) {
-                        particle.remove();
-                        return false;
-                    }
-                    return true;
-                });
+        const animate = () => {
+            if (!this.isAnimating) return;
 
-                // Add new particles
-                while (this.particles.length < this.particleCount) {
-                    const newParticle = this.createParticle(location);
-                    if (newParticle) {
-                        this.particles.push(newParticle);
-                    }
+            // Update existing particles
+            this.particles = this.particles.filter(particle => {
+                const alive = this.updateParticle(particle);
+                if (!alive) {
+                    particle.remove(); // Remove dead particles from the map
+                    return false;
                 }
+                return true;
+            });
 
-                requestAnimationFrame(animate);
-            };
+            // Add new particles
+            while (this.particles.length < this.particleCount) {
+                this.particles.push(this.createParticle(location));
+            }
 
-            animate();
-        } catch (error) {
-            console.error("Failed to start visualization:", error);
-            this.isAnimating = false;
-        }
+            requestAnimationFrame(animate);
+        };
+
+        animate();
     }
-
 
     updateParameters(environmentalData) {
         // Update visualization parameters based on environmental data
@@ -1542,9 +1479,7 @@ class AirflowVisualizer {
         this.isAnimating = false;
         // Remove all particles from the map
         this.particles.forEach(particle => {
-            if (particle && particle.remove) {
-                particle.remove();
-            }
+            particle.remove();
         });
         this.particles = [];
     }
@@ -1766,6 +1701,70 @@ document.addEventListener('keydown', (e) => {
         }
         return elevationResponse.results[0].elevation || 10;
       }
+
+
+      async function visualizeAQIExtrudedPolygons(map3DElement, location, aqData) {
+
+
+const { Polygon3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
+
+// 1. Define the area (polygon coordinates).  Replace with actual area boundaries.
+// For a hackathon, defining a few sample polygons is sufficient.
+const polygons = [
+    {
+        coords: [
+            { lat: location.lat() + 0.002, lng: location.lng() - 0.002 },
+            { lat: location.lat() + 0.004, lng: location.lng() },
+            { lat: location.lat() + 0.002, lng: location.lng() + 0.002},
+            { lat: location.lat(), lng: location.lng() },
+            { lat: location.lat() + 0.002, lng: location.lng() - 0.002 },
+
+        ],
+        aqi: aqData?.list[0].main.aqi * 20 || 50 // Replace with your AQI data retrieval for this area
+
+    },
+    // ... more polygons as needed
+];
+
+
+
+// 2. Create and display the extruded polygons
+polygons.forEach(polygon => {
+    const polygon3D = new Polygon3DElement({
+        paths: [polygon.coords],  // Array of paths (only one in this case)
+        altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,  // Important for extrusion
+        fillColor: getAQIColor(polygon.aqi),  // Use your AQI color function (from previous examples)
+        fillOpacity: 0.7,  // Adjust as needed
+        extrudeHeight: polygon.aqi, // Extrude height based on AQI value
+        strokeColor: "black", // Optional outline
+        strokeWeight: 1 // Optional outline weight
+
+
+    });
+
+
+
+    map3DElement.overlay3Ds.append(polygon3D); // Append to 3D overlays collection
+
+
+    //Add a 2D polygon outline to the base map for better visibility.
+    const polygon2D = new google.maps.Polygon({
+      paths: polygon.coords,
+      strokeColor: "#FF0000",
+       strokeOpacity: 0.8,
+       strokeWeight: 2,
+      fillColor: "#FF0000",
+      fillOpacity: 0.35,
+      map: map3DElement.map
+    });
+
+
+});
+
+}
+
+
+      
       async function fetchEnvironmentalData(location) {
     const googleAirQualityUrl = `https://airquality.googleapis.com/v1/currentConditions:lookup?key=${window.GOOGLE_MAPS_API_KEY}`;
     const openWeatherAirQualityUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${location.lat()}&lon=${location.lng()}&appid=${window.OPENWEATHER_API_KEY}`;
@@ -1787,8 +1786,6 @@ document.addEventListener('keydown', (e) => {
         languageCode: "en",
     };
 
-    let environmentalData = null;
-
     try {
         // Try Google Air Quality API first
         const googleAirQualityResponse = await fetch(googleAirQualityUrl, {
@@ -1804,22 +1801,10 @@ document.addEventListener('keydown', (e) => {
         }
 
         const googleAirQualityData = await googleAirQualityResponse.json();
-        
-        // Get weather data for wind information
-        const weatherResponse = await fetch(weatherUrl);
-        const weatherData = await weatherResponse.json();
-
         displayEnvironmentalData({
             source: 'google',
             data: googleAirQualityData
         });
-
-        // Set environmental data for visualization
-        environmentalData = {
-            aqi: googleAirQualityData.indexes[0].aqi,
-            windSpeed: weatherData.wind.speed,
-            windDirection: weatherData.wind.deg
-        };
 
     } catch (googleError) {
         console.warn("Falling back to OpenWeather API due to error:", googleError);
@@ -1834,6 +1819,12 @@ document.addEventListener('keydown', (e) => {
             const airQualityData = await airQualityResponse.json();
             const weatherData = await weatherResponse.json();
 
+            try {
+           await visualizeAQIExtrudedPolygons(map3DElement, location, aqData)
+        } catch (error){
+            console.error("Error visualizing AQI polygons", error)
+        }
+
             displayEnvironmentalData({
                 source: 'openweather',
                 data: {
@@ -1841,39 +1832,13 @@ document.addEventListener('keydown', (e) => {
                     weather: weatherData
                 }
             });
-
-            // Set environmental data using OpenWeather data
-            environmentalData = {
-                aqi: airQualityData.list[0].main.aqi * 20, // Convert 1-5 scale to 0-100
-                windSpeed: weatherData.wind.speed,
-                windDirection: weatherData.wind.deg
-            };
-
         } catch (fallbackError) {
             console.error("Failed to fetch environmental data:", fallbackError);
             displayError("Unable to fetch environmental data. Please try again later.");
-            return; // Exit if we can't get any environmental data
-        }
-    }
-
-    // Initialize airflow visualization if we have environmental data
-    if (environmentalData) {
-        try {
-            // Initialize and start visualization
-            if (!window.airflowVisualizer) {
-                window.airflowVisualizer = new AirflowVisualizer(map3DElement);
-            }
-            await window.airflowVisualizer.init();  // Wait for initialization to complete
-
-            
-            window.airflowVisualizer.start(location, environmentalData);
-
-        } catch (error) {
-            console.error('Error initializing airflow visualization:', error);
-            displayError("Unable to initialize airflow visualization.");
         }
     }
 }
+
 
 function displayEnvironmentalData({ source, data }) {
     // Format data for visualization based on the source
