@@ -67,8 +67,15 @@
             to {
                 transform: translate(-50%, 0);
             }
+
         }
 
+
+        .air-particle {
+    transform: translate(-50%, -50%);
+    transition: background-color 0.5s ease;
+    will-change: transform, opacity;
+}
         
 
         .community-panel {
@@ -1349,9 +1356,10 @@ class AirflowVisualizer {
     }
 
     async init() {
-        // Import required 3D elements
-        const { Overlay3DElement: Overlay3DElementImported } = await google.maps.importLibrary("maps3d");
-        this.Overlay3DElement = Overlay3DElementImported; // Assign the class here
+        const { Overlay3DElement: Overlay3DElementClass } = await google.maps.importLibrary("maps3d");
+           this.Overlay3DElement = Overlay3DElementClass; // Assign the correct class
+          this.isInitialized = true; // Set initialization flag
+
         
         // Create particle container to manage particle lifecycle
         this.particleContainer = document.createElement('div');
@@ -1448,6 +1456,8 @@ class AirflowVisualizer {
         }
         if (this.isAnimating) return;
         this.isAnimating = true;
+        this.location = location; // Store location in the class
+        
         
         // Set parameters based on environmental data
         this.updateParameters(environmentalData);
@@ -1809,6 +1819,8 @@ document.addEventListener('keydown', (e) => {
             if (!window.airflowVisualizer) {
                 window.airflowVisualizer = new AirflowVisualizer(map3DElement);
             }
+            await window.airflowVisualizer.init();  // Wait for initialization to complete
+
             
             window.airflowVisualizer.start(location, environmentalData);
 
