@@ -1332,159 +1332,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
-class AirflowVisualizer {
-    constructor(map3DElement) {
-        this.map3DElement = map3DElement;
-        this.particles = [];
-        this.isAnimating = false;
-        this.particleCount = 200; // Reduced for better performance
-        this.windSpeed = 1;
-        this.windDirection = 0;
-        this.pollutionLevel = 0;
-        
-        // Initialize the visualization system
-        this.init();
-    }
-
-    async init() {
-        // Import required 3D elements
-        const { Overlay3DElement } = await google.maps.importLibrary("maps3d");
-        this.Overlay3DElement = Overlay3DElement;
-        
-        // Create particle container to manage particle lifecycle
-        this.particleContainer = document.createElement('div');
-        this.particleContainer.style.position = 'absolute';
-        this.particleContainer.style.width = '100%';
-        this.particleContainer.style.height = '100%';
-        this.particleContainer.style.pointerEvents = 'none';
-        this.map3DElement.appendChild(this.particleContainer);
-    }
-
-    createParticle(location) {
-        // Create a custom 3D overlay for each particle
-        const particle = new this.Overlay3DElement({
-            position: {
-                lat: location.lat + (Math.random() - 0.5) * 0.01,
-                lng: location.lng + (Math.random() - 0.5) * 0.01,
-                altitude: Math.random() * 300  // Random height up to 300 meters
-            },
-            scale: {
-                x: 5,  // Size of particle
-                y: 5,
-                z: 5
-            }
-        });
-
-        // Create the visual element for the particle
-        const element = document.createElement('div');
-        element.className = 'air-particle';
-        element.style.cssText = `
-            width: 8px;
-            height: 8px;
-            background: rgba(200, 200, 200, 0.6);
-            border-radius: 50%;
-            pointer-events: none;
-        `;
-        
-        // Attach the visual element to the overlay
-        particle.element = element;
-        particle.append(element);
-        
-        // Add particle properties for animation
-        particle.velocity = {
-            lat: (Math.random() - 0.5) * 0.0001,
-            lng: (Math.random() - 0.5) * 0.0001,
-            altitude: (Math.random() - 0.5) * 2
-        };
-        particle.lifetime = 0;
-        particle.maxLife = Math.random() * 200 + 100;
-
-        // Add particle to the map
-        this.map3DElement.append(particle);
-        return particle;
-    }
-
-    updateParticle(particle) {
-        // Get current position
-        const position = particle.position;
-        
-        // Apply wind effect
-        position.lat += Math.cos(this.windDirection) * this.windSpeed * 0.00001;
-        position.lng += Math.sin(this.windDirection) * this.windSpeed * 0.00001;
-        
-        // Add turbulence
-        position.lat += particle.velocity.lat;
-        position.lng += particle.velocity.lng;
-        position.altitude += particle.velocity.altitude;
-
-        // Keep particles within bounds
-        if (position.altitude < 0) position.altitude = 0;
-        if (position.altitude > 500) position.altitude = 500;
-
-        // Update particle color based on pollution level
-        const r = Math.min(255, this.pollutionLevel * 2);
-        const opacity = Math.min(0.8, 0.2 + (this.pollutionLevel / 100) * 0.6);
-        particle.element.style.background = `rgba(${r}, ${200 - r}, ${200 - r}, ${opacity})`;
-
-        // Update particle position
-        particle.position = position;
-
-        // Update lifetime
-        particle.lifetime++;
-        return particle.lifetime < particle.maxLife;
-    }
-
-    start(location, environmentalData) {
-        if (this.isAnimating) return;
-        this.isAnimating = true;
-        
-        // Set parameters based on environmental data
-        this.updateParameters(environmentalData);
-
-        const animate = () => {
-            if (!this.isAnimating) return;
-
-            // Update existing particles
-            this.particles = this.particles.filter(particle => {
-                const alive = this.updateParticle(particle);
-                if (!alive) {
-                    particle.remove(); // Remove dead particles from the map
-                    return false;
-                }
-                return true;
-            });
-
-            // Add new particles
-            while (this.particles.length < this.particleCount) {
-                this.particles.push(this.createParticle(location));
-            }
-
-            requestAnimationFrame(animate);
-        };
-
-        animate();
-    }
-
-    updateParameters(environmentalData) {
-        // Update visualization parameters based on environmental data
-        this.pollutionLevel = environmentalData.aqi || 0;
-        this.windSpeed = environmentalData.windSpeed || 1;
-        this.windDirection = ((environmentalData.windDirection || 0) * Math.PI / 180);
-        
-        // Adjust particle count based on pollution level
-        this.particleCount = Math.min(300, 100 + this.pollutionLevel);
-    }
-
-    stop() {
-        this.isAnimating = false;
-        // Remove all particles from the map
-        this.particles.forEach(particle => {
-            particle.remove();
-        });
-        this.particles = [];
-    }
-}
-
 
 
 async function zoomAndFlyToLocation(map3DElement, location) {
@@ -1642,6 +1489,8 @@ document.addEventListener('keydown', (e) => {
         maxResultCount: 10,
     };
 
+    let markersData = []; // Store marker data globally
+
     try {
         const { places } = await Place.searchNearby(request);
 
@@ -1649,6 +1498,8 @@ document.addEventListener('keydown', (e) => {
             console.log("Nearby Search Results:", places);
 
             places.forEach((place, index) => {
+
+                markersData.push({ place: place }); // Store place details
                 // Check if location data is present
                 if (place.location) { // Correctly access the location property
                     const lat = place.location.lat(); // Access latitude using lat() method
@@ -1703,32 +1554,35 @@ document.addEventListener('keydown', (e) => {
       }
 
 
-      async function visualizeAQIExtrudedPolygons(map3DElement, location, aqData) {
+async function visualizeAQIExtrudedPolygons(map3DElement, markersData) {
 
 
 const { Polygon3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
 
-// 1. Define the area (polygon coordinates).  Replace with actual area boundaries.
-// For a hackathon, defining a few sample polygons is sufficient.
-const polygons = [
-    {
-        coords: [
-            { lat: location.lat() + 0.002, lng: location.lng() - 0.002 },
-            { lat: location.lat() + 0.004, lng: location.lng() },
-            { lat: location.lat() + 0.002, lng: location.lng() + 0.002},
-            { lat: location.lat(), lng: location.lng() },
-            { lat: location.lat() + 0.002, lng: location.lng() - 0.002 },
+// 1. Create polygons based on marker locations and AQI data
+const polygons = markersData.map(markerData => {
+        const location = markerData.place.location; // Access place.location directly
+        const aqi = markerData.aqi;
+        console.log(`AQI for ${markerData.place.displayName}: ${aqi}`); //Log AQI for debugging
+        // 2. Generate polygon coordinates around the marker (adjust offsets as needed)
 
-        ],
-        aqi: aqData?.list[0].main.aqi * 20 || 50 // Replace with your AQI data retrieval for this area
+         // Define a square polygon around the marker location
+         const polygonCoords = [
+                { lat: location.lat() + 0.002, lng: location.lng() - 0.002 },
+                { lat: location.lat() + 0.002, lng: location.lng() + 0.002 },
+                { lat: location.lat() - 0.002, lng: location.lng() + 0.002 },
+                { lat: location.lat() - 0.002, lng: location.lng() - 0.002 }
+            ];
 
-    },
-    // ... more polygons as needed
-];
+        return {
+            coords: polygonCoords,
+            aqi: aqi
+        };
+    });
 
 
 
-// 2. Create and display the extruded polygons
+// 3. Create and display the extruded polygons
 polygons.forEach(polygon => {
     const polygon3D = new Polygon3DElement({
         paths: [polygon.coords],  // Array of paths (only one in this case)
@@ -1801,6 +1655,14 @@ polygons.forEach(polygon => {
         }
 
         const googleAirQualityData = await googleAirQualityResponse.json();
+
+         //Call visualizeAQIExtrudedPolygons after updating markersData
+   if (environmentalData) {
+        markersData.forEach((markerData) => {
+            markerData.aqi = environmentalData.aqi || 50; // Set AQI. Default 50 if not available
+        });
+         visualizeAQIExtrudedPolygons(map3DElement, markersData);
+     }
         displayEnvironmentalData({
             source: 'google',
             data: googleAirQualityData
@@ -1819,11 +1681,13 @@ polygons.forEach(polygon => {
             const airQualityData = await airQualityResponse.json();
             const weatherData = await weatherResponse.json();
 
-            try {
-           await visualizeAQIExtrudedPolygons(map3DElement, location, aqData)
-        } catch (error){
-            console.error("Error visualizing AQI polygons", error)
-        }
+            //Call visualizeAQIExtrudedPolygons after updating markersData
+   if (environmentalData) {
+        markersData.forEach((markerData) => {
+            markerData.aqi = environmentalData.aqi || 50; // Set AQI. Default 50 if not available
+        });
+         visualizeAQIExtrudedPolygons(map3DElement, markersData);
+     }
 
             displayEnvironmentalData({
                 source: 'openweather',
