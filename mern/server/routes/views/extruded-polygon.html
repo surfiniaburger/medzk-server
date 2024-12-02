@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D Map with Extruded Polygon</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <script async defer>
+        (g => { var h, a, k, p = "The Google Maps JavaScript API", c = "google", l = "importLibrary", q = "__ib__", m = document, b = window; b = b[c] || (b[c] = {}); var d = b.maps || (b.maps = {}), r = new Set, e = new URLSearchParams, u = () => h || (h = new Promise(async (f, n) => { await (a = m.createElement("script")); e.set("libraries", [...r] + ""); for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]); e.set("callback", c + ".maps." + q); a.src = `https://maps.${c}apis.com/maps/api/js?` + e; d[q] = f; a.onerror = () => h = n(Error(p + " could not load.")); a.nonce = m.querySelector("script[nonce]")?.nonce || ""; m.head.append(a) })); d[l] ? console.warn(p + " only loads once. Ignoring:", g) : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)) })({
+            key: "",
+            v: "alpha",
+        });
+    </script>
+
+    <script>
+        async function initMap() {
+            // Import required libraries
+            const { Map3DElement, Polygon3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
+
+            // Create the map centered on a sample location (New York City)
+            const map3DElement = new Map3DElement({
+                center: { lat: 40.7128, lng: -74.0060, altitude: 1000 },
+                tilt: 45,
+                heading: 0,
+                range: 2000
+            });
+            document.body.appendChild(map3DElement);
+
+            // Create coordinates for a sample polygon (square around the center)
+            const polygonCoords = [
+                { lat: 40.7128 + 0.002, lng: -74.0060 - 0.002 },
+                { lat: 40.7128 + 0.002, lng: -74.0060 + 0.002 },
+                { lat: 40.7128 - 0.002, lng: -74.0060 + 0.002 },
+                { lat: 40.7128 - 0.002, lng: -74.0060 - 0.002 },
+                { lat: 40.7128 + 0.002, lng: -74.0060 - 0.002 } // Close the polygon
+            ];
+
+            // Create an extruded polygon
+            const polygon3D = new Polygon3DElement({
+                outerCoordinates: polygonCoords,
+                altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
+                fillColor: "#FF4444",
+                strokeColor: "#FF0000",
+                strokeWidth: 2,
+                extruded: true, // Enable extrusion
+                drawsOccludedSegments: true // Show occluded parts
+            });
+
+            // Add the polygon to the map
+            map3DElement.append(polygon3D);
+
+            // Add camera animation
+            setTimeout(async () => {
+                await map3DElement.flyCameraAround({
+                    camera: {
+                        center: { 
+                            lat: 40.7128, 
+                            lng: -74.0060,
+                            altitude: 500
+                        },
+                        heading: 0,
+                        tilt: 45
+                    },
+                    durationMillis: 10000,
+                    rounds: 1
+                });
+            }, 2000);
+        }
+
+        // Initialize the map when the page loads
+        window.addEventListener('load', initMap);
+    </script>
+</body>
+</html>

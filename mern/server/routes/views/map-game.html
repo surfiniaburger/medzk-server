@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D Map Collection Game</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #score-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        #score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        #instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            z-index: 1000;
+        }
+        .collectible-info {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            max-width: 300px;
+            text-align: center;
+        }
+        .collect-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+        .collect-btn:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="score-panel">
+        Score: <span id="score">0</span>
+    </div>
+    <div id="instructions">
+        Find and collect the glowing polygons! Click to collect when nearby.
+    </div>
+    <div id="collectible-info" class="collectible-info">
+        <h3>Collectible Found!</h3>
+        <p>You've discovered a special location!</p>
+        <button class="collect-btn" onclick="collectPoint()">Collect (+10 points)</button>
+    </div>
+
+    <script async defer>
+        (g => { var h, a, k, p = "The Google Maps JavaScript API", c = "google", l = "importLibrary", q = "__ib__", m = document, b = window; b = b[c] || (b[c] = {}); var d = b.maps || (b.maps = {}), r = new Set, e = new URLSearchParams, u = () => h || (h = new Promise(async (f, n) => { await (a = m.createElement("script")); e.set("libraries", [...r] + ""); for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]); e.set("callback", c + ".maps." + q); a.src = `https://maps.${c}apis.com/maps/api/js?` + e; d[q] = f; a.onerror = () => h = n(Error(p + " could not load.")); a.nonce = m.querySelector("script[nonce]")?.nonce || ""; m.head.append(a) })); d[l] ? console.warn(p + " only loads once. Ignoring:", g) : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)) })({
+            key: "{{GOOGLE_MAPS_API_KEY}}",
+            v: "alpha",
+        });
+    </script>
+
+    <script>
+        let map3DElement;
+        let score = 0;
+        let collectibles = [];
+        let currentCollectible = null;
+        const collectibleLocations = [
+            { lat: 40.7128, lng: -74.0060, points: 10, color: "#FF4444" },
+            { lat: 40.7580, lng: -73.9855, points: 15, color: "#4CAF50" },
+            { lat: 40.7527, lng: -73.9772, points: 20, color: "#2196F3" },
+        ];
+
+        async function initGame() {
+            const { Map3DElement, Polygon3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
+
+            // Initialize map
+            map3DElement = new Map3DElement({
+                center: { lat: 40.7128, lng: -74.0060, altitude: 2000 },
+                tilt: 45,
+                heading: 0,
+                range: 3000
+            });
+            document.body.appendChild(map3DElement);
+
+            // Create collectible polygons
+            for (const location of collectibleLocations) {
+                const polygon = await createCollectiblePolygon(location, Polygon3DElement, AltitudeMode);
+                collectibles.push({
+                    polygon,
+                    location,
+                    collected: false
+                });
+            }
+
+            // Add click event listener to the map
+            map3DElement.addEventListener('gmp-click', handleMapClick);
+
+            // Start camera animation
+            startExplorationMode();
+        }
+
+        async function createCollectiblePolygon(location, Polygon3DElement, AltitudeMode) {
+            // Create a square polygon around the location
+            const offset = 0.001;
+            const polygonCoords = [
+                { lat: location.lat + offset, lng: location.lng - offset },
+                { lat: location.lat + offset, lng: location.lng + offset },
+                { lat: location.lat - offset, lng: location.lng + offset },
+                { lat: location.lat - offset, lng: location.lng - offset },
+                { lat: location.lat + offset, lng: location.lng - offset }
+            ];
+
+            const polygon = new Polygon3DElement({
+                outerCoordinates: polygonCoords,
+                altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
+                fillColor: location.color,
+                strokeColor: "#FFFFFF",
+                strokeWidth: 2,
+                extruded: true,
+                drawsOccludedSegments: true
+            });
+
+            map3DElement.append(polygon);
+            return polygon;
+        }
+
+        async function handleMapClick(event) {
+            if (!event.position) return;
+
+            // Check if click is near any collectible
+            for (const collectible of collectibles) {
+                if (collectible.collected) continue;
+
+                const distance = calculateDistance(
+                    event.position.lat,
+                    event.position.lng,
+                    collectible.location.lat,
+                    collectible.location.lng
+                );
+
+                if (distance < 0.005) { // Within ~500 meters
+                    showCollectibleInfo(collectible);
+                    break;
+                }
+            }
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            return Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lon2 - lon1, 2));
+        }
+
+        function showCollectibleInfo(collectible) {
+            currentCollectible = collectible;
+            const infoPanel = document.getElementById('collectible-info');
+            infoPanel.style.display = 'block';
+        }
+
+        function collectPoint() {
+            if (!currentCollectible || currentCollectible.collected) return;
+
+            score += currentCollectible.location.points;
+            document.getElementById('score').textContent = score;
+            currentCollectible.collected = true;
+            
+            // Hide info panel
+            document.getElementById('collectible-info').style.display = 'none';
+            
+            // Animate collection
+            celebrateCollection(currentCollectible);
+
+            // Check if all collectibles are collected
+            if (collectibles.every(c => c.collected)) {
+                gameComplete();
+            }
+        }
+
+        async function celebrateCollection(collectible) {
+            const { CameraOptions } = await google.maps.importLibrary("maps3d");
+
+            // Zoom to collected item
+            await map3DElement.flyCameraTo({
+                endCamera: {
+                    center: {
+                        lat: collectible.location.lat,
+                        lng: collectible.location.lng,
+                        altitude: 500
+                    },
+                    tilt: 60,
+                    heading: 0
+                },
+                durationMillis: 2000
+            });
+
+            // Spin around it
+            await map3DElement.flyCameraAround({
+                camera: {
+                    center: {
+                        lat: collectible.location.lat,
+                        lng: collectible.location.lng,
+                        altitude: 500
+                    },
+                    tilt: 60
+                },
+                durationMillis: 3000,
+                rounds: 1
+            });
+
+            // Return to exploration mode
+            startExplorationMode();
+        }
+
+        async function startExplorationMode() {
+            // Set camera to overview position
+            await map3DElement.flyCameraTo({
+                endCamera: {
+                    center: {
+                        lat: 40.7128,
+                        lng: -74.0060,
+                        altitude: 2000
+                    },
+                    tilt: 45,
+                    heading: 0
+                },
+                durationMillis: 2000
+            });
+        }
+
+        function gameComplete() {
+            alert(`Congratulations! You've collected all points and scored ${score} points!`);
+            // Could add restart functionality here
+        }
+
+        // Initialize the game when the page loads
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
