@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environmental Explorer Game</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --accent-color: #FF4444;
+            --text-color: #333;
+            --background-color: #f5f5f5;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Environmental Dashboard */
+        .env-dashboard {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            max-width: 300px;
+            transition: transform 0.3s ease;
+        }
+
+        .env-dashboard:hover {
+            transform: scale(1.02);
+        }
+
+        .env-stat {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .env-stat-title {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .env-stat-value {
+            font-size: 1.2em;
+            color: var(--text-color);
+        }
+
+        /* Score Panel */
+        #score-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        #score {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        #eco-score {
+            font-size: 24px;
+            color: var(--secondary-color);
+            margin-top: 5px;
+        }
+
+        /* Mission Panel */
+        #mission-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            max-width: 80%;
+            text-align: center;
+        }
+
+        /* Collectible Info */
+        .collectible-info {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .collect-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .collect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        /* Wind Indicator */
+        #wind-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .wind-arrow {
+            width: 30px;
+            height: 30px;
+            transition: transform 0.5s ease;
+        }
+
+        /* Canvas for confetti */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Achievement Popup */
+        #achievement-popup {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100%);
+            background: rgba(255, 215, 0, 0.95);
+            padding: 15px 30px;
+            border-radius: 25px;
+            color: #333;
+            font-weight: bold;
+            z-index: 1001;
+            opacity: 0;
+            transition: all 0.5s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        #achievement-popup.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Environmental Tips */
+        .eco-tip {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            max-width: 300px;
+            font-size: 14px;
+            display: none;
+            z-index: 999;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="env-dashboard">
+            <div class="env-stat">
+                <div class="env-stat-title">Air Quality Index</div>
+                <div class="env-stat-value" id="aqi-value">Loading...</div>
+            </div>
+            <div class="env-stat">
+                <div class="env-stat-title">Temperature</div>
+                <div class="env-stat-value" id="temp-value">Loading...</div>
+            </div>
+            <div class="env-stat">
+                <div class="env-stat-title">Wind Speed</div>
+                <div class="env-stat-value" id="wind-value">Loading...</div>
+            </div>
+        </div>
+
+        <div id="score-panel">
+            <div id="score">Environmental Score: 0</div>
+            <div id="eco-score">Sustainability Rating: 🌱</div>
+        </div>
+
+        <div id="mission-panel">
+            Find and analyze environmental hotspots! Monitor air quality and collect sustainability data.
+        </div>
+
+        <div id="wind-indicator">
+            <i class="fas fa-location-arrow wind-arrow"></i>
+        </div>
+
+        <div class="collectible-info" id="collectible-info">
+            <h3>Environmental Hotspot Found!</h3>
+            <p id="hotspot-description">Loading environmental data...</p>
+            <button class="collect-btn" onclick="analyzeHotspot()">Analyze Data</button>
+        </div>
+
+        <div id="achievement-popup">Achievement Unlocked! 🏆</div>
+
+        <div class="eco-tip" id="eco-tip">
+            <p>Did you know? Trees in urban areas can reduce air temperature by up to 8°C!</p>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+    <audio id="collect-sound" src="https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/toy-short.mp3" preload="auto"></audio>
+    <audio id="achievement-sound" src="https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/baby-laugh.mp3" preload="auto"></audio>
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+    <!-- Confetti Script -->
+    <script src="/js/confetti.js"></script>
+
+    <!-- Google Maps -->
+    <script>
+        (g => { var h, a, k, p = "The Google Maps JavaScript API", c = "google", l = "importLibrary", q = "__ib__", m = document, b = window; b = b[c] || (b[c] = {}); var d = b.maps || (b.maps = {}), r = new Set, e = new URLSearchParams, u = () => h || (h = new Promise(async (f, n) => { await (a = m.createElement("script")); e.set("libraries", [...r] + ""); for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]); e.set("callback", c + ".maps." + q); a.src = `https://maps.${c}apis.com/maps/api/js?` + e; d[q] = f; a.onerror = () => h = n(Error(p + " could not load.")); a.nonce = m.querySelector("script[nonce]")?.nonce || ""; m.head.append(a) })); d[l] ? console.warn(p + " only loads once. Ignoring:", g) : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)) })({
+            key: "",
+            v: "alpha",
+        });
+    </script>
+
+    <!-- Game Logic -->
+    <script>
+        // Game state
+        let map3DElement;
+        let environmentalScore = 0;
+        let sustainabilityLevel = 1;
+        let hotspots = [];
+        let currentHotspot = null;
+        let windDirection = 0;
+        let windSpeed = 0;
+
+        // Environmental tips
+        const ecoTips = [
+            "Trees in urban areas can reduce air temperature by up to 8°C!",
+            "Green roofs can reduce building energy use by 30%",
+            "Urban gardens help reduce the urban heat island effect",
+            "Proper waste management can reduce greenhouse gas emissions",
+            "Solar panels on buildings can generate clean energy"
+        ];
+
+        // Hotspot types with environmental context
+        const hotspotTypes = [
+            {
+                type: "AirQuality",
+                icon: "🌫️",
+                description: "Air quality monitoring station",
+                points: 15
+            },
+            {
+                type: "GreenSpace",
+                icon: "🌳",
+                description: "Urban green space initiative",
+                points: 20
+            },
+            {
+                type: "WasteManagement",
+                icon: "♻️",
+                description: "Waste management facility",
+                points: 10
+            },
+            {
+                type: "RenewableEnergy",
+                icon: "☀️",
+                description: "Renewable energy installation",
+                points: 25
+            }
+        ];
+
+        // Initialize game
+        async function initGame() {
+            const { Map3DElement } = await google.maps.importLibrary("maps3d");
+            
+            map3DElement = new Map3DElement({
+                center: { lat: 40.7128, lng: -74.0060, altitude: 2000 },
+                tilt: 45,
+                heading: 0,
+                range: 3000
+            });
+            document.getElementById('game-container').appendChild(map3DElement);
+
+            // Initialize environmental features
+            initEnvironmentalFeatures();
+            generateDynamicHotspots();
+            startWindSimulation();
+            showRandomEcoTip();
+
+            // Add event listeners
+            map3DElement.addEventListener('gmp-click', handleMapClick);
+            
+            // Start periodic updates
+            setInterval(updateEnvironmentalData, 30000);
+            setInterval(showRandomEcoTip, 60000);
+        }
+
+        // Initialize environmental features
+        async function initEnvironmentalFeatures() {
+            try {
+                const location = map3DElement.center;
+                await fetchEnvironmentalData(location);
+            } catch (error) {
+                console.error("Failed to initialize environmental features:", error);
+            }
+        }
+
+        // Fetch environmental data from APIs
+        async function fetchEnvironmentalData(location) {
+            const openWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${location.lat}&lon=${location.lng}&appid=`;
+            const airQualityUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${location.lat}&lon=${location.lng}&appid=`;
+
+            try {
+                const [weatherResponse, airQualityResponse] = await Promise.all([
+                    fetch(openWeatherUrl),
+                    fetch(airQualityUrl)
+                ]);
+
+                const weatherData = await weatherResponse.json();
+                const airQualityData = await airQualityResponse.json();
+
+                // Update environmental dashboard
+                updateEnvironmentalDisplay(weatherData, airQualityData);
+
+                // Update wind conditions
+                windSpeed = weatherData.wind.speed;
+                windDirection = weatherData.wind.deg;
+                updateWindIndicator();
+
+                return {
+                    weather: weatherData,
+                    airQuality: airQualityData
+                };
+            } catch (error) {
+                console.error("Error fetching environmental data:", error);
+                return null;
+            }
+        }
+
+        // Update environmental display
+        function updateEnvironmentalDisplay(weather, airQuality) {
+            const tempCelsius = weather.main.temp - 273.15;
+            document.getElementById('temp-value').textContent = `${tempCelsius.toFixed(1)}°C`;
+            document.getElementById('wind-value').textContent = `${weather.wind.speed} m/s`;
+            document.getElementById('aqi-value').textContent = `AQI: ${airQuality.list[0].main.aqi}`;
+        }
+
+        // Update wind indicator
+        function updateWindIndicator() {
+            const arrow = document.querySelector('.wind-arrow');
+            arrow.style.transform = `rotate(${windDirection}deg)`;
+        }
+
+        // Generate dynamic hotspots based on environmental data
+        function generateDynamicHotspots() {
+            const baseLocation = map3DElement.center;
+            const radius = 0.02; // Approximately 2km
+
+            hotspots = hotspotTypes.map(type => {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.sqrt(Math.random()) * radius;
+                
+                return {
+                    location: {
+                        lat: baseLocation.lat + r * Math.cos(angle),
+                        lng: baseLocation.lng + r * Math.sin(angle)
+                    },
+                    type: type.type,
+                    icon: type.icon,
+                    description: type.description,
+                    points: type.points,
+                    analyzed: false
+                };
+            });
+
+            createHotspotMarkers();
+        }
+
+        // Create markers for hotspots
+        async function createHotspotMarkers() {
+            const { Marker3DElement } = await google.maps.importLibrary("maps3d");
+
+            hotspots.forEach(hotspot => {
+                const marker = new Marker3DElement({
+                    position: {
+                        lat: hotspot.location.lat,
+                        lng: hotspot.location.lng,
+                        altitude: 0
+                    },
+                    label: hotspot.icon,
+                    sizePreserved: true
+                });
+
+                map3DElement.append(marker);
+                hotspot.marker = marker;
+            });
+        }
+
+        // Handle map clicks
+        async function handleMapClick(event) {
+            if (!event.position) return;
+
+            const clickedHotspot = findNearestHotspot(event.position);
+            if (clickedHotspot && !clickedHotspot.analyzed) {
+                currentHotspot = clickedHotspot;
+                showHotspotInfo(clickedHotspot);
+            }
+        }
+
+        // Find nearest hotspot to click position
+        function findNearestHotspot(position) {
+            return hotspots.find(hotspot => 
+                calculateDistance(position.lat, position.lng, 
+                                hotspot.location.lat, hotspot.location.lng) < 0.005
+            );
+        }
+
+        // Calculate distance between two points
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            return Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lon2 - lon1, 2));
+        }
+
+        // Show hotspot information
+        function showHotspotInfo(hotspot) {
+            const infoPanel = document.getElementById('collectible-info');
+            document.getElementById('hotspot-description').textContent = 
+                `${hotspot.icon} ${hotspot.description}\nAnalyzing this location will help improve environmental monitoring.`;
+            infoPanel.style.display = 'block';
+        }
+
+        // Analyze hotspot data
+        async function analyzeHotspot() {
+            if (!currentHotspot || currentHotspot.analyzed) return;
+
+            environmentalScore += currentHotspot.points;
+            currentHotspot.analyzed = true;
+            
+            // Update UI
+            document.getElementById('score').textContent = `Environmental Score: ${environmentalScore}`;
+            document.getElementById('collectible-info').style.display = 'none';
+            
+            // Show achievement
+            showAchievement(`Environmental Data Collected! +${currentHotspot.points} points`);
+            
+            // Update sustainability rating
+            updateSustainabilityRating();
+            
+            // Celebrate with confetti if all hotspots are analyzed
+            if (hotspots.every(h => h.analyzed)) {
+                gameComplete();
+            }
+        }
+
+        // Update sustainability rating based on score
+        function updateSustainabilityRating() {
+            let rating = '🌱';
+            if (environmentalScore >= 30) rating = '🌱🌱';
+            if (environmentalScore >= 60) rating = '🌱🌱🌱';
+            if (environmentalScore >= 90) rating = '🌱🌱🌱🌱';
+            
+            document.getElementById('eco-score').textContent = `Sustainability Rating: ${rating}`;
+        }
+
+        // Show achievement popup
+        function showAchievement(message) {
+            const popup = document.getElementById('achievement-popup');
+            popup.textContent = message;
+            popup.classList.add('show');
+            document.getElementById('achievement-sound').play();
+            
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 3000);
+        }
+
+        // Show random eco tip
+        function showRandomEcoTip() {
+            const tip = ecoTips[Math.floor(Math.random() * ecoTips.length)];
+            const tipElement = document.getElementById('eco-tip');
+            tipElement.querySelector('p').textContent = tip;
+            tipElement.style.display = 'block';
+            
+            setTimeout(() => {
+                tipElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Simulate wind conditions
+        function startWindSimulation() {
+            setInterval(() => {
+                windDirection = (windDirection + Math.random() * 20 - 10) % 360;
+                windSpeed = Math.min(Math.max(windSpeed + Math.random() - 0.5, 0), 10);
+                
+                const arrow = document.querySelector('.wind-arrow');
+                arrow.style.transform = `rotate(${windDirection}deg)`;
+                
+                document.getElementById('wind-value').textContent = 
+                    `${windSpeed.toFixed(1)} m/s ${getWindDirection(windDirection)}`;
+            }, 3000);
+        }
+
+        // Get wind direction as compass point
+        function getWindDirection(degrees) {
+            const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+            return directions[Math.round(degrees / 45) % 8];
+        }
+
+        // Update environmental data periodically
+        async function updateEnvironmentalData() {
+            const location = map3DElement.center;
+            await fetchEnvironmentalData(location);
+        }
+
+        // Game completion
+        function gameComplete() {
+            showAchievement('Congratulations! All environmental data collected! 🌍');
+            window.gameConfetti.start(5000);
+            
+            setTimeout(() => {
+                const playAgain = confirm('Would you like to continue environmental monitoring?');
+                if (playAgain) {
+                    location.reload();
+                }
+            }, 5000);
+        }
+
+        // Start the game when the page loads
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>

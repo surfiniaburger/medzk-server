@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Previous HTML content remains the same until the GameManager class -->
+
+<script>
+    // Previous classes (ResourceManager, EnvironmentalDataManager, WindVisualizer, Hotspot) remain the same
+
+    // Complete GameManager implementation
+    class GameManager {
+        constructor() {
+            this.resourceManager = new ResourceManager(CONFIG.initialResources);
+            this.environmentalData = new EnvironmentalDataManager(CONFIG.apiKeys.openWeather);
+            this.windVisualizer = new WindVisualizer(document.getElementById('wind-particles'));
+            this.hotspots = [];
+            this.map3DElement = null;
+            this.selectedHotspot = null;
+            this.analysisInProgress = false;
+        }
+
+        async init() {
+            try {
+                await this.initMap();
+                this.resourceManager.subscribe(() => this.resourceManager.updateUI());
+                this.startGame();
+                console.log('Game initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize game:', error);
+                showError('Failed to initialize game. Please refresh the page.');
+            }
+        }
+
+        async initMap() {
+            const { Map3DElement } = await google.maps.importLibrary("maps3d");
+            
+            this.map3DElement = new Map3DElement({
+                center: { lat: 40.7128, lng: -74.0060, altitude: 2000 },
+                tilt: 45,
+                heading: 0,
+                range: 3000
+            });
+
+            document.getElementById('game-container').appendChild(this.map3DElement);
+            this.map3DElement.addEventListener('gmp-click', (e) => this.handleMapClick(e));
+            
+            // Initialize wind visualization
+            this.windVisualizer.start(0, 0); // Initial wind state
+        }
+
+        startGame() {
+            this.showTutorial();
+            this.generateHotspots();
+            this.startEnvironmentalUpdates();
+            console.log('Game started');
+        }
+
+        showTutorial() {
+            const tutorial = document.getElementById('tutorial');
+            tutorial.style.display = 'block';
+            
+            // Animate tutorial steps
+            const steps = tutorial.querySelectorAll('.tutorial-step');
+            steps.forEach((step, index) => {
+                gsap.to(step, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.5,
+                    delay: index * 0.5
+                });
+            });
+        }
+
+        generateHotspots() {
+            const baseLocation = this.map3DElement.center;
+            const hotspotTypes = [
+                { type: 'airQualitySensor', name: 'Air Quality Station', icon: '🌫️' },
+                { type: 'windTurbine', name: 'Wind Energy Site', icon: '💨' },
+                { type: 'solarPanel', name: 'Solar Installation', icon: '☀️' }
+            ];
+
+            // Generate 5-8 random hotspots
+            const numHotspots = 5 + Math.floor(Math.random() * 4);
+            
+            for (let i = 0; i < numHotspots; i++) {
+                const type = hotspotTypes[Math.floor(Math.random() * hotspotTypes.length)];
+                const radius = 0.02; // Approximately 2km
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.sqrt(Math.random()) * radius;
+
+                const location = {
+                    lat: baseLocation.lat + r * Math.cos(angle),
+                    lng: baseLocation.lng + r * Math.sin(angle)
+                };
+
+                const severity = 0.5 + Math.random() * 0.5; // 0.5 to 1.0
+                const hotspot = new Hotspot(type.type, location, severity);
+                this.hotspots.push(hotspot);
+
+                // Create 3D model for hotspot
+                hotspot.createModel(this.map3DElement).catch(error => {
+                    console.error('Failed to create hotspot model:', error);
+                });
+            }
+
+            console.log(`Generated ${this.hotspots.length} hotspots`);
+        }
+
+        startEnvironmentalUpdates() {
+            // Initial update
+            this.environmentalData.fetchData(this.map3DElement.center);
+
+            // Update every 30 seconds
+            setInterval(() => {
+                this.environmentalData.fetchData(this.map3DElement.center);
+                
+                // Update wind visualization
+                if (this.environmentalData.data.wind) {
+                    this.windVisualizer.start(
+                        this.environmentalData.data.wind.speed,
+                        this.environmentalData.data.wind.direction
+                    );
+                }
+            }, 30000);
+        }
+
+        handleMapClick(event) {
+            if (!event.position || this.analysisInProgress) return;
+
+            const clickedHotspot = this.findNearestHotspot(event.position);
+            if (clickedHotspot) {
+                this.selectHotspot(clickedHotspot);
+            }
+        }
+
+        findNearestHotspot(position) {
+            const maxDistance = 0.005; // Maximum click distance
+            let nearest = null;
+            let minDistance = maxDistance;
+
+            this.hotspots.forEach(hotspot => {
+                const distance = this.calculateDistance(
+                    position.lat,
+                    position.lng,
+                    hotspot.location.lat,
+                    hotspot.location.lng
+                );
+
+                if (distance < minDistance && !hotspot.analyzed) {
+                    minDistance = distance;
+                    nearest = hotspot;
+                }
+            });
+
+            return nearest;
+        }
+
+        calculateDistance(lat1, lon1, lat2, lon2) {
+            return Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lon2 - lon1, 2));
+        }
+
+        async selectHotspot(hotspot) {
+            if (this.selectedHotspot === hotspot) return;
+
+            this.selectedHotspot = hotspot;
+            
+            // Animate camera to focus on hotspot
+            await this.map3DElement.flyCameraTo({
+                endCamera: {
+                    center: {
+                        lat: hotspot.location.lat,
+                        lng: hotspot.location.lng,
+                        altitude: 500
+                    },
+                    tilt: 60,
+                    heading: 0
+                },
+                durationMillis: 2000
+            });
+
+            // Show analysis panel
+            const panel = document.getElementById('analysis-panel');
+            panel.classList.add('active');
+
+            // Update analysis panel content
+            this.updateAnalysisPanel(hotspot);
+        }
+
+        updateAnalysisPanel(hotspot) {
+            const title = document.querySelector('.analysis-title');
+            title.textContent = `Analyzing ${hotspot.type} Site`;
+
+            // Update charts
+            this.updateAnalysisCharts(hotspot);
+
+            // Update action button
+            const analyzeBtn = document.querySelector('.analyze-btn');
+            analyzeBtn.onclick = () => this.analyzeHotspot(hotspot);
+        }
+
+        async analyzeHotspot(hotspot) {
+            if (this.analysisInProgress) return;
+            this.analysisInProgress = true;
+
+            try {
+                showLoading();
+                const success = await hotspot.analyze(this.resourceManager);
+                
+                if (success) {
+                    // Show success animation
+                    this.showAchievement(`Successfully analyzed ${hotspot.type}!`);
+                    
+                    // Check if all hotspots are analyzed
+                    if (this.hotspots.every(h => h.analyzed)) {
+                        this.gameComplete();
+                    }
+                }
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                showError('Failed to analyze hotspot');
+            } finally {
+                hideLoading();
+                this.analysisInProgress = false;
+            }
+        }
+
+        updateAnalysisCharts(hotspot) {
+            // Create or update pollutants chart
+            const pollutantsCtx = document.getElementById('pollutants-chart').getContext('2d');
+            new Chart(pollutantsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['PM2.5', 'PM10', 'NO2', 'O3'],
+                    datasets: [{
+                        label: 'Pollutant Levels',
+                        data: [
+                            Math.random() * 50,
+                            Math.random() * 100,
+                            Math.random() * 40,
+                            Math.random() * 60
+                        ],
+                        backgroundColor: [
+                            '#FF6384',
+                            '#36A2EB',
+                            '#FFCE56',
+                            '#4BC0C0'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+
+            // Create or update trends chart
+            const trendsCtx = document.getElementById('trends-chart').getContext('2d');
+            new Chart(trendsCtx, {
+                type: 'line',
+                data: {
+                    labels: ['6h ago', '5h ago', '4h ago', '3h ago', '2h ago', '1h ago', 'Now'],
+                    datasets: [{
+                        label: 'Air Quality Index',
+                        data: Array(7).fill(0).map(() => Math.random() * 100),
+                        borderColor: '#4CAF50',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+
+        gameComplete() {
+            this.showAchievement('Congratulations! All environmental sites analyzed! 🌍');
+            
+            // Start confetti celebration
+            if (window.gameConfetti) {
+                window.gameConfetti.start(5000);
+            }
+
+            // Play celebration sound
+            document.getElementById('achievement-sound').play().catch(e => {
+                console.warn('Could not play achievement sound:', e);
+            });
+
+            // Show completion dialog after celebration
+            setTimeout(() => {
+                const playAgain = confirm('Environmental analysis complete! Would you like to start a new session?');
+                if (playAgain) {
+                    location.reload();
+                }
+            }, 6000);
+        }
+
+        showAchievement(message) {
+            const popup = document.getElementById('achievement-popup');
+            popup.textContent = message;
+            popup.classList.add('show');
+            
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 3000);
+        }
+    }
+
+    // Initialize game when the page loads
+    window.addEventListener('load', () => {
+        const game = new GameManager();
+        game.init().catch(error => {
+            console.error('Failed to initialize game:', error);
+            showError('Failed to initialize game. Please refresh the page.');
+        });
+    });
+</script>
+</body>
+</html>
