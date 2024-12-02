@@ -1500,9 +1500,9 @@ document.addEventListener('keydown', (e) => {
             markersData = places.map(place => ({ place, aqi: 50 })); // Initialize with default AQI
 
             markersData.forEach((markerData, index) => {
-                if (place.location) { // Correctly access the location property
-                    const lat = place.location.lat(); // Access latitude using lat() method
-                    const lng = place.location.lng(); // Access longitude using lng() method
+                if (markerData.place.location) { // Correctly access the location property
+                    const lat = markerData.place.location.lat(); // Access latitude using lat() method
+                    const lng = markerData.place.location.lng(); // Access longitude using lng() method
                     
                     console.log(`Location of Place ${index + 1}:`, {
                         lat: lat,
