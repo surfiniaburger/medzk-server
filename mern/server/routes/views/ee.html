@@ -324,31 +324,35 @@
                 type: "AirQuality",
                 icon: "🌫️",
                 description: "Air quality monitoring station",
-                points: 15
+                points: 15,
+                color: "#FF4444"
             },
             {
                 type: "GreenSpace",
                 icon: "🌳",
                 description: "Urban green space initiative",
-                points: 20
+                points: 20,
+                color: "#4CAF50"
             },
             {
                 type: "WasteManagement",
                 icon: "♻️",
                 description: "Waste management facility",
-                points: 10
+                points: 10,
+                color: "#2196F3"
             },
             {
                 type: "RenewableEnergy",
                 icon: "☀️",
                 description: "Renewable energy installation",
-                points: 25
+                points: 25,
+                color: "#FF9800"
             }
         ];
 
         // Initialize game
         async function initGame() {
-            const { Map3DElement } = await google.maps.importLibrary("maps3d");
+            const { Map3DElement, Polygon3DElement, Marker3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
             
             map3DElement = new Map3DElement({
                 center: { lat: 40.7128, lng: -74.0060, altitude: 2000 },
@@ -446,11 +450,42 @@
                     icon: type.icon,
                     description: type.description,
                     points: type.points,
+                    color: type.color,
                     analyzed: false
                 };
             });
 
+            createHotspotPolygons();
             createHotspotMarkers();
+        }
+
+        // Create polygons for hotspots
+        async function createHotspotPolygons() {
+            const { Polygon3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
+            const offset = 0.001;
+
+            hotspots.forEach(hotspot => {
+                const polygonCoords = [
+                    { lat: hotspot.location.lat + offset, lng: hotspot.location.lng - offset, altitude: 0 },
+                    { lat: hotspot.location.lat + offset, lng: hotspot.location.lng + offset, altitude: 0 },
+                    { lat: hotspot.location.lat - offset, lng: hotspot.location.lng + offset, altitude: 0 },
+                    { lat: hotspot.location.lat - offset, lng: hotspot.location.lng - offset, altitude: 0 },
+                    { lat: hotspot.location.lat + offset, lng: hotspot.location.lng - offset, altitude: 0 }
+                ];
+
+                const polygon = new Polygon3DElement({
+                    outerCoordinates: polygonCoords,
+                    altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
+                    fillColor: hotspot.color,
+                    strokeColor: "#FFFFFF",
+                    strokeWidth: 2,
+                    extruded: true,
+                    drawsOccludedSegments: true
+                });
+
+                map3DElement.append(polygon);
+                hotspot.polygon = polygon;
+            });
         }
 
         // Create markers for hotspots
