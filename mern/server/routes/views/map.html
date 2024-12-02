@@ -1333,7 +1333,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
-
 async function zoomAndFlyToLocation(map3DElement, location) {
     if (!map3DElement) return;
 
@@ -1489,20 +1488,17 @@ document.addEventListener('keydown', (e) => {
         maxResultCount: 10,
     };
 
-    let markersData = []; // Initialize markersData outside any function
-
     try {
         const { places } = await Place.searchNearby(request);
 
         if (places && places.length > 0) { // Ensure there are places available
             console.log("Nearby Search Results:", places);
-            
-            markersData = places.map(place => ({ place, aqi: 50 })); // Initialize with default AQI
 
-            markersData.forEach((markerData, index) => {
-                if (markerData.place.location) { // Correctly access the location property
-                    const lat = markerData.place.location.lat(); // Access latitude using lat() method
-                    const lng = markerData.place.location.lng(); // Access longitude using lng() method
+            places.forEach((place, index) => {
+                // Check if location data is present
+                if (place.location) { // Correctly access the location property
+                    const lat = place.location.lat(); // Access latitude using lat() method
+                    const lng = place.location.lng(); // Access longitude using lng() method
                     
                     console.log(`Location of Place ${index + 1}:`, {
                         lat: lat,
@@ -1510,27 +1506,12 @@ document.addEventListener('keydown', (e) => {
                     });
 
                     // Create an interactive marker for each place
-                    const marker = new InteractiveMarker(map3DElement, markerData.place);
+                    const marker = new InteractiveMarker(map3DElement, place);
                     marker.create();
                 } else {
                     console.error(`Place ${index + 1} location data is missing.`);
                 }
             });
-            //Fetch environmental data here
-            const environmentalData = await fetchEnvironmentalData(location)
-
-            
-            // Update markersData with fetched AQI (if available)
-            if (environmentalData && environmentalData.aqi) {
-                markersData.forEach(markerData => {
-                    markerData.aqi = environmentalData.aqi;
-                });
-
-
-                // Call visualizeAQIExtrudedPolygons *after* markersData is updated
-                visualizeAQIExtrudedPolygons(map3DElement, markersData);
-            }
-
         } else {
             console.log("No results found.");
         }
@@ -1566,73 +1547,6 @@ document.addEventListener('keydown', (e) => {
         }
         return elevationResponse.results[0].elevation || 10;
       }
-
-
-async function visualizeAQIExtrudedPolygons(map3DElement, markersData) {
-
-
-const { Polygon3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
-
-// 1. Create polygons based on marker locations and AQI data
-const polygons = markersData.map(markerData => {
-        const location = markerData.place.location; // Access place.location directly
-        const aqi = markerData.aqi;
-        console.log(`AQI for ${markerData.place.displayName}: ${aqi}`); //Log AQI for debugging
-        // 2. Generate polygon coordinates around the marker (adjust offsets as needed)
-
-         // Define a square polygon around the marker location
-         const polygonCoords = [
-                { lat: location.lat() + 0.002, lng: location.lng() - 0.002 },
-                { lat: location.lat() + 0.002, lng: location.lng() + 0.002 },
-                { lat: location.lat() - 0.002, lng: location.lng() + 0.002 },
-                { lat: location.lat() - 0.002, lng: location.lng() - 0.002 }
-            ];
-
-        return {
-            coords: polygonCoords,
-            aqi: aqi
-        };
-    });
-
-
-
-// 3. Create and display the extruded polygons
-polygons.forEach(polygon => {
-    const polygon3D = new Polygon3DElement({
-        paths: [polygon.coords],  // Array of paths (only one in this case)
-        altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,  // Important for extrusion
-        fillColor: getAQIColor(polygon.aqi),  // Use your AQI color function (from previous examples)
-        fillOpacity: 0.7,  // Adjust as needed
-        extrudeHeight: polygon.aqi, // Extrude height based on AQI value
-        strokeColor: "black", // Optional outline
-        strokeWeight: 1 // Optional outline weight
-
-
-    });
-
-
-
-    map3DElement.overlay3Ds.append(polygon3D); // Append to 3D overlays collection
-
-
-    //Add a 2D polygon outline to the base map for better visibility.
-    const polygon2D = new google.maps.Polygon({
-      paths: polygon.coords,
-      strokeColor: "#FF0000",
-       strokeOpacity: 0.8,
-       strokeWeight: 2,
-      fillColor: "#FF0000",
-      fillOpacity: 0.35,
-      map: map3DElement.map
-    });
-
-
-});
-
-}
-
-
-      
       async function fetchEnvironmentalData(location) {
     const googleAirQualityUrl = `https://airquality.googleapis.com/v1/currentConditions:lookup?key=${window.GOOGLE_MAPS_API_KEY}`;
     const openWeatherAirQualityUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${location.lat()}&lon=${location.lng()}&appid=${window.OPENWEATHER_API_KEY}`;
@@ -1654,9 +1568,6 @@ polygons.forEach(polygon => {
         languageCode: "en",
     };
 
- 
-    let aqi = 50
-
     try {
         // Try Google Air Quality API first
         const googleAirQualityResponse = await fetch(googleAirQualityUrl, {
@@ -1672,15 +1583,11 @@ polygons.forEach(polygon => {
         }
 
         const googleAirQualityData = await googleAirQualityResponse.json();
-        if(googleAirQualityData && googleAirQualityData.indexes && googleAirQualityData.indexes.length > 0){
+        displayEnvironmentalData({
+            source: 'google',
+            data: googleAirQualityData
+        });
 
-aqi = googleAirQualityData.indexes[0].aqi || 50; // Set AQI if available, otherwise use default
-displayEnvironmentalData({ source: 'google', data: googleAirQualityData });
-
-} else {
-//Handle case where indexes is not available or empty in Google Air Quality Data
- console.warn("Could not retrieve AQI from Google Air Quality API response. Falling back to OpenWeather API.");
-}
     } catch (googleError) {
         console.warn("Falling back to OpenWeather API due to error:", googleError);
 
@@ -1692,31 +1599,20 @@ displayEnvironmentalData({ source: 'google', data: googleAirQualityData });
             ]);
 
             const airQualityData = await airQualityResponse.json();
-            if (airQualityData && airQualityData.list && airQualityData.list[0] && airQualityData.list[0].main){
+            const weatherData = await weatherResponse.json();
 
-
-aqi = airQualityData.list[0].main.aqi * 20 || 50; // Set AQI if available, otherwise use default
-
-
-displayEnvironmentalData({
-    source: 'openweather',
-    data: { airQuality: airQualityData, weather: weatherData }
-});
-
-
-
-} else {
-console.warn("Could not retrieve AQI from OpenWeather API response."); //Handle case where list is not available or empty
-
-}
-
-
+            displayEnvironmentalData({
+                source: 'openweather',
+                data: {
+                    airQuality: airQualityData,
+                    weather: weatherData
+                }
+            });
         } catch (fallbackError) {
             console.error("Failed to fetch environmental data:", fallbackError);
             displayError("Unable to fetch environmental data. Please try again later.");
         }
     }
-    return { aqi: aqi }; // Return the aqi data
 }
 
 
