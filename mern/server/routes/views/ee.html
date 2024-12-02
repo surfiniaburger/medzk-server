@@ -523,6 +523,7 @@
             updateSustainabilityRating();
             
             // Celebrate with confetti if all hotspots are analyzed
+            await celebrateCollection(currentHotspot); //Added camera fly around
             if (hotspots.every(h => h.analyzed)) {
                 gameComplete();
             }
