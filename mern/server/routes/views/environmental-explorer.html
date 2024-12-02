@@ -384,8 +384,8 @@
 
         // Fetch environmental data from APIs
         async function fetchEnvironmentalData(location) {
-            const openWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${location.lat}&lon=${location.lng}&appid= ${window.OPENWEATHER_API_KEY}`;
-            const airQualityUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${location.lat}&lon=${location.lng}&appid=${ window.OPENWEATHER_API_KEY}`;
+            const openWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${location.lat}&lon=${location.lng}&appid=${window.OPENWEATHER_API_KEY}`;
+            const airQualityUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${location.lat}&lon=${location.lng}&appid=${window.OPENWEATHER_API_KEY}`;
 
             try {
                 const [weatherResponse, airQualityResponse] = await Promise.all([
