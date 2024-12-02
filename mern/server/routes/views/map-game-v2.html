@@ -561,14 +561,14 @@
         function gameComplete() {
             showAchievement('Congratulations! You\'ve collected everything! 🏆');
             // Start confetti celebration
-            gameConfetti.start(5000); // Run confetti for 5 seconds
+            gameConfetti.start(10000); // Run confetti for 10 seconds
             
             setTimeout(() => {
                 const playAgain = confirm('Would you like to play again?');
                 if (playAgain) {
                     location.reload();
                 }
-            }, 5000);
+            }, 10000);
         }
 
         async function initGame() {

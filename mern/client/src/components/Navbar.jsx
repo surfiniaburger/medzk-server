@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Home, Activity, BarChart2, MapIcon, GemIcon } from "lucide-react";
+import { Menu, X, Home, Activity, BarChart2, MapIcon, GemIcon, Gamepad } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NavItem = ({ to, children, icon: Icon }) => {
@@ -58,6 +58,7 @@ export default function Navbar() {
     { to: "/map", label: "3d Map", icon: MapIcon },
     { to: "/analytics", label: "Analytics", icon: BarChart2 },
     { to:  "/chrome-canary", label: "Gemini nano", icon:  GemIcon},
+    { to:  "/environment", label: "Env game", icon:  Gamepad},
   ];
 
   return (
