@@ -229,7 +229,7 @@ router.get('/chrome-canary', (req, res) => {
     logger.info('info', `OPENWEATHER_API_KEY: ${process.env.OPENWEATHER_API_KEY ? 'Loaded' : 'Not Loaded'}`);
     
     // Read both files
-    const htmlPath = path.join(__dirname, 'views/map-canary.html');
+    const htmlPath = path.join(__dirname, 'views/environmental-explorer.html');
     const jsPath = path.join(__dirname, '../public/js/map-application.js');
     
     logger.info('info', `Reading HTML file from: ${htmlPath}`);
