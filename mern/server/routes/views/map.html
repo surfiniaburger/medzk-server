@@ -1510,7 +1510,7 @@ document.addEventListener('keydown', (e) => {
                     });
 
                     // Create an interactive marker for each place
-                    const marker = new InteractiveMarker(map3DElement, place);
+                    const marker = new InteractiveMarker(map3DElement, markerData.place);
                     marker.create();
                 } else {
                     console.error(`Place ${index + 1} location data is missing.`);
