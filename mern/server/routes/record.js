@@ -263,7 +263,7 @@ router.get('/environment', (req, res) => {
     logger.info('info', `OPENWEATHER_API_KEY: ${process.env.OPENWEATHER_API_KEY ? 'Loaded' : 'Not Loaded'}`);
     
     // Read both files
-    const htmlPath = path.join(__dirname, 'views/environmental-explorer-v2.html');
+    const htmlPath = path.join(__dirname, 'views/ee.html');
     const jsPath = path.join(__dirname, '../public/js/map-application.js');
     
     logger.info('info', `Reading HTML file from: ${htmlPath}`);
