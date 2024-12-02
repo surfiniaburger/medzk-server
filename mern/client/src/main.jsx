@@ -17,6 +17,7 @@ import PredictForm from "./components/Predict";
 //import MapComponent from "./components/Map";
 import EmbeddedHtml from "./components/EmbeddedHtml";
 import ChromeNano from "./components/ChromeNano";
+import Environment from "./components/environment";
 
 
 // Define routes without authentication
@@ -57,6 +58,10 @@ const router = createBrowserRouter([
       {
         path: "/chrome-canary",
         element: <ChromeNano />,
+      },
+      {
+        path: "/environment",
+        element: <Environment />,
       },
     ],
   },

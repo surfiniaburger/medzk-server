@@ -219,6 +219,7 @@ router.get('/map', (req, res) => {
 });
 
 
+
 router.get('/chrome-canary', (req, res) => {
   try {
     // Log request details
@@ -229,7 +230,7 @@ router.get('/chrome-canary', (req, res) => {
     logger.info('info', `OPENWEATHER_API_KEY: ${process.env.OPENWEATHER_API_KEY ? 'Loaded' : 'Not Loaded'}`);
     
     // Read both files
-    const htmlPath = path.join(__dirname, 'views/environmental-explorer.html');
+    const htmlPath = path.join(__dirname, 'views/map2.html');
     const jsPath = path.join(__dirname, '../public/js/map-application.js');
     
     logger.info('info', `Reading HTML file from: ${htmlPath}`);
@@ -251,6 +252,40 @@ router.get('/chrome-canary', (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+router.get('/environment', (req, res) => {
+  try {
+    // Log request details
+    logger.info('info', 'Request received for /environment');
+    
+    // Log environment variables
+    logger.info('info', `GOOGLE_MAPS_API_KEY: ${process.env.GOOGLE_MAPS_API_KEY ? 'Loaded' : 'Not Loaded'}`);
+    logger.info('info', `OPENWEATHER_API_KEY: ${process.env.OPENWEATHER_API_KEY ? 'Loaded' : 'Not Loaded'}`);
+    
+    // Read both files
+    const htmlPath = path.join(__dirname, 'views/environmental-explorer-v2.html');
+    const jsPath = path.join(__dirname, '../public/js/map-application.js');
+    
+    logger.info('info', `Reading HTML file from: ${htmlPath}`);
+    logger.info('info', `Reading JS file from: ${jsPath}`);
+    
+    let htmlContent = fs.readFileSync(htmlPath, 'utf-8');
+    const jsContent = fs.readFileSync(jsPath, 'utf-8');
+
+    // Inject the JavaScript content and API keys
+    htmlContent = htmlContent
+      .replace('{{GOOGLE_MAPS_API_KEY}}', process.env.GOOGLE_MAPS_API_KEY)
+      .replace('{{OPENWEATHER_API_KEY}}', process.env.OPENWEATHER_API_KEY)
+      .replace('<script src="/js/map-application.js"></script>', `<script>${jsContent}</script>`);
+    
+    logger.info('info', 'Successfully injected API keys into HTML');
+    res.status(200).send(htmlContent);
+  } catch (error) {
+    logger.error('Error rendering the map page:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 // Get a single record by ID
 router.get("/:id", async (req, res) => {
