@@ -1489,18 +1489,17 @@ document.addEventListener('keydown', (e) => {
         maxResultCount: 10,
     };
 
-    let markersData = []; // Store marker data globally
+    let markersData = []; // Initialize markersData outside any function
 
     try {
         const { places } = await Place.searchNearby(request);
 
         if (places && places.length > 0) { // Ensure there are places available
             console.log("Nearby Search Results:", places);
+            
+            markersData = places.map(place => ({ place, aqi: 50 })); // Initialize with default AQI
 
-            places.forEach((place, index) => {
-
-                markersData.push({ place: place }); // Store place details
-                // Check if location data is present
+            markersData.forEach((markerData, index) => {
                 if (place.location) { // Correctly access the location property
                     const lat = place.location.lat(); // Access latitude using lat() method
                     const lng = place.location.lng(); // Access longitude using lng() method
@@ -1517,6 +1516,21 @@ document.addEventListener('keydown', (e) => {
                     console.error(`Place ${index + 1} location data is missing.`);
                 }
             });
+            //Fetch environmental data here
+            const environmentalData = await fetchEnvironmentalData(location)
+
+            
+            // Update markersData with fetched AQI (if available)
+            if (environmentalData && environmentalData.aqi) {
+                markersData.forEach(markerData => {
+                    markerData.aqi = environmentalData.aqi;
+                });
+
+
+                // Call visualizeAQIExtrudedPolygons *after* markersData is updated
+                visualizeAQIExtrudedPolygons(map3DElement, markersData);
+            }
+
         } else {
             console.log("No results found.");
         }
@@ -1640,7 +1654,8 @@ polygons.forEach(polygon => {
         languageCode: "en",
     };
 
-    let environmentalData = null; // Initialize environmentalData
+ 
+    let aqi = 50
 
     try {
         // Try Google Air Quality API first
@@ -1657,33 +1672,15 @@ polygons.forEach(polygon => {
         }
 
         const googleAirQualityData = await googleAirQualityResponse.json();
-   
-        displayEnvironmentalData({
-            source: 'google',
-            data: googleAirQualityData
-        });
+        if(googleAirQualityData && googleAirQualityData.indexes && googleAirQualityData.indexes.length > 0){
 
-        if (googleAirQualityData && googleAirQualityData.indexes && googleAirQualityData.indexes.length > 0) {
-        environmentalData = {  // Correctly set environmentalData here if successful.
+aqi = googleAirQualityData.indexes[0].aqi || 50; // Set AQI if available, otherwise use default
+displayEnvironmentalData({ source: 'google', data: googleAirQualityData });
 
-            aqi: googleAirQualityData.indexes[0].aqi || 50, // Handle missing AQI
-
-        };
-    } else {
-
-      console.error("Invalid or missing AQI data from Google Air Quality API.");
-    }
-
-    // Now call visualizeAQIExtrudedPolygons *after* environmentalData is set
-    if (environmentalData){  // Only visualize if data was fetched
-        if(markersData.length > 0){
-            visualizeAQIExtrudedPolygons(map3DElement, markersData);
-
-        }
-
-
-    }
-
+} else {
+//Handle case where indexes is not available or empty in Google Air Quality Data
+ console.warn("Could not retrieve AQI from Google Air Quality API response. Falling back to OpenWeather API.");
+}
     } catch (googleError) {
         console.warn("Falling back to OpenWeather API due to error:", googleError);
 
@@ -1695,38 +1692,23 @@ polygons.forEach(polygon => {
             ]);
 
             const airQualityData = await airQualityResponse.json();
-            const weatherData = await weatherResponse.json();
+            if (airQualityData && airQualityData.list && airQualityData.list[0] && airQualityData.list[0].main){
 
-            //Call visualizeAQIExtrudedPolygons after updating markersData
 
-            displayEnvironmentalData({
-                source: 'openweather',
-                data: {
-                    airQuality: airQualityData,
-                    weather: weatherData
-                }
-            });
-            if (airQualityData && airQualityData.list && airQualityData.list[0] && airQualityData.list[0].main) {
-        environmentalData = {  // Correctly set environmentalData from OpenWeather *inside* the successful try
+aqi = airQualityData.list[0].main.aqi * 20 || 50; // Set AQI if available, otherwise use default
 
-            aqi: airQualityData.list[0].main.aqi * 20 || 50, // Handle missing AQI
 
-        };
-
-    } else {
-        console.error("Invalid or missing AQI data from OpenWeather API.");
-    }
+displayEnvironmentalData({
+    source: 'openweather',
+    data: { airQuality: airQualityData, weather: weatherData }
+});
 
 
 
-      // Now call visualizeAQIExtrudedPolygons *after* environmentalData is set
-       if (environmentalData){  // Only visualize if data was fetched
-             if(markersData.length > 0){
-                visualizeAQIExtrudedPolygons(map3DElement, markersData);
-             }
+} else {
+console.warn("Could not retrieve AQI from OpenWeather API response."); //Handle case where list is not available or empty
 
-       }
-
+}
 
 
         } catch (fallbackError) {
@@ -1734,6 +1716,7 @@ polygons.forEach(polygon => {
             displayError("Unable to fetch environmental data. Please try again later.");
         }
     }
+    return { aqi: aqi }; // Return the aqi data
 }
 
 
