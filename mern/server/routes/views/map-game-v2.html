@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Map Collection Game</title>
+    <style>
+        /* Original styles remain the same */
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --accent-color: #FF4444;
+            --text-color: #333;
+            --background-color: #f5f5f5;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .celebrate-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1001;
+            transition: transform 0.3s ease;
+        }
+
+        .celebrate-btn:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .stop-btn {
+            background: #f44336;
+            display: none;
+        }
+
+        .stop-btn:hover {
+            background: #d32f2f;
+        }
+
+        .confetti-active {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .duration-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            display: none;
+            z-index: 1001;
+        }
+
+        /* Original game styles */
+        #score-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            transition: transform 0.3s ease;
+        }
+
+        #score {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        #high-score {
+            font-size: 16px;
+            color: var(--secondary-color);
+            margin-top: 5px;
+        }
+
+        #instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            z-index: 1000;
+            animation: float 3s ease-in-out infinite;
+            backdrop-filter: blur(5px);
+        }
+
+        .collectible-info {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            max-width: 300px;
+            text-align: center;
+        }
+
+        .collect-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .collect-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        #achievement-popup {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100%);
+            background: rgba(255, 215, 0, 0.95);
+            padding: 15px 30px;
+            border-radius: 25px;
+            color: #333;
+            font-weight: bold;
+            z-index: 1001;
+            opacity: 0;
+            transition: all 0.5s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        #achievement-popup.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+        <div id="score-panel">
+            <div id="score">Score: 0</div>
+            <div id="high-score">High Score: 0</div>
+        </div>
+        <div id="instructions">
+            Find and collect the glowing polygons! Click to collect when nearby.
+        </div>
+        <div id="collectible-info" class="collectible-info">
+            <h3>Collectible Found!</h3>
+            <p>You've discovered a special location!</p>
+            <button class="collect-btn" onclick="collectPoint()">Collect (+10 points)</button>
+        </div>
+        <div id="achievement-popup">Achievement Unlocked! 🏆</div>
+    </div>
+
+    <audio id="collect-sound" src="https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/toy-short.mp3" preload="auto"></audio>
+    <audio id="achievement-sound" src="https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/baby-laugh.mp3" preload="auto"></audio>
+
+    <script>
+        // Confetti Implementation
+        class Confetti {
+            constructor() {
+                this.particles = [];
+                this.colors = [
+                    '#FFD700', // Gold
+                    '#FF6B6B', // Coral
+                    '#4ECDC4', // Turquoise
+                    '#45B7D1', // Sky Blue
+                    '#96CEB4', // Sage
+                    '#FFEEAD', // Cream
+                    '#D4A5A5', // Rose
+                    '#9AC1D9'  // Light Blue
+                ];
+                this.shapes = ['circle', 'square', 'triangle', 'star'];
+                this.running = false;
+            }
+
+            createParticle(x, y) {
+                return {
+                    x,
+                    y,
+                    color: this.colors[Math.floor(Math.random() * this.colors.length)],
+                    shape: this.shapes[Math.floor(Math.random() * this.shapes.length)],
+                    size: Math.random() * 10 + 5,
+                    vx: Math.random() * 10 - 5,
+                    vy: -Math.random() * 10 - 10,
+                    gravity: 0.5,
+                    rotation: Math.random() * 360,
+                    rotationSpeed: (Math.random() - 0.5) * 10,
+                    opacity: 1,
+                    wobble: Math.random() * 10,
+                    wobbleSpeed: Math.random() * 0.1,
+                    phase: Math.random() * Math.PI * 2
+                };
+            }
+
+            start(duration = 5000) {
+                if (this.running) return;
+                this.running = true;
+
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+
+                const resize = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                };
+                window.addEventListener('resize', resize);
+                resize();
+
+                // Create initial particles with staggered timing
+                const particleCount = 200;
+                const batchSize = 20;
+                let particlesCreated = 0;
+
+                const createParticleBatch = () => {
+                    for (let i = 0; i < batchSize && particlesCreated < particleCount; i++) {
+                        this.particles.push(this.createParticle(
+                            Math.random() * canvas.width,
+                            canvas.height + 10
+                        ));
+                        particlesCreated++;
+                    }
+                    if (particlesCreated < particleCount && this.running) {
+                        setTimeout(createParticleBatch, 100);
+                    }
+                };
+
+                createParticleBatch();
+
+                const animate = () => {
+                    if (!this.running) {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        this.particles = [];
+                        return;
+                    }
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    this.particles.forEach((p, index) => {
+                        p.x += p.vx + Math.sin(p.phase) * p.wobble;
+                        p.y += p.vy;
+                        p.vy += p.gravity;
+                        p.rotation += p.rotationSpeed;
+                        p.opacity -= 0.005;
+                        p.phase += p.wobbleSpeed;
+                        p.size *= 0.999;
+
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate((p.rotation * Math.PI) / 180);
+                        ctx.globalAlpha = p.opacity;
+                        ctx.fillStyle = p.color;
+
+                        switch (p.shape) {
+                            case 'circle':
+                                ctx.beginPath();
+                                ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+                                ctx.fill();
+                                break;
+                            case 'square':
+                                ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                                break;
+                            case 'triangle':
+                                ctx.beginPath();
+                                ctx.moveTo(-p.size/2, p.size/2);
+                                ctx.lineTo(p.size/2, p.size/2);
+                                ctx.lineTo(0, -p.size/2);
+                                ctx.closePath();
+                                ctx.fill();
+                                break;
+                            case 'star':
+                                this.drawStar(ctx, 0, 0, p.size, 5, 0.5);
+                                ctx.fill();
+                                break;
+                        }
+
+                        ctx.restore();
+
+                        if (p.opacity <= 0 || p.y > canvas.height + 20 || p.size < 1) {
+                            if (this.running && Math.random() < 0.3) {
+                                this.particles[index] = this.createParticle(
+                                    Math.random() * canvas.width,
+                                    canvas.height + 10
+                                );
+                            } else {
+                                this.particles.splice(index, 1);
+                            }
+                        }
+                    });
+
+                    requestAnimationFrame(animate);
+                };
+
+                animate();
+
+                if (duration) {
+                    setTimeout(() => this.stop(), duration);
+                }
+            }
+
+            drawStar(ctx, x, y, radius, points, ratio) {
+                ctx.beginPath();
+                for (let i = 0; i < points * 2; i++) {
+                    const r = (i % 2 === 0) ? radius : radius * ratio;
+                    const angle = (i * Math.PI) / points;
+                    const xPos = x + r * Math.sin(angle);
+                    const yPos = y + r * Math.cos(angle);
+                    if (i === 0) ctx.moveTo(xPos, yPos);
+                    else ctx.lineTo(xPos, yPos);
+                }
+                ctx.closePath();
+            }
+
+            stop() {
+                this.running = false;
+            }
+        }
+
+        // Create global confetti instance
+        const gameConfetti = new Confetti();
+
+        // Game code
+        let map3DElement;
+        let score = 0;
+        let highScore = localStorage.getItem('mapGameHighScore') || 0;
+        let collectibles = [];
+        let currentCollectible = null;
+        let soundEnabled = true;
+
+        const collectibleLocations = [
+            { lat: 40.7128, lng: -74.0060, points: 10, color: "#FF4444" },
+            { lat: 40.7580, lng: -73.9855, points: 15, color: "#4CAF50" },
+            { lat: 40.7527, lng: -73.9772, points: 20, color: "#2196F3" },
+        ];
+
+        function showAchievement(message) {
+            const popup = document.getElementById('achievement-popup');
+            popup.textContent = message;
+            popup.classList.add('show');
+            if (soundEnabled) {
+                document.getElementById('achievement-sound').play();
+            }
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 3000);
+        }
+
+        async function createCollectiblePolygon(location, Polygon3DElement, AltitudeMode) {
+            const offset = 0.001;
+            const polygonCoords = [
+                { lat: location.lat + offset, lng: location.lng - offset },
+                { lat: location.lat + offset, lng: location.lng + offset },
+                { lat: location.lat - offset, lng: location.lng + offset },
+                { lat: location.lat - offset, lng: location.lng - offset },
+                { lat: location.lat + offset, lng: location.lng - offset }
+            ];
+
+            const polygon = new Polygon3DElement({
+                outerCoordinates: polygonCoords,
+                altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
+                fillColor: location.color,
+                strokeColor: "#FFFFFF",
+                strokeWidth: 2,
+                extruded: true,
+                drawsOccludedSegments: true
+            });
+
+            map3DElement.append(polygon);
+            return polygon;
+        }
+
+        function addTouchSupport() {
+            let touchStartX, touchStartY;
+            
+            document.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, false);
+
+            document.addEventListener('touchend', (e) => {
+                const touchEndX = e.changedTouches[0].clientX;
+                const touchEndY = e.changedTouches[0].clientY;
+                const dx = touchEndX - touchStartX;
+                const dy = touchEndY - touchStartY;
+
+                if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+                    handleMapClick(e);
+                }
+            }, false);
+        }
+
+        async function handleMapClick(event) {
+            if (!event.position) return;
+
+            for (const collectible of collectibles) {
+                if (collectible.collected) continue;
+
+                const distance = calculateDistance(
+                    event.position.lat,
+                    event.position.lng,
+                    collectible.location.lat,
+                    collectible.location.lng
+                );
+
+                if (distance < 0.005) {
+                    showCollectibleInfo(collectible);
+                    break;
+                }
+            }
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            return Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lon2 - lon1, 2));
+        }
+
+        function showCollectibleInfo(collectible) {
+            currentCollectible = collectible;
+            const infoPanel = document.getElementById('collectible-info');
+            infoPanel.style.display = 'block';
+        }
+
+        function collectPoint() {
+            if (!currentCollectible || currentCollectible.collected) return;
+
+            score += currentCollectible.location.points;
+            document.getElementById('score').textContent = `Score: ${score}`;
+            
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('mapGameHighScore', highScore);
+                document.getElementById('high-score').textContent = `High Score: ${highScore}`;
+                showAchievement('New High Score! 🎉');
+            }
+
+            currentCollectible.collected = true;
+            
+            if (soundEnabled) {
+                document.getElementById('collect-sound').play();
+            }
+            
+            document.getElementById('collectible-info').style.display = 'none';
+            
+            celebrateCollection(currentCollectible);
+
+            if (collectibles.every(c => c.collected)) {
+                gameComplete();
+            }
+        }
+
+        async function celebrateCollection(collectible) {
+            await map3DElement.flyCameraTo({
+                endCamera: {
+                    center: {
+                        lat: collectible.location.lat,
+                        lng: collectible.location.lng,
+                        altitude: 500
+                    },
+                    tilt: 60,
+                    heading: 0
+                },
+                durationMillis: 2000
+            });
+
+            await map3DElement.flyCameraAround({
+                camera: {
+                    center: {
+                        lat: collectible.location.lat,
+                        lng: collectible.location.lng,
+                        altitude: 500
+                    },
+                    tilt: 60
+                },
+                durationMillis: 3000,
+                rounds: 1
+            });
+
+            startExplorationMode();
+        }
+
+        async function startExplorationMode() {
+            await map3DElement.flyCameraTo({
+                endCamera: {
+                    center: {
+                        lat: 40.7128,
+                        lng: -74.0060,
+                        altitude: 2000
+                    },
+                    tilt: 45,
+                    heading: 0
+                },
+                durationMillis: 2000
+            });
+        }
+
+        function gameComplete() {
+            showAchievement('Congratulations! You\'ve collected everything! 🏆');
+            // Start confetti celebration
+            gameConfetti.start(5000); // Run confetti for 5 seconds
+            
+            setTimeout(() => {
+                const playAgain = confirm('Would you like to play again?');
+                if (playAgain) {
+                    location.reload();
+                }
+            }, 5000);
+        }
+
+        async function initGame() {
+            document.getElementById('high-score').textContent = `High Score: ${highScore}`;
+
+            const { Map3DElement, Polygon3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
+
+            map3DElement = new Map3DElement({
+                center: { lat: 40.7128, lng: -74.0060, altitude: 2000 },
+                tilt: 45,
+                heading: 0,
+                range: 3000
+            });
+            document.getElementById('game-container').appendChild(map3DElement);
+
+            for (const location of collectibleLocations) {
+                const polygon = await createCollectiblePolygon(location, Polygon3DElement, AltitudeMode);
+                collectibles.push({
+                    polygon,
+                    location,
+                    collected: false
+                });
+            }
+
+            map3DElement.addEventListener('gmp-click', handleMapClick);
+            addTouchSupport();
+            startExplorationMode();
+        }
+
+        // Initialize the game when the page loads
+        window.addEventListener('load', initGame);
+
+        // Initialize Google Maps
+        (g => { var h, a, k, p = "The Google Maps JavaScript API", c = "google", l = "importLibrary", q = "__ib__", m = document, b = window; b = b[c] || (b[c] = {}); var d = b.maps || (b.maps = {}), r = new Set, e = new URLSearchParams, u = () => h || (h = new Promise(async (f, n) => { await (a = m.createElement("script")); e.set("libraries", [...r] + ""); for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]); e.set("callback", c + ".maps." + q); a.src = `https://maps.${c}apis.com/maps/api/js?` + e; d[q] = f; a.onerror = () => h = n(Error(p + " could not load.")); a.nonce = m.querySelector("script[nonce]")?.nonce || ""; m.head.append(a) })); d[l] ? console.warn(p + " only loads once. Ignoring:", g) : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)) })({
+            key: "",
+            v: "alpha",
+        });
+    </script>
+</body>
+</html>
