@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #87CEEB;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="weatherCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('weatherCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas to full window size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Wind system
+        const wind = {
+            angle: Math.PI / 4,  // Wind direction in radians
+            speed: 2,            // Base wind speed
+            variation: 0,        // Current variation
+            update() {
+                // Smoothly vary wind speed and angle
+                this.variation = Math.sin(Date.now() / 2000) * 1;
+                this.speed = 2 + this.variation;
+                this.angle += Math.sin(Date.now() / 5000) * 0.01;
+            },
+            getXSpeed() {
+                return Math.cos(this.angle) * this.speed;
+            },
+            getYSpeed() {
+                return Math.sin(this.angle) * this.speed;
+            }
+        };
+
+        // Rain particles
+        class RainDrop {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = -20;
+                this.speed = Math.random() * 5 + 10;
+                this.length = Math.random() * 20 + 10;
+            }
+
+            update() {
+                this.x += wind.getXSpeed() * 0.5;
+                this.y += this.speed;
+                
+                if (this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(
+                    this.x - wind.getXSpeed() * 2,
+                    this.y - this.length
+                );
+                ctx.strokeStyle = 'rgba(174, 194, 224, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+
+        // Cloud particles
+        class CloudParticle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 30 + 20;
+                this.baseSpeed = Math.random() * 0.5 + 0.1;
+            }
+
+            update() {
+                this.x += this.baseSpeed + wind.getXSpeed() * 0.3;
+                this.y += wind.getYSpeed() * 0.1;
+
+                if (this.x > canvas.width + 50) {
+                    this.x = -50;
+                    this.y = Math.random() * canvas.height / 3;
+                }
+                if (this.x < -50) {
+                    this.x = canvas.width + 50;
+                    this.y = Math.random() * canvas.height / 3;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.fill();
+            }
+        }
+
+        // Dust devil particles
+        class DustParticle {
+            constructor(centerX, centerY) {
+                this.centerX = centerX;
+                this.centerY = centerY;
+                this.angle = Math.random() * Math.PI * 2;
+                this.radius = Math.random() * 20 + 10;
+                this.speed = Math.random() * 0.1 + 0.05;
+                this.size = Math.random() * 3 + 1;
+                this.opacity = Math.random() * 0.5 + 0.3;
+            }
+
+            update() {
+                this.angle += this.speed;
+                this.radius = Math.max(5, this.radius + Math.sin(this.angle) * 0.2);
+                // Move center point based on wind
+                this.centerX += wind.getXSpeed() * 0.1;
+                this.centerY += wind.getYSpeed() * 0.1;
+
+                // Keep dust devils within bounds
+                if (this.centerX > canvas.width * 0.9) this.centerX = canvas.width * 0.9;
+                if (this.centerX < canvas.width * 0.1) this.centerX = canvas.width * 0.1;
+                if (this.centerY > canvas.height * 0.9) this.centerY = canvas.height * 0.9;
+                if (this.centerY < canvas.height * 0.5) this.centerY = canvas.height * 0.5;
+            }
+
+            draw() {
+                const x = this.centerX + Math.cos(this.angle) * this.radius;
+                const y = this.centerY + Math.sin(this.angle) * this.radius;
+                ctx.beginPath();
+                ctx.arc(x, y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(150, 150, 150, ${this.opacity})`;
+                ctx.fill();
+            }
+        }
+
+        // Create particles
+        const cloudParticles = Array.from({ length: 50 }, () => 
+            new CloudParticle(
+                Math.random() * canvas.width,
+                Math.random() * canvas.height / 3
+            )
+        );
+
+        const dustDevils = [
+            Array.from({ length: 30 }, () => 
+                new DustParticle(canvas.width * 0.8, canvas.height * 0.7)
+            ),
+            Array.from({ length: 30 }, () => 
+                new DustParticle(canvas.width * 0.2, canvas.height * 0.8)
+            )
+        ];
+
+        const raindrops = Array.from({ length: 200 }, () => new RainDrop());
+
+        // Animation loop
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update wind
+            wind.update();
+
+            // Update and draw clouds
+            cloudParticles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            // Update and draw dust devils
+            dustDevils.forEach(devil => {
+                devil.forEach(particle => {
+                    particle.update();
+                    particle.draw();
+                });
+            });
+
+            // Update and draw rain
+            raindrops.forEach(drop => {
+                drop.update();
+                drop.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
