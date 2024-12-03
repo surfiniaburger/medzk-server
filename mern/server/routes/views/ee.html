@@ -274,6 +274,22 @@
         </div>
     </div>
 
+    <div id="planting-game" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 200px; background-color: #f0f0f0; border-radius: 10px; z-index: 1001;">
+        <div id="planting-area" style="width: 100%; height: 100%; position: relative; cursor: pointer;"></div>  
+    </div>
+
+    <div id="air-quality-game" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:300px; height:200px; background-color:#e0f2f7; border-radius:10px; z-index:1001;">
+        <div id="filter-area" style="width:100%; height:100%; position:relative; overflow:hidden;"></div>
+    </div>
+
+    <div id="waste-management-game" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:300px; height:200px; background-color:#BBDEFB; border-radius:10px; z-index:1001;">
+        <div id="bins-area" style="display: flex; justify-content: center; align-items: center;"></div>
+    </div>
+
+    <div id="renewable-energy-game" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:300px; height:200px; background-color:#FFF9C4; border-radius:10px; z-index:1001;">
+        <div id="connections-area" style="width: 100%; height: 100%; position: relative;"></div>
+    </div>
+    
     <audio id="collect-sound" src="https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/toy-short.mp3" preload="auto"></audio>
     <audio id="achievement-sound" src="https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/baby-laugh.mp3" preload="auto"></audio>
 
@@ -325,28 +341,32 @@
                 icon: "🌫️",
                 description: "Air quality monitoring station",
                 points: 15,
-                color: "#FF4444"
+                color: "#FF4444",
+                miniGame: "airQualityGame"
             },
             {
                 type: "GreenSpace",
                 icon: "🌳",
                 description: "Urban green space initiative",
                 points: 20,
-                color: "#4CAF50"
+                color: "#4CAF50",
+                miniGame: "plantingGame"
             },
             {
                 type: "WasteManagement",
                 icon: "♻️",
                 description: "Waste management facility",
                 points: 10,
-                color: "#2196F3"
+                color: "#2196F3",
+                miniGame: "wasteManagementGame"
             },
             {
                 type: "RenewableEnergy",
                 icon: "☀️",
                 description: "Renewable energy installation",
                 points: 25,
-                color: "#FF9800"
+                color: "#FF9800",
+                miniGame: "renewableEnergyGame"
             }
         ];
 
@@ -552,6 +572,11 @@
         async function analyzeHotspot() {
             if (!currentHotspot || currentHotspot.analyzed) return;
 
+            if (currentHotspot.miniGame) { // Check if a mini-game exists
+               const success = await window[currentHotspot.miniGame]();
+                if (!success) return; // Don't proceed if mini-game failed
+            }
+
             environmentalScore += currentHotspot.points;
             currentHotspot.analyzed = true;
             
@@ -605,6 +630,205 @@
                 tipElement.style.display = 'none';
             }, 5000);
         }
+
+        // Planting Mini-Game
+function plantingGame() {
+    return new Promise((resolve) => {
+        const gameDiv = document.getElementById('planting-game');
+        const areaDiv = document.getElementById('planting-area');
+        gameDiv.style.display = 'block'; // Show game UI
+
+        let treesPlanted = 0;
+        const targetTrees = 5;
+
+        areaDiv.addEventListener('click', (event) => {
+            // Create a simple tree visualization (e.g., an image or emoji)
+            const tree = document.createElement('div');
+            tree.textContent = '🌳'; // Or use an image
+            tree.style.position = 'absolute';
+            tree.style.left = event.offsetX + 'px';
+            tree.style.top = event.offsetY + 'px';
+            areaDiv.appendChild(tree);
+
+            treesPlanted++;
+
+            if (treesPlanted >= targetTrees) {
+                gameDiv.style.display = 'none'; // Hide game UI
+                resolve(true); // Mini-game successful
+            }
+        });
+    });
+}
+
+// Waste Management Mini-Game
+function wasteManagementGame() {
+    return new Promise((resolve) => {
+        const gameDiv = document.getElementById('waste-management-game');
+        const binsArea = document.getElementById('bins-area');
+        gameDiv.style.display = 'block';
+
+        const wasteItems = [
+            { type: "paper", image: "paper.png" }, // Replace with actual image paths
+            { type: "plastic", image: "plastic.png" },
+            { type: "glass", image: "glass.png" },
+            { type: "organic", image: "organic.png" }
+        ];
+
+        const binTypes = ["paper", "plastic", "glass", "organic"];
+        let itemsSorted = 0;
+
+        // Create bins
+        binTypes.forEach(type => {
+            const bin = document.createElement('div');
+            bin.id = `${type}-bin`;
+            bin.style.width = '50px';
+            bin.style.height = '70px';
+            bin.style.border = '1px solid black'; // Add some styling
+            bin.style.display = "inline-block";
+            bin.style.margin = "10px";
+            bin.textContent = type; // Label the bin
+            binsArea.appendChild(bin);
+
+
+            bin.addEventListener('dragover', (e) => {
+                e.preventDefault(); // Necessary for drop to work
+            });
+
+             bin.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const data = e.dataTransfer.getData("text/plain");
+                const item = document.getElementById(data);
+                const itemType = item.dataset.type;
+
+                if (itemType === type) { // Check if dropped in correct bin
+                    item.remove();
+                    itemsSorted++;
+                    if (itemsSorted === wasteItems.length) {
+                        gameDiv.style.display = 'none';
+                        resolve(true);
+                    }
+                }
+            });
+        });
+
+
+
+
+        // Create draggable waste items
+        wasteItems.forEach(item => {
+            const waste = document.createElement('img');
+            waste.src = item.image; // Set image source
+            waste.id = `waste-${item.type}-${Math.random()}`; // Unique ID
+            waste.dataset.type = item.type; // Set data attribute for type
+            waste.style.width = '40px';
+            waste.style.height = '40px';
+            waste.style.margin = '5px';
+            waste.style.cursor = 'grab';
+            waste.draggable = true; // Make it draggable
+
+             waste.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData("text/plain", waste.id);
+            });
+            gameDiv.appendChild(waste);
+
+        });
+    });
+}
+
+
+// Renewable Energy Mini-Game (Connecting Game)
+function renewableEnergyGame() {
+    return new Promise((resolve) => {
+        const gameDiv = document.getElementById('renewable-energy-game');
+        const connectionsArea = document.getElementById('connections-area');
+        gameDiv.style.display = 'block';
+
+        const numPanels = 3;
+        let panelsConnected = 0;
+
+        // Create solar panels and grid connection point
+        for (let i = 0; i <= numPanels; i++) { // +1 for the grid connection
+            const element = document.createElement('div');
+            element.style.width = '30px';
+            element.style.height = '30px';
+            element.style.backgroundColor = i < numPanels ? 'yellow' : 'gray'; // Grid is gray
+            element.style.borderRadius = i < numPanels ? '50%' : '0%';  // Grid is square
+            element.style.border = '1px solid black';
+            element.style.position = 'absolute';
+
+
+            if (i < numPanels) { // position solar panels
+                element.style.left = 20 + i*80 + 'px'; // Distribute horizontally
+                element.style.top = 20 + 'px';
+                element.draggable = true;
+                element.id = `panel-${i}`;
+
+
+                element.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData("text/plain", element.id);
+                });
+
+
+            } else { // position grid connection (the last element is the target/grid)
+                element.style.left = '50%';
+                element.style.top = '150px';
+
+                element.addEventListener('dragover', (e) => {
+                    e.preventDefault(); 
+                });
+
+                element.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const panelId = e.dataTransfer.getData("text/plain");
+                    panelsConnected++;
+                    if (panelsConnected >= numPanels) {
+                         gameDiv.style.display = 'none';
+                        resolve(true);
+                    }
+                });
+                
+            }
+
+            connectionsArea.appendChild(element);
+        }
+    });
+}
+
+
+// Air Quality Mini-Game
+function airQualityGame() {
+    return new Promise((resolve) => {
+        const gameDiv = document.getElementById('air-quality-game');
+        const filterArea = document.getElementById('filter-area');
+        gameDiv.style.display = 'block';
+
+        let smogParticles = 10;  // Number of particles to clean
+
+        // Create smog particles
+        for (let i = 0; i < smogParticles; i++) {
+            const smog = document.createElement('div');
+            smog.style.width = '20px';
+            smog.style.height = '20px';
+            smog.style.borderRadius = '50%';
+            smog.style.backgroundColor = '#808080'; // Smog color
+            smog.style.position = 'absolute';
+            smog.style.left = Math.random() * (filterArea.offsetWidth - 20) + 'px';
+            smog.style.top = Math.random() * (filterArea.offsetHeight - 20) + 'px';
+            smog.style.cursor = 'pointer';
+
+            smog.addEventListener('click', () => {
+                smog.remove();
+                smogParticles--;
+
+                if (smogParticles <= 0) {
+                    gameDiv.style.display = 'none';
+                    resolve(true);
+                }
+            });
+            filterArea.appendChild(smog);
+        }
+    });
+}
 
         // Simulate wind conditions
         function startWindSimulation() {
