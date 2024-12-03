@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environmental Explorer Game</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --accent-color: #FF4444;
+            --text-color: #333;
+            --background-color: #f5f5f5;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Environmental Dashboard */
+        .env-dashboard {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            max-width: 300px;
+            transition: transform 0.3s ease;
+        }
+
+        .env-dashboard:hover {
+            transform: scale(1.02);
+        }
+
+        .env-stat {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .env-stat-title {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .env-stat-value {
+            font-size: 1.2em;
+            color: var(--text-color);
+        }
+
+        /* Score Panel */
+        #score-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        #score {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        #eco-score {
+            font-size: 24px;
+            color: var(--secondary-color);
+            margin-top: 5px;
+        }
+
+        /* Mission Panel */
+        #mission-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            max-width: 80%;
+            text-align: center;
+        }
+
+        /* Collectible Info */
+        .collectible-info {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .collect-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .collect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        /* Wind Indicator */
+        #wind-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .wind-arrow {
+            width: 30px;
+            height: 30px;
+            transition: transform 0.5s ease;
+        }
+
+        /* Canvas for confetti */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Achievement Popup */
+        #achievement-popup {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100%);
+            background: rgba(255, 215, 0, 0.95);
+            padding: 15px 30px;
+            border-radius: 25px;
+            color: #333;
+            font-weight: bold;
+            z-index: 1001;
+            opacity: 0;
+            transition: all 0.5s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        #achievement-popup.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Environmental Tips */
+        .eco-tip {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            max-width: 300px;
+            font-size: 14px;
+            display: none;
+            z-index: 999;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="env-dashboard">
+            <div class="env-stat">
+                <div class="env-stat-title">Air Quality Index</div>
+                <div class="env-stat-value" id="aqi-value">Loading...</div>
+            </div>
+            <div class="env-stat">
+                <div class="env-stat-title">Temperature</div>
+                <div class="env-stat-value" id="temp-value">Loading...</div>
+            </div>
+            <div class="env-stat">
+                <div class="env-stat-title">Wind Speed</div>
+                <div class="env-stat-value" id="wind-value">Loading...</div>
+            </div>
+        </div>
+
+        <div id="score-panel">
+            <div id="score">Environmental Score: 0</div>
+            <div id="eco-score">Sustainability Rating: 🌱</div>
+        </div>
+
+        <div id="mission-panel">
+            The news of your pregnancy fills you with joy. You envision a bright future for your child, a world teeming with life and opportunity.  But you realize that creating this future requires action, starting now. Find and analyze environmental hotspots!  Each action you take is a step towards building a healthier world for your baby.
+        </div>
+
+        <div id="wind-indicator">
+            <i class="fas fa-location-arrow wind-arrow"></i>
+        </div>
+
+        <div class="collectible-info" id="collectible-info">
+            <h3>Environmental Hotspot Found!</h3>
+            <p id="hotspot-description">Loading environmental data...</p>
+            <button class="collect-btn" onclick="analyzeHotspot()">Analyze Data</button>
+        </div>
+
+        <div id="achievement-popup">Achievement Unlocked! 🏆</div>
+
+        <div class="eco-tip" id="eco-tip">
+            <p>Did you know? Trees in urban areas can reduce air temperature by up to 8°C!</p>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+    <audio id="collect-sound" src="https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/toy-short.mp3" preload="auto"></audio>
+    <audio id="achievement-sound" src="https://github.com/surfiniaburger/medzk-server/raw/refs/heads/main/mern/server/routes/views/baby-laugh.mp3" preload="auto"></audio>
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+    <!-- Confetti Script -->
+    <script src="/js/confetti.js"></script>
+
+     <!-- Template variables for API keys -->
+  <script>
+    window.GOOGLE_MAPS_API_KEY = '{{GOOGLE_MAPS_API_KEY}}';
+    window.OPENWEATHER_API_KEY = '{{OPENWEATHER_API_KEY}}';
+  </script>
+
+    <!-- Google Maps -->
+    <script>
+        (g => { var h, a, k, p = "The Google Maps JavaScript API", c = "google", l = "importLibrary", q = "__ib__", m = document, b = window; b = b[c] || (b[c] = {}); var d = b.maps || (b.maps = {}), r = new Set, e = new URLSearchParams, u = () => h || (h = new Promise(async (f, n) => { await (a = m.createElement("script")); e.set("libraries", [...r] + ""); for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]); e.set("callback", c + ".maps." + q); a.src = `https://maps.${c}apis.com/maps/api/js?` + e; d[q] = f; a.onerror = () => h = n(Error(p + " could not load.")); a.nonce = m.querySelector("script[nonce]")?.nonce || ""; m.head.append(a) })); d[l] ? console.warn(p + " only loads once. Ignoring:", g) : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)) })({
+            key: window.GOOGLE_MAPS_API_KEY,
+            v: "alpha",
+        });
+    </script>
+
+    <!-- Game Logic -->
+    <script>
+        // Modified game logic to incorporate narrative elements
+        // Game state
+        let map3DElement;
+        let environmentalScore = 0;
+        let sustainabilityLevel = 1;
+        let hotspots = [];
+        let currentHotspot = null;
+        let windDirection = 0;
+        let windSpeed = 0;
+
+        // Environmental tips
+        const ecoTips = [
+            "Trees in urban areas can reduce air temperature by up to 8°C!",
+            "Green roofs can reduce building energy use by 30%",
+            "Urban gardens help reduce the urban heat island effect",
+            "Proper waste management can reduce greenhouse gas emissions",
+            "Solar panels on buildings can generate clean energy"
+        ];
+
+        // Hotspot types with environmental context
+        const hotspotTypes = [
+            {
+                type: "AirQuality",
+                icon: "🌫️",
+                description: "Air quality monitoring station",
+                points: 15,
+                color: "#FF4444"
+            },
+            {
+                type: "GreenSpace",
+                icon: "🌳",
+                description: "Urban green space initiative",
+                points: 20,
+                color: "#4CAF50"
+            },
+            {
+                type: "WasteManagement",
+                icon: "♻️",
+                description: "Waste management facility",
+                points: 10,
+                color: "#2196F3"
+            },
+            {
+                type: "RenewableEnergy",
+                icon: "☀️",
+                description: "Renewable energy installation",
+                points: 25,
+                color: "#FF9800"
+            }
+        ];
+
+        // Initialize game
+        async function initGame() {
+            const { Map3DElement, Polygon3DElement, Marker3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
+            
+            map3DElement = new Map3DElement({
+                center: { lat: 40.7128, lng: -74.0060, altitude: 2000 },
+                tilt: 45,
+                heading: 0,
+                range: 3000
+            });
+            document.getElementById('game-container').appendChild(map3DElement);
+
+            // Initialize environmental features
+            initEnvironmentalFeatures();
+            generateDynamicHotspots();
+            startWindSimulation();
+            showRandomEcoTip();
+
+            // Add event listeners
+            map3DElement.addEventListener('gmp-click', handleMapClick);
+            
+            // Start periodic updates
+            setInterval(updateEnvironmentalData, 30000);
+            setInterval(showRandomEcoTip, 60000);
+        }
+
+        // Initialize environmental features
+        async function initEnvironmentalFeatures() {
+            try {
+                const location = map3DElement.center;
+                await fetchEnvironmentalData(location);
+            } catch (error) {
+                console.error("Failed to initialize environmental features:", error);
+            }
+        }
+
+        // Fetch environmental data from APIs
+        async function fetchEnvironmentalData(location) {
+            const openWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${location.lat}&lon=${location.lng}&appid=${window.OPENWEATHER_API_KEY}`;
+            const airQualityUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${location.lat}&lon=${location.lng}&appid=${window.OPENWEATHER_API_KEY}`;
+
+            try {
+                const [weatherResponse, airQualityResponse] = await Promise.all([
+                    fetch(openWeatherUrl),
+                    fetch(airQualityUrl)
+                ]);
+
+                const weatherData = await weatherResponse.json();
+                const airQualityData = await airQualityResponse.json();
+
+                // Update environmental dashboard
+                updateEnvironmentalDisplay(weatherData, airQualityData);
+
+                // Update wind conditions
+                windSpeed = weatherData.wind.speed;
+                windDirection = weatherData.wind.deg;
+                updateWindIndicator();
+
+                return {
+                    weather: weatherData,
+                    airQuality: airQualityData
+                };
+            } catch (error) {
+                console.error("Error fetching environmental data:", error);
+                return null;
+            }
+        }
+
+        // Update environmental display
+        function updateEnvironmentalDisplay(weather, airQuality) {
+            const tempCelsius = weather.main.temp - 273.15;
+            document.getElementById('temp-value').textContent = `${tempCelsius.toFixed(1)}°C`;
+            document.getElementById('wind-value').textContent = `${weather.wind.speed} m/s`;
+            document.getElementById('aqi-value').textContent = `AQI: ${airQuality.list[0].main.aqi}`;
+        }
+
+        // Update wind indicator
+        function updateWindIndicator() {
+            const arrow = document.querySelector('.wind-arrow');
+            arrow.style.transform = `rotate(${windDirection}deg)`;
+        }
+
+        // Generate dynamic hotspots based on environmental data
+        function generateDynamicHotspots() {
+            const baseLocation = map3DElement.center;
+            const radius = 0.02; // Approximately 2km
+            const markerRadius = radius * 0.7; // Markers closer to center
+            const polygonRadius = radius * 1.3; // Polygons further from center
+
+            hotspots = hotspotTypes.map(type => {
+                const angle = Math.random() * Math.PI * 2;
+                const markerR = Math.sqrt(Math.random()) * markerRadius;
+                const polygonR = Math.sqrt(Math.random()) * polygonRadius;
+
+                return {
+                    markerLocation: {
+                        lat: baseLocation.lat + markerR * Math.cos(angle),
+                        lng: baseLocation.lng + markerR * Math.sin(angle)
+                    },
+                    polygonLocation: {
+                        lat: baseLocation.lat + polygonR * Math.cos(angle + Math.PI/4), // Offset polygon location
+                        lng: baseLocation.lng + polygonR * Math.sin(angle + Math.PI/4) // Offset polygon location
+                    },
+                    type: type.type,
+                    icon: type.icon,
+                    description: type.description,
+                    points: type.points,
+                    color: type.color,
+                    analyzed: false
+                };
+            });
+
+            createHotspotPolygons();
+            createHotspotMarkers();
+        }
+
+        // Create polygons for hotspots
+        async function createHotspotPolygons() {
+            const { Polygon3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
+            const offset = 0.001;
+
+            hotspots.forEach(hotspot => {
+                const polygonCoords = [
+                    { lat: hotspot.polygonLocation.lat + offset, lng: hotspot.polygonLocation.lng - offset, altitude: 0 },
+                    { lat: hotspot.polygonLocation.lat + offset, lng: hotspot.polygonLocation.lng + offset, altitude: 0 },
+                    { lat: hotspot.polygonLocation.lat - offset, lng: hotspot.polygonLocation.lng + offset, altitude: 0 },
+                    { lat: hotspot.polygonLocation.lat - offset, lng: hotspot.polygonLocation.lng - offset, altitude: 0 },
+                    { lat: hotspot.polygonLocation.lat + offset, lng: hotspot.polygonLocation.lng - offset, altitude: 0 }
+                ];
+
+                const polygon = new Polygon3DElement({
+                    outerCoordinates: polygonCoords,
+                    altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
+                    fillColor: hotspot.color,
+                    strokeColor: "#FFFFFF",
+                    strokeWidth: 2,
+                    extruded: true,
+                    drawsOccludedSegments: true
+                });
+
+                map3DElement.append(polygon);
+                hotspot.polygon = polygon;
+            });
+        }
+
+        // Create markers for hotspots
+        async function createHotspotMarkers() {
+            const { Marker3DElement } = await google.maps.importLibrary("maps3d");
+
+            hotspots.forEach(hotspot => {
+                const marker = new Marker3DElement({
+                    position: {
+                        lat: hotspot.markerLocation.lat,
+                        lng: hotspot.markerLocation.lng,
+                        altitude: 0
+                    },
+                    label: hotspot.icon,
+                    sizePreserved: true
+                });
+
+                map3DElement.append(marker);
+                hotspot.marker = marker;
+            });
+        }
+
+        // Handle map clicks
+        async function handleMapClick(event) {
+            if (!event.position) return;
+
+            const clickedHotspot = findNearestHotspot(event.position);
+            if (clickedHotspot && !clickedHotspot.analyzed) {
+                currentHotspot = clickedHotspot;
+                showHotspotInfo(clickedHotspot);
+            }
+        }
+
+        // Find nearest hotspot to click position
+        function findNearestHotspot(position) {
+            return hotspots.reduce((closest, hotspot) => {
+                const dist = calculateDistance(position.lat, position.lng, hotspot.markerLocation.lat, hotspot.markerLocation.lng);
+                const closestDist = closest ? calculateDistance(position.lat, position.lng, closest.markerLocation.lat, closest.markerLocation.lng) : Infinity;
+                return dist < closestDist ? hotspot : closest;
+            }, null);
+        }
+
+        // Calculate distance between two points
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            return Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lon2 - lon1, 2));
+        }
+
+        // Show hotspot information
+        function showHotspotInfo(hotspot) {
+            const infoPanel = document.getElementById('collectible-info');
+            document.getElementById('hotspot-description').textContent = 
+                `${hotspot.icon} ${hotspot.description}\nBy analyzing this hotspot, you're not just collecting data, you're contributing to a cleaner, healthier environment for your baby to breathe and grow in.`;
+            infoPanel.style.display = 'block';
+        }
+
+        // Analyze hotspot data
+        async function analyzeHotspot() {
+            if (!currentHotspot || currentHotspot.analyzed) return;
+
+            environmentalScore += currentHotspot.points;
+            currentHotspot.analyzed = true;
+            
+            // Update UI
+            document.getElementById('score').textContent = `Environmental Score: ${environmentalScore}`;
+            document.getElementById('collectible-info').style.display = 'none';
+            
+            // Show achievement
+            showAchievement(`Environmental Data Collected! +${currentHotspot.points} points. As you reach a new milestone, you feel a connection to the life growing within you, a shared journey of development and potential.`);
+            
+            // Update sustainability rating
+            updateSustainabilityRating();
+            
+            // Celebrate with confetti if all hotspots are analyzed
+            await celebrateCollection(currentHotspot); //Added camera fly around
+            if (hotspots.every(h => h.analyzed)) {
+                gameComplete();
+            }
+        }
+
+        // Update sustainability rating based on score
+        function updateSustainabilityRating() {
+            let rating = '🌱';
+            if (environmentalScore >= 30) rating = '🌱🌱';
+            if (environmentalScore >= 60) rating = '🌱🌱🌱';
+            if (environmentalScore >= 90) rating = '🌱🌱🌱🌱';
+            
+            document.getElementById('eco-score').textContent = `Sustainability Rating: ${rating}`;
+        }
+
+        // Show achievement popup
+        function showAchievement(message) {
+            const popup = document.getElementById('achievement-popup');
+            popup.textContent = message;
+            popup.classList.add('show');
+            document.getElementById('achievement-sound').play();
+            
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 3000);
+        }
+
+        // Show random eco tip
+        function showRandomEcoTip() {
+            const tip = ecoTips[Math.floor(Math.random() * ecoTips.length)];
+            const tipElement = document.getElementById('eco-tip');
+            tipElement.querySelector('p').textContent = tip;
+            tipElement.style.display = 'block';
+            
+            setTimeout(() => {
+                tipElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Simulate wind conditions
+        function startWindSimulation() {
+            setInterval(() => {
+                windDirection = (windDirection + Math.random() * 20 - 10) % 360;
+                windSpeed = Math.min(Math.max(windSpeed + Math.random() - 0.5, 0), 10);
+                
+                const arrow = document.querySelector('.wind-arrow');
+                arrow.style.transform = `rotate(${windDirection}deg)`;
+                
+                document.getElementById('wind-value').textContent = 
+                    `${windSpeed.toFixed(1)} m/s ${getWindDirection(windDirection)}`;
+            }, 3000);
+        }
+
+        // Get wind direction as compass point
+        function getWindDirection(degrees) {
+            const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+            return directions[Math.round(degrees / 45) % 8];
+        }
+
+        // Update environmental data periodically
+        async function updateEnvironmentalData() {
+            const location = map3DElement.center;
+            await fetchEnvironmentalData(location);
+        }
+
+        // Game completion
+        function gameComplete() {
+            showAchievement('Congratulations! All environmental data collected! 🌍 Look at the world you’ve helped create! A vibrant and healthy planet, a beautiful legacy for your child. Welcome to the future.');
+            window.gameConfetti.start(5000);
+            
+            setTimeout(() => {
+                const playAgain = confirm('Would you like to continue environmental monitoring?');
+                if (playAgain) {
+                    location.reload();
+                }
+            }, 5000);
+        }
+
+        // Start the game when the page loads
+        window.addEventListener('load', initGame);
+
+
+        // Added Confetti Class and functions from map-game-v2.html
+        class Confetti {
+            constructor() {
+                this.particles = [];
+                this.colors = [
+                    '#FFD700', // Gold
+                    '#FF6B6B', // Coral
+                    '#4ECDC4', // Turquoise
+                    '#45B7D1', // Sky Blue
+                    '#96CEB4', // Sage
+                    '#FFEEAD', // Cream
+                    '#D4A5A5', // Rose
+                    '#9AC1D9'  // Light Blue
+                ];
+                this.shapes = ['circle', 'square', 'triangle', 'star'];
+                this.running = false;
+            }
+
+            createParticle(x, y) {
+                return {
+                    x,
+                    y,
+                    color: this.colors[Math.floor(Math.random() * this.colors.length)],
+                    shape: this.shapes[Math.floor(Math.random() * this.shapes.length)],
+                    size: Math.random() * 10 + 5,
+                    vx: Math.random() * 10 - 5,
+                    vy: -Math.random() * 10 - 10,
+                    gravity: 0.5,
+                    rotation: Math.random() * 360,
+                    rotationSpeed: (Math.random() - 0.5) * 10,
+                    opacity: 1,
+                    wobble: Math.random() * 10,
+                    wobbleSpeed: Math.random() * 0.1,
+                    phase: Math.random() * Math.PI * 2
+                };
+            }
+
+            start(duration = 5000) {
+                if (this.running) return;
+                this.running = true;
+
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+
+                const resize = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                };
+                window.addEventListener('resize', resize);
+                resize();
+
+                // Create initial particles with staggered timing
+                const particleCount = 200;
+                const batchSize = 20;
+                let particlesCreated = 0;
+
+                const createParticleBatch = () => {
+                    for (let i = 0; i < batchSize && particlesCreated < particleCount; i++) {
+                        this.particles.push(this.createParticle(
+                            Math.random() * canvas.width,
+                            canvas.height + 10
+                        ));
+                        particlesCreated++;
+                    }
+                    if (particlesCreated < particleCount && this.running) {
+                        setTimeout(createParticleBatch, 100);
+                    }
+                };
+
+                createParticleBatch();
+
+                const animate = () => {
+                    if (!this.running) {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        this.particles = [];
+                        return;
+                    }
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    this.particles.forEach((p, index) => {
+                        p.x += p.vx + Math.sin(p.phase) * p.wobble;
+                        p.y += p.vy;
+                        p.vy += p.gravity;
+                        p.rotation += p.rotationSpeed;
+                        p.opacity -= 0.005;
+                        p.phase += p.wobbleSpeed;
+                        p.size *= 0.999;
+
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate((p.rotation * Math.PI) / 180);
+                        ctx.globalAlpha = p.opacity;
+                        ctx.fillStyle = p.color;
+
+                        switch (p.shape) {
+                            case 'circle':
+                                ctx.beginPath();
+                                ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+                                ctx.fill();
+                                break;
+                            case 'square':
+                                ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                                break;
+                            case 'triangle':
+                                ctx.beginPath();
+                                ctx.moveTo(-p.size/2, p.size/2);
+                                ctx.lineTo(p.size/2, p.size/2);
+                                ctx.lineTo(0, -p.size/2);
+                                ctx.closePath();
+                                ctx.fill();
+                                break;
+                            case 'star':
+                                this.drawStar(ctx, 0, 0, p.size, 5, 0.5);
+                                ctx.fill();
+                                break;
+                        }
+
+                        ctx.restore();
+
+                        if (p.opacity <= 0 || p.y > canvas.height + 20 || p.size < 1) {
+                            if (this.running && Math.random() < 0.3) {
+                                this.particles[index] = this.createParticle(
+                                    Math.random() * canvas.width,
+                                    canvas.height + 10
+                                );
+                            } else {
+                                this.particles.splice(index, 1);
+                            }
+                        }
+                    });
+
+                    requestAnimationFrame(animate);
+                };
+
+                animate();
+
+                if (duration) {
+                    setTimeout(() => this.stop(), duration);
+                }
+            }
+
+            drawStar(ctx, x, y, radius, points, ratio) {
+                ctx.beginPath();
+                for (let i = 0; i < points * 2; i++) {
+                    const r = (i % 2 === 0) ? radius : radius * ratio;
+                    const angle = (i * Math.PI) / points;
+                    const xPos = x + r * Math.sin(angle);
+                    const yPos = y + r * Math.cos(angle);
+                    if (i === 0) ctx.moveTo(xPos, yPos);
+                    else ctx.lineTo(xPos, yPos);
+                }
+                ctx.closePath();
+            }
+
+            stop() {
+                this.running = false;
+            }
+        }
+
+        // Create global confetti instance
+        window.gameConfetti = new Confetti();
+
+        //Camera Control Functions from map-game-v2.html
+        async function celebrateCollection(collectible) {
+            await map3DElement.flyCameraTo({
+                endCamera: {
+                    center: {
+                        lat: collectible.polygonLocation.lat, // Use polygon location for camera focus
+                        lng: collectible.polygonLocation.lng,
+                        altitude: 500
+                    },
+                    tilt: 60,
+                    heading: 0
+                },
+                durationMillis: 2000
+            });
+
+            await map3DElement.flyCameraAround({
+                camera: {
+                    center: {
+                        lat: collectible.polygonLocation.lat, // Use polygon location for camera focus
+                        lng: collectible.polygonLocation.lng,
+                        altitude: 500
+                    },
+                    tilt: 60
+                },
+                durationMillis: 3000,
+                rounds: 1
+            });
+
+            start
+        }
