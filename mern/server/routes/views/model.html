@@ -27,6 +27,22 @@
             display: none;
             z-index: 100;
         }
+        #minigame-container {
+            display: none; /* Initially hidden */
+            position: absolute; /* Overlay on map */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            height: 400px;
+            border: 2px solid #ccc;
+            background-color: white; /* Or any suitable background */
+            z-index: 101; /* Ensure it's above the map */
+        }
+        #gameCanvas {
+             width: 100%;
+             height: 100%;
+        }
     </style>
 </head>
 <body>
@@ -35,25 +51,29 @@
         <div id="achievement" class="achievement"></div>
         <gmp-map-3d center="37.7749, -122.4194" zoom="15" tilt="45">
         </gmp-map-3d>
+        
+        <div id="minigame-container">  </div>
+            <canvas id="gameCanvas" width="500" height="400"></canvas>
+        </div>
     </div>
 
     <script>
         const hotspotTypes = [
             {
                 type: "AirQuality",
-                modelUrl: "https://storage.googleapis.com/environmental-models/sensor.glb",
+                modelUrl: "https://medzk-server.onrender.com/models/tree.glb",
                 position: { lat: 37.7749, lng: -122.4194, altitude: 50 },
                 points: 15
             },
             {
                 type: "GreenSpace",
-                modelUrl: "https://storage.googleapis.com/environmental-models/tree.glb",
+                modelUrl: "https://medzk-server.onrender.com/models/tree.glb",
                 position: { lat: 37.7752, lng: -122.4190, altitude: 0 },
                 points: 20
             },
             {
                 type: "WasteManagement",
-                modelUrl: "https://storage.googleapis.com/environmental-models/bin.glb",
+                modelUrl: "https://medzk-server.onrender.com/models/tree.glb",
                 position: { lat: 37.7747, lng: -122.4198, altitude: 0 },
                 points: 10
             }
@@ -62,6 +82,7 @@
         let environmentalScore = 0;
         let map;
         let models = [];
+        let currentHotspot = null;
 
         async function initMap() {
             const { Model3DElement } = await google.maps.importLibrary("maps3d");
@@ -85,21 +106,6 @@
                 models.push(model);
             });
         }
-
-        let currentHotspot = null;
-
-// Initialize hotspots
-function initializeHotspots() {
-    const hotspotsContainer = document.getElementById('hotspots');
-    hotspotTypes.forEach(hotspot => {
-        const div = document.createElement('div');
-        div.className = 'hotspot';
-        div.style.backgroundColor = hotspot.color;
-        div.innerHTML = `${hotspot.icon} ${hotspot.type}`;
-        div.onclick = () => startMiniGame(hotspot);
-        hotspotsContainer.appendChild(div);
-    });
-}
 
 // Mini-game implementations
 const miniGames = {
@@ -423,14 +429,20 @@ const miniGames = {
             }, 2000);
         }
 
-        // Initialize the game
-        initializeHotspots();
 
         initMap();
     </script>
-
-    <script async 
-        src="https://maps.googleapis.com/maps/api/js?key="+${window.GOOGLE_MAPS_API_KEY}+"&v=beta&libraries=maps3d&callback=initMap">
-    </script>
+    
+    <script>
+        fetch('https://medzk-server.onrender.com/record/get-api-key')
+          .then(response => response.text())
+          .then(apiKey => {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=alpha&libraries=maps3d`;
+            script.async = true;
+            document.body.appendChild(script);
+          });
+      </script>
+      
 </body>
 </html>
