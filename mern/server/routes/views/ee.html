@@ -342,7 +342,7 @@
                 description: "Air quality monitoring station",
                 points: 15,
                 color: "#FF4444",
-                miniGame: "airQualityGame"
+                miniGame: new AirQualityGame()
             },
             {
                 type: "GreenSpace",
@@ -350,7 +350,7 @@
                 description: "Urban green space initiative",
                 points: 20,
                 color: "#4CAF50",
-                miniGame: "plantingGame"
+                miniGame: new PlantingGame()
             },
             {
                 type: "WasteManagement",
@@ -358,7 +358,7 @@
                 description: "Waste management facility",
                 points: 10,
                 color: "#2196F3",
-                miniGame: "wasteManagementGame"
+                miniGame: new WasteManagementGame()
             },
             {
                 type: "RenewableEnergy",
@@ -366,7 +366,7 @@
                 description: "Renewable energy installation",
                 points: 25,
                 color: "#FF9800",
-                miniGame: "renewableEnergyGame"
+                miniGame: new RenewableEnergyGame()
             }
         ];
 
@@ -1068,6 +1068,392 @@ function airQualityGame() {
         }
     });
 }
+
+
+
+
+class MiniGame {
+    constructor(gameType) {
+        this.gameType = gameType;  // Store the type of mini-game
+        this.gameDiv = document.getElementById(`${gameType}-game`); // Get game div by ID
+    }
+
+    // Common method to show the game UI
+    showGame() {
+        this.gameDiv.style.display = 'block';
+    }
+
+
+    // Method to hide the game UI
+    hideGame() {
+        this.gameDiv.style.display = 'none';
+    }
+
+    async start() {
+        this.showGame();
+        // Add start logic, sound
+    }
+
+    async end(success) {
+        this.hideGame();
+        // Add end logic, animation, etc.
+        return success;
+    }
+
+
+    // Implement specific game logic in subclasses
+    async play() {
+        throw new Error("play() method not implemented in subclass");
+    }
+
+    // Main game loop (call start, play and then end). Pass win/loss status
+    async run() {
+        await this.start();
+        const success = await this.play();
+        return await this.end(success)
+    }
+
+}
+
+
+class PlantingGame extends MiniGame {
+    constructor() {
+        super("planting");
+        this.areaDiv = document.getElementById('planting-area');
+        this.treesPlanted = 0;
+        this.targetTrees = 5;
+        this.clickHandler = this.handleClick.bind(this); //Pre-bind to avoid losing this context.
+
+    }
+
+    async start() {
+        await super.start();
+        this.areaDiv.addEventListener('click', this.clickHandler); // Add listener once
+
+    }
+
+
+    async end(success) {
+       const reallySuccess = await super.end(success)
+
+        this.areaDiv.removeEventListener('click', this.clickHandler); //Remove listener
+        this.treesPlanted = 0 // reset counter
+
+        //clear previous game state, otherwise it will be populated with the trees from previous round...
+        while (this.areaDiv.firstChild) {
+            this.areaDiv.removeChild(this.areaDiv.firstChild);
+        }
+
+        return reallySuccess
+    }
+
+     handleClick(event) { // Method to handle click events. Use this.targetTrees not targetTrees
+            const tree = document.createElement('div');
+            tree.textContent = '🌳';
+            tree.style.position = 'absolute';
+            tree.style.left = event.offsetX + 'px';
+            tree.style.top = event.offsetY + 'px';
+            this.areaDiv.appendChild(tree);
+
+            this.treesPlanted++;
+
+            if (this.treesPlanted >= this.targetTrees) {
+               this.gameDiv.style.display = 'none';
+               resolve(true)
+            }
+    }
+
+
+
+    async play() {
+        return new Promise((resolve) => {
+
+                if (this.treesPlanted >= this.targetTrees) {
+                      // All items sorted correctly. You could add a sound effect here.
+                      resolve(true)
+                    }
+        });
+    }
+}
+
+
+class AirQualityGame extends MiniGame {
+    constructor() {
+        super("air-quality"); 
+        this.filterArea = document.getElementById('filter-area');
+        this.smogParticles = 10;  // Number of particles to clean
+        this.particles = [] // store created particles to remove later
+    }
+
+
+    async start() {
+        await super.start();
+        // Add any AirQualityGame specific start logic here e.g., sound effects.
+        console.log("Air quality game started"); // Example
+
+    }
+
+     async end(success) {
+        const reallySuccess = await super.end(success);
+
+        // Clear any remaining particles, reset game state, for the next round...
+        this.particles.forEach(smog => smog.remove()); 
+        this.particles = [];
+        this.smogParticles = 10; //Reset
+
+        return reallySuccess; //Must return from super.end()
+    }
+
+
+
+    async play() {
+        return new Promise((resolve) => {
+
+            // Create smog particles
+            for (let i = 0; i < this.smogParticles; i++) {
+                const smog = document.createElement('div');
+                smog.style.width = '20px';
+                smog.style.height = '20px';
+                smog.style.borderRadius = '50%';
+                smog.style.backgroundColor = '#808080'; // Smog color
+                smog.style.position = 'absolute';
+                smog.style.left = Math.random() * (this.filterArea.offsetWidth - 20) + 'px';
+                smog.style.top = Math.random() * (this.filterArea.offsetHeight - 20) + 'px';
+                smog.style.cursor = 'pointer';
+
+                smog.addEventListener('click', () => {
+                    smog.remove();
+                    this.smogParticles--;
+
+                    if (this.smogParticles <= 0) {
+                        resolve(true); //Resolve promise on success
+                    }
+                });
+
+                this.particles.push(smog); // Store for cleanup
+                this.filterArea.appendChild(smog);
+            }
+        });
+    }
+}
+
+
+
+class WasteManagementGame extends MiniGame {
+    constructor() {
+        super("waste-management");
+        this.binsArea = document.getElementById('bins-area');
+        this.wasteItems = [
+            { type: "paper", image: "paper.png" }, // Replace with actual image paths
+            { type: "plastic", image: "plastic.png" },
+            { type: "glass", image: "glass.png" },
+            { type: "organic", image: "organic.png" }  // Example: Add more types as needed
+        ];
+        this.binTypes = ["paper", "plastic", "glass", "organic"];
+        this.itemsSorted = 0;
+        this.wasteElements = []; // Store created waste elements for cleanup
+    }
+
+    async start() {
+        await super.start();
+        // WasteManagementGame-specific setup
+       this.createBins();
+       this.createWasteItems();
+
+    }
+
+    async end(success) {
+       const reallySuccess = await super.end(success)
+
+        // Clean up waste items and bins for next round
+        this.wasteElements.forEach(waste => waste.remove());
+        this.wasteElements = [];
+        this.itemsSorted = 0;
+        this.binsArea.innerHTML = ''; // Clear bins
+
+
+        return reallySuccess; //Important, return value from superclass
+    }
+
+
+    createBins() {
+
+        this.binTypes.forEach(type => {
+            const bin = document.createElement('div');
+            bin.id = `${type}-bin`;
+            bin.style.width = '50px';
+            bin.style.height = '70px';
+            bin.style.border = '1px solid black';
+            bin.style.display = "inline-block";
+            bin.style.margin = "10px";
+            bin.textContent = type;
+            // ... other bin styling ...
+
+            bin.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+
+            bin.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const data = e.dataTransfer.getData("text/plain");
+                const item = document.getElementById(data);
+                const itemType = item.dataset.type;
+
+                if (itemType === type) {
+                    item.remove();
+                    this.itemsSorted++;
+
+                    if (this.itemsSorted === this.wasteItems.length) {
+                         // Signal successful game completion
+                       
+                    }
+                } // else - incorrect bin (add feedback if desired)
+
+                 if (this.itemsSorted === this.wasteItems.length) {
+                      // All items sorted correctly. You could add a sound effect here.
+                      this.gameDiv.style.display = 'none';
+                      resolve(true)
+                    }
+            });
+
+            this.binsArea.appendChild(bin);
+        });
+    }
+
+    createWasteItems() {
+        this.wasteItems.forEach(item => {
+            const waste = document.createElement('img');
+            waste.src = item.image;
+            waste.id = `waste-${item.type}-${Math.random()}`; // Unique ID
+            waste.dataset.type = item.type;
+            waste.style.width = '40px';
+            waste.style.height = '40px';
+            waste.style.margin = '5px';
+            waste.style.cursor = 'grab';
+            waste.draggable = true;
+
+            waste.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData("text/plain", waste.id);
+            });
+
+            this.wasteElements.push(waste);  // Store for cleanup
+            this.gameDiv.appendChild(waste);
+        });
+    }
+
+
+
+
+     async play() {
+      return new Promise((resolve) => {
+
+                if (this.itemsSorted === this.wasteItems.length) {
+                      // All items sorted correctly. You could add a sound effect here.
+                      resolve(true)
+                    }
+      })
+    }
+}
+
+
+class RenewableEnergyGame extends MiniGame {
+    constructor() {
+        super("renewable-energy");
+        this.connectionsArea = document.getElementById('connections-area');
+        this.numPanels = 3;
+        this.panelsConnected = 0;
+        this.panelElements = []; // Store panel elements for cleanup
+    }
+
+    async start() {
+        await super.start()
+        this.createPanelsAndGrid();
+
+    }
+
+
+    async end(success) {
+        const reallySuccess = await super.end(success)
+
+        // Clean up for next round:
+        this.panelElements.forEach(el => el.remove());
+        this.panelElements = [];
+        this.panelsConnected = 0;
+
+        return reallySuccess; // Important: return the value from the parent class's end() method
+
+    }
+
+
+    createPanelsAndGrid() {
+        for (let i = 0; i <= this.numPanels; i++) {
+            const element = document.createElement('div');
+            element.style.width = '30px';
+            element.style.height = '30px';
+            element.style.backgroundColor = i < this.numPanels ? 'yellow' : 'gray';
+            element.style.borderRadius = i < this.numPanels ? '50%' : '0%';
+            element.style.border = '1px solid black';
+            element.style.position = 'absolute';
+
+            if (i < this.numPanels) {
+                element.style.left = 20 + i * 80 + 'px';
+                element.style.top = 20 + 'px';
+                element.draggable = true;
+                element.id = `panel-${i}`;
+
+                element.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData("text/plain", element.id);
+                });
+
+                this.panelElements.push(element); // Store for cleanup
+
+            } else { // Grid connection
+                element.style.left = '50%';
+                element.style.top = '150px';
+                element.id = "grid-connection" //Give id for styling or selection
+
+                element.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+
+                element.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.panelsConnected++;
+
+                    if (this.panelsConnected >= this.numPanels) {
+                        // All panels connected
+                        //resolve(true) //Resolve will finish the game
+                    }
+                });
+
+                 this.panelElements.push(element); // Store for cleanup
+            }
+
+            this.connectionsArea.appendChild(element);
+        }
+    }
+
+
+
+    async play() {
+           return new Promise((resolve) => {
+
+
+                if (this.panelsConnected >= this.numPanels) {
+                         resolve(true) //Resolve will finish the game
+                    }
+
+           })
+    }
+}
+
+
+
+
+
+
+
+
 
 
         async function startExplorationMode() {
