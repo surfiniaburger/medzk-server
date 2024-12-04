@@ -537,12 +537,13 @@
         async function analyzeHotspot() {
             if (!currentHotspot || currentHotspot.analyzed) return;
 
-            if (currentHotspot.miniGame && typeof window[currentHotspot.miniGame] === 'function') { // Check if function exists
-            const success = await window[currentHotspot.miniGame]();
-            if (!success) return;
-           } else {
-              console.warn("No mini-game found for this hotspot type:", currentHotspot.type); // Log a warning if needed
-            }
+            if (currentHotspot.miniGame && currentHotspot.miniGame instanceof MiniGame) {
+                  const success = await currentHotspot.miniGame.run();  // Call the game's run method
+                  if (!success) return;
+             } else {
+                     console.warn("No mini-game found for this hotspot type:", currentHotspot.type);
+                    }
+                    
             environmentalScore += currentHotspot.points;
             currentHotspot.analyzed = true;
             
