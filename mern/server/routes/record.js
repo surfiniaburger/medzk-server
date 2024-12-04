@@ -287,19 +287,19 @@ router.get('/environment', (req, res) => {
 });
 
 
-// Add new route for serving GLB files
-router.get('/*.glb', (req, res) => {
-  try {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET');
+// // Add new route for serving GLB files
+// router.get('/*.glb', (req, res) => {
+//   try {
+//     res.header('Access-Control-Allow-Origin', '*');
+//     res.header('Access-Control-Allow-Methods', 'GET');
     
-    const glbPath = path.join(__dirname, 'views', req.path);
-    res.sendFile(glbPath);
-  } catch (error) {
-    logger.error('Error serving GLB file:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+//     const glbPath = path.join(__dirname, 'views', req.path);
+//     res.sendFile(glbPath);
+//   } catch (error) {
+//     logger.error('Error serving GLB file:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
 
 
 // Get a single record by ID
