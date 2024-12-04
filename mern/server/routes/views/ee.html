@@ -392,6 +392,10 @@
 
             // Add event listeners
             map3DElement.addEventListener('gmp-click', handleMapClick);
+
+            // Important: Call add3DModelsToHotspots AFTER generating hotspots
+            const modelUrl = "https://medzk-server.onrender.com/models/tree.glb"; // Defined here, once.
+            await add3DModelsToHotspots(map3DElement, hotspots, modelUrl);
             
             // Start periodic updates
             setInterval(updateEnvironmentalData, 30000);
@@ -407,6 +411,32 @@
                 console.error("Failed to initialize environmental features:", error);
             }
         }
+
+        // Correct implementation: add3DModelsToHotspots (called from initGame):
+async function add3DModelsToHotspots(map, hotspots, modelUrl) {
+
+for (const hotspot of hotspots) {
+    try { // Handle each model loading individually
+        const model = new Model3DElement({ /* ... model properties ... */ });
+        
+        model.addEventListener('click', () => startMiniGame(hotspot)); // Click listener is attached here
+
+        model.addEventListener('load', () => {
+            console.log(`Model loaded for hotspot:`, hotspot.type);
+        });
+
+        model.addEventListener('error', (error) => {
+            console.error(`Error loading model for hotspot ${hotspot.type}:`, error, modelUrl); // Model-specific error
+        });
+
+        map.append(model); //Append to map *after* event listeners
+        models.push(model);
+
+    } catch (error) {
+        console.error(`Error creating or appending model for hotspot ${hotspot.type}:`, error);  // Catch any model creation or appending errors
+    }
+}
+}
 
         // Fetch environmental data from APIs
         async function fetchEnvironmentalData(location) {
@@ -843,22 +873,6 @@ async function add3DModelToMap(map, location, modelUrl) {
   });
 
   map.append(model);
-}
-
-// Function to add 3D models to all hotspots
-async function add3DModelsToHotspots(map, hotspots, modelUrl) {
-  for (const hotspot of hotspots) {
-    await add3DModelToMap(map, hotspot.markerLocation, modelUrl);
-  }
-}
-
-//This function will be called after the map is initialized
-async function addModelsAfterMapInit(map, hotspots, modelUrl){
-    await add3DModelsToHotspots(map, hotspots, modelUrl);
-
-  // Add 3D models after the map is initialized
-  const modelUrl = "https://medzk-server.onrender.com/models/tree.glb";
-  await add3DModelsToHotspots(map3DElement, hotspots, modelUrl);
 }
 
 
