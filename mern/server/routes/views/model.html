@@ -85,6 +85,7 @@
         let currentHotspot = null;
 
         async function initMap() {
+            try{
             const { Model3DElement } = await google.maps.importLibrary("maps3d");
             map = document.querySelector("gmp-map-3d");
             await customElements.whenDefined("gmp-map-3d");
@@ -97,6 +98,7 @@
                     scale: 5,
                     orientation: { heading: 0, tilt: 0, roll: 0 }
                 });
+                
 
                 model.addEventListener('load', () => {
                     model.addEventListener('click', () => startMiniGame(hotspot));
@@ -105,6 +107,9 @@
                 map.append(model);
                 models.push(model);
             });
+        } catch (error) {  // Handle potential errors here
+        console.error("Error initializing map or loading models:", error);
+    }
         }
 
 // Mini-game implementations
