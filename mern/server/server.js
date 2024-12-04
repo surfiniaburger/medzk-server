@@ -34,6 +34,7 @@ app.use(cors({
       'http://localhost:3000',
       'https://medzk-server.vercel.app',
       'https://medzk-server.onrender.com',
+      'https://www.zerokare.info/',
       
     ];
     if (!origin || allowedOrigins.includes(origin)) {
