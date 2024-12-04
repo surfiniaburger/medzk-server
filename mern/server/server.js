@@ -4,6 +4,7 @@ import records from "./routes/record.js";
 import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
+import { fileURLToPath } from 'url';
 //import conversation from "./routes/conversation.js";
 
 const PORT = process.env.PORT || 5050;
@@ -26,6 +27,8 @@ if (process.env.NODE_ENV === 'production') {
 } else {
   console.log("Skipping Google Credentials setup in development environment.");
 }
+
+
 
 // Configure CORS
 app.use(cors({
@@ -53,6 +56,20 @@ app.use(express.json());
 
 
 app.use("/record", records);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// In your existing Express app:
+app.use('/models', express.static(path.join(__dirname, 'routes/views'), {
+  setHeaders: (res, filePath) => {
+    if (path.extname(filePath) === '.glb') {
+      res.set('Content-Type', 'model/gltf-binary');
+      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.set('Access-Control-Allow-Origin', '*');
+    }
+  }
+}));
 
 // Load the conversation routes
 //app.use("/conversation", conversation);
