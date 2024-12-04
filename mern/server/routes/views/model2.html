@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .game-container { max-width: 800px; margin: 20px auto; }
+        .hotspot { padding: 10px; margin: 10px; border-radius: 5px; cursor: pointer; }
+        .minigame-container { 
+            width: 500px; 
+            height: 400px; 
+            border: 2px solid #ccc;
+            position: relative;
+            margin: 20px auto;
+        }
+        #score { font-size: 24px; margin: 20px; }
+        .game-object {
+            position: absolute;
+            cursor: pointer;
+        }
+        .achievement {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="score">Environmental Score: 0</div>
+        <div id="hotspots"></div>
+        <div id="minigame-container" class="minigame-container" style="display: none;">
+            <canvas id="gameCanvas" width="500" height="400"></canvas>
+        </div>
+        <div id="achievement" class="achievement"></div>
+    </div>
+
+    <script>
+        const hotspotTypes = [
+            {
+                type: "AirQuality",
+                icon: "🌫️",
+                description: "Air quality monitoring station",
+                points: 15,
+                color: "#FF4444",
+            },
+            {
+                type: "GreenSpace",
+                icon: "🌳",
+                description: "Urban green space initiative",
+                points: 20,
+                color: "#4CAF50",
+            },
+            {
+                type: "WasteManagement",
+                icon: "♻️",
+                description: "Waste management facility",
+                points: 10,
+                color: "#2196F3",
+            },
+            {
+                type: "RenewableEnergy",
+                icon: "☀️",
+                description: "Renewable energy installation",
+                points: 25,
+                color: "#FF9800",
+            }
+        ];
+
+        let environmentalScore = 0;
+        let currentHotspot = null;
+
+        // Initialize hotspots
+        function initializeHotspots() {
+            const hotspotsContainer = document.getElementById('hotspots');
+            hotspotTypes.forEach(hotspot => {
+                const div = document.createElement('div');
+                div.className = 'hotspot';
+                div.style.backgroundColor = hotspot.color;
+                div.innerHTML = `${hotspot.icon} ${hotspot.type}`;
+                div.onclick = () => startMiniGame(hotspot);
+                hotspotsContainer.appendChild(div);
+            });
+        }
+
+        // Mini-game implementations
+        const miniGames = {
+            AirQuality: {
+                init: (canvas) => {
+                    const ctx = canvas.getContext('2d');
+                    const particles = [];
+                    let score = 0;
+                    
+                    // Create particles
+                    for(let i = 0; i < 10; i++) {
+                        particles.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            size: 20
+                        });
+                    }
+
+                    function draw() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Draw particles
+                        particles.forEach(particle => {
+                            ctx.fillStyle = '#777';
+                            ctx.beginPath();
+                            ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+
+                        ctx.fillStyle = '#000';
+                        ctx.font = '20px Arial';
+                        ctx.fillText(`Clean the air! Particles left: ${particles.length}`, 10, 30);
+                    }
+
+                    canvas.onclick = (e) => {
+                        const rect = canvas.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+
+                        particles.forEach((particle, index) => {
+                            const dx = x - particle.x;
+                            const dy = y - particle.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if(distance < particle.size) {
+                                particles.splice(index, 1);
+                                if(particles.length === 0) {
+                                    completeGame();
+                                }
+                            }
+                        });
+
+                        draw();
+                    };
+
+                    draw();
+                }
+            },
+            
+            GreenSpace: {
+                init: (canvas) => {
+                    const ctx = canvas.getContext('2d');
+                    let trees = 0;
+                    const maxTrees = 5;
+
+                    function draw() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = '#000';
+                        ctx.font = '20px Arial';
+                        ctx.fillText(`Plant trees! ${trees}/${maxTrees} planted`, 10, 30);
+                    }
+
+                    canvas.onclick = (e) => {
+                        if(trees < maxTrees) {
+                            const rect = canvas.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const y = e.clientY - rect.top;
+
+                            ctx.fillStyle = '#4CAF50';
+                            ctx.beginPath();
+                            ctx.moveTo(x, y);
+                            ctx.lineTo(x - 20, y + 40);
+                            ctx.lineTo(x + 20, y + 40);
+                            ctx.closePath();
+                            ctx.fill();
+
+                            ctx.fillStyle = '#8B4513';
+                            ctx.fillRect(x - 5, y + 40, 10, 20);
+
+                            trees++;
+                            if(trees === maxTrees) {
+                                completeGame();
+                            }
+                        }
+                        draw();
+                    };
+
+                    draw();
+                }
+            },
+
+            WasteManagement: {
+                init: (canvas) => {
+                    const ctx = canvas.getContext('2d');
+                    const bins = ['Paper', 'Plastic', 'Glass'];
+                    const items = [];
+                    let score = 0;
+
+                    // Create waste items
+                    bins.forEach((type, index) => {
+                        for(let i = 0; i < 2; i++) {
+                            items.push({
+                                type,
+                                x: Math.random() * (canvas.width - 40) + 20,
+                                y: Math.random() * (canvas.height - 100) + 20,
+                                dragging: false
+                            });
+                        }
+                    });
+
+                    function draw() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Draw bins
+                        bins.forEach((bin, index) => {
+                            const x = (index + 1) * (canvas.width / 4);
+                            ctx.fillStyle = '#666';
+                            ctx.fillRect(x - 30, canvas.height - 60, 60, 60);
+                            ctx.fillStyle = '#000';
+                            ctx.font = '14px Arial';
+                            ctx.fillText(bin, x - 20, canvas.height - 30);
+                        });
+
+                        // Draw items
+                        items.forEach(item => {
+                            ctx.fillStyle = '#444';
+                            ctx.beginPath();
+                            ctx.arc(item.x, item.y, 15, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.fillStyle = '#fff';
+                            ctx.font = '12px Arial';
+                            ctx.fillText(item.type[0], item.x - 4, item.y + 4);
+                        });
+
+                        ctx.fillStyle = '#000';
+                        ctx.font = '20px Arial';
+                        ctx.fillText(`Sort the waste! Score: ${score}/6`, 10, 30);
+                    }
+
+                    let draggedItem = null;
+
+                    canvas.onmousedown = (e) => {
+                        const rect = canvas.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+
+                        items.forEach(item => {
+                            const dx = x - item.x;
+                            const dy = y - item.y;
+                            if(Math.sqrt(dx * dx + dy * dy) < 15) {
+                                draggedItem = item;
+                            }
+                        });
+                    };
+
+                    canvas.onmousemove = (e) => {
+                        if(draggedItem) {
+                            const rect = canvas.getBoundingClientRect();
+                            draggedItem.x = e.clientX - rect.left;
+                            draggedItem.y = e.clientY - rect.top;
+                            draw();
+                        }
+                    };
+
+                    canvas.onmouseup = (e) => {
+                        if(draggedItem) {
+                            const rect = canvas.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const y = e.clientY - rect.top;
+
+                            bins.forEach((bin, index) => {
+                                const binX = (index + 1) * (canvas.width / 4);
+                                if(y > canvas.height - 60 && 
+                                   Math.abs(x - binX) < 30 && 
+                                   draggedItem.type === bin) {
+                                    score++;
+                                    draggedItem.x = -100;
+                                    if(score === 6) {
+                                        completeGame();
+                                    }
+                                }
+                            });
+
+                            draggedItem = null;
+                            draw();
+                        }
+                    };
+
+                    draw();
+                }
+            },
+
+            RenewableEnergy: {
+                init: (canvas) => {
+                    const ctx = canvas.getContext('2d');
+                    let energy = 0;
+                    const maxEnergy = 100;
+                    let windmills = [];
+
+                    for(let i = 0; i < 3; i++) {
+                        windmills.push({
+                            x: 150 + i * 100,
+                            y: 200,
+                            angle: 0,
+                            speed: 0
+                        });
+                    }
+
+                    function drawWindmill(x, y, angle) {
+                        ctx.save();
+                        ctx.translate(x, y);
+                        
+                        // Draw tower
+                        ctx.fillStyle = '#666';
+                        ctx.fillRect(-10, 0, 20, 100);
+
+                        // Draw blades
+                        ctx.translate(0, 0);
+                        ctx.rotate(angle);
+                        ctx.beginPath();
+                        for(let i = 0; i < 3; i++) {
+                            ctx.rotate(Math.PI * 2 / 3);
+                            ctx.moveTo(0, 0);
+                            ctx.lineTo(0, -40);
+                        }
+                        ctx.strokeStyle = '#444';
+                        ctx.lineWidth = 10;
+                        ctx.stroke();
+                        
+                        ctx.restore();
+                    }
+
+                    function draw() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Draw energy meter
+                        ctx.fillStyle = '#eee';
+                        ctx.fillRect(10, 10, 200, 20);
+                        ctx.fillStyle = '#4CAF50';
+                        ctx.fillRect(10, 10, energy * 2, 20);
+                        
+                        // Draw windmills
+                        windmills.forEach(windmill => {
+                            drawWindmill(windmill.x, windmill.y, windmill.angle);
+                            windmill.angle += windmill.speed;
+                        });
+
+                        ctx.fillStyle = '#000';
+                        ctx.font = '20px Arial';
+                        ctx.fillText(`Generate energy! ${Math.floor(energy)}%`, 10, 60);
+                    }
+
+                    canvas.onclick = (e) => {
+                        const rect = canvas.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+
+                        windmills.forEach(windmill => {
+                            const dx = x - windmill.x;
+                            const dy = y - windmill.y;
+                            if(Math.sqrt(dx * dx + dy * dy) < 50) {
+                                windmill.speed += 0.1;
+                                energy += 5;
+                                if(energy >= maxEnergy) {
+                                    energy = maxEnergy;
+                                    completeGame();
+                                }
+                            }
+                        });
+                    };
+
+                    function animate() {
+                        draw();
+                        requestAnimationFrame(animate);
+                    }
+
+                    animate();
+                }
+            }
+        };
+
+        function startMiniGame(hotspot) {
+            currentHotspot = hotspot;
+            const container = document.getElementById('minigame-container');
+            const canvas = document.getElementById('gameCanvas');
+            container.style.display = 'block';
+            
+            miniGames[hotspot.type].init(canvas);
+        }
+
+        function completeGame() {
+            if(currentHotspot) {
+                environmentalScore += currentHotspot.points;
+                document.getElementById('score').textContent = `Environmental Score: ${environmentalScore}`;
+                showAchievement(`${currentHotspot.type} Challenge Complete! +${currentHotspot.points} points`);
+                
+                setTimeout(() => {
+                    document.getElementById('minigame-container').style.display = 'none';
+                    currentHotspot = null;
+                }, 1000);
+            }
+        }
+
+        function showAchievement(message) {
+            const achievement = document.getElementById('achievement');
+            achievement.textContent = message;
+            achievement.style.display = 'block';
+            setTimeout(() => {
+                achievement.style.display = 'none';
+            }, 2000);
+        }
+
+        // Initialize the game
+        initializeHotspots();
+    </script>
+</body>
+</html>
