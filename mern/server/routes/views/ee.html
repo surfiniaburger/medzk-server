@@ -417,7 +417,11 @@ async function add3DModelsToHotspots(map, hotspots, modelUrl) {
 
 for (const hotspot of hotspots) {
     try { // Handle each model loading individually
-        const model = new Model3DElement({ /* ... model properties ... */ });
+        const model = new Model3DElement({ 
+        position: hotspot.postion,
+        src: modelUrl,
+        altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
+        scale: 1  });
         
         model.addEventListener('click', () => startMiniGame(hotspot)); // Click listener is attached here
 
