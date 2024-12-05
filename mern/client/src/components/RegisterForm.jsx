@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Mail, Lock, User, ArrowRight } from "lucide-react";
 import { Link } from 'react-router-dom';
+import OTPVerification  from './OTPVerification';
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
@@ -14,7 +15,8 @@ const RegisterForm = () => {
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, verifyRegistrationOTP } = useAuth();
+  const [showOTP, setShowOTP] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -40,15 +42,49 @@ const RegisterForm = () => {
     }
 
     try {
-        console.log(formData)
-      const success = await register(formData.name, formData.email, formData.password);
-      if (success) {
+      
+      const response = await register(formData.name, formData.email, formData.password);
+      if (response.requiresOTP) {
+        setShowOTP(true);
+      } else if (response.success) {
         navigate('/predict');
       }
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
     }
   };
+
+  const handleOTPVerification = async (otp) => {
+    try {
+      const success = await verifyRegistrationOTP(formData.email, otp);
+      if (success) {
+        navigate('/predict');
+      }
+    } catch (err) {
+      throw new Error(err.message || 'Verification failed');
+    }
+  };
+
+  const handleResendOTP = async () => {
+    try {
+      await register(formData.name, formData.email, formData.password);
+    } catch (err) {
+      setError('Failed to resend verification code');
+    }
+  };
+
+  if (showOTP) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <OTPVerification
+          email={formData.email}
+          onVerify={handleOTPVerification}
+          resendOTP={handleResendOTP}
+        />
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

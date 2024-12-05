@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Mail, Lock, ArrowRight, Github, Loader2 } from "lucide-react";
 import { Link } from 'react-router-dom';
+import OTPVerification from './OTPVerification';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -11,7 +12,8 @@ const LoginForm = () => {
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [showOTP, setShowOTP] = useState(false);
+  const { login, verifyOTP } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -20,9 +22,11 @@ const LoginForm = () => {
     setIsLoading(true);
     
     try {
-      const success = await login(email, password, rememberMe);
-      if (success) {
-        navigate('/dashboard');
+      const response = await login(email, password, rememberMe);
+      if (response.requiresOTP) {
+        setShowOTP(true);
+      } else if (response.success) {
+        navigate('/predict');
       } else {
         setError('Invalid email or password');
       }
@@ -32,6 +36,37 @@ const LoginForm = () => {
       setIsLoading(false);
     }
   };
+
+  const handleOTPVerification = async (otp) => {
+    try {
+      const success = await verifyOTP(email, otp);
+      if (success) {
+        navigate('/predict');
+      }
+    } catch (err) {
+      throw new Error(err.message || 'Verification failed');
+    }
+  };
+
+  const handleResendOTP = async () => {
+    try {
+      await login(email, password, rememberMe);
+    } catch (err) {
+      setError('Failed to resend verification code');
+    }
+  };
+
+  if (showOTP) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 py-12 px-4 sm:px-6 lg:px-8">
+        <OTPVerification
+          email={email}
+          onVerify={handleOTPVerification}
+          resendOTP={handleResendOTP}
+        />
+      </div>
+    );
+  }
 
   const handleSocialLogin = async (provider) => {
     setIsLoading(true);

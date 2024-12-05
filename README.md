@@ -14,6 +14,8 @@ JWT_SECRET=your_super_secret_key
 JWT_EXPIRY=1h # token expiration time
 GOOGLE_MAPS_API_KEY=
 OPENWEATHER_API_KEY=
+EMAIL_USER=your-gmail@gmail.com
+EMAIL_PASS=your-app-specific-password
 
 ```
 
