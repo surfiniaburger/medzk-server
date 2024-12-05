@@ -22,7 +22,6 @@ import { Grounding } from "../utils/grounding.js";
 import { fetchAirQuality } from "../utils/air-quality.js";
 import { getAddressFromCoordinates } from "../utils/address.js";
 import { GoogleAICacheManager } from '@google/generative-ai/server';
-import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db/connection.js';
