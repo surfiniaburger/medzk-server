@@ -44,26 +44,36 @@ export const AuthProvider = ({ children }) => {
       return false;
     }
   };
-
+  
   const register = async (name, email, password) => {
     try {
+      console.log('Attempting registration with:', { name, email }); // Log request data (exclude password)
+      
       const response = await fetch(`${API_BASE}/record/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ name, email, password }),
       });
       
+      const data = await response.json();
+      console.log('Server response:', response.status, data); // Log response status and data
+      
       if (!response.ok) {
-        throw new Error('Registration failed');
+        throw new Error(data.error || 'Registration failed');
       }
       
-      const data = await response.json();
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
       return true;
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Registration error details:', {
+        message: error.message,
+        status: error.status,
+      });
       throw error;
     }
   };

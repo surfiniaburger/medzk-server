@@ -188,22 +188,62 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Register route
 router.post("/register", async (req, res) => {
   try {
+    console.log('Received registration request:', {
+      body: { ...req.body, password: '[REDACTED]' }, // Log request data safely
+      headers: req.headers
+    });
+
     const { name, email, password } = req.body;
 
-    // Check if user already exists
+    // Validate required fields
+    if (!name || !email || !password) {
+      console.log('Missing required fields:', {
+        hasName: !!name,
+        hasEmail: !!email,
+        hasPassword: !!password
+      });
+      return res.status(400).json({
+        error: "Missing required fields",
+        details: {
+          name: !name ? "Name is required" : null,
+          email: !email ? "Email is required" : null,
+          password: !password ? "Password is required" : null
+        }
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.log('Invalid email format:', email);
+      return res.status(400).json({
+        error: "Invalid email format"
+      });
+    }
+
+    // Check if user exists
     const existingUser = await db.collection("users").findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: "Email already registered" });
+      console.log('User already exists:', email);
+      return res.status(400).json({
+        error: "Email already registered"
+      });
+    }
+
+    // Validate password strength
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: "Password must be at least 6 characters long"
+      });
     }
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create new user
+    // Create user
     const newUser = {
       name,
       email,
@@ -212,21 +252,23 @@ router.post("/register", async (req, res) => {
     };
 
     const result = await db.collection("users").insertOne(newUser);
-    
-    // Generate JWT token
+    console.log('User created:', result.insertedId);
+
+    // Generate token
     const token = jwt.sign(
-      { id: result.insertedId, email },
+      { id: result.insertedId.toString(), email },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    // Remove password from user object before sending
     const userToReturn = {
       id: result.insertedId,
       name,
       email,
     };
 
+    console.log('Registration successful for:', email);
+    
     res.status(201).json({
       message: "Registration successful",
       token,
@@ -234,8 +276,15 @@ router.post("/register", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({ error: "Registration failed" });
+    console.error('Registration error:', {
+      error: error.message,
+      stack: error.stack
+    });
+    
+    res.status(500).json({
+      error: "Registration failed",
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
 });
 
