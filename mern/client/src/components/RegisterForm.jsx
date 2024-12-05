@@ -40,7 +40,7 @@ const RegisterForm = () => {
     }
 
     try {
-        console.log(formData)
+      
       const success = await register(formData.name, formData.email, formData.password);
       if (success) {
         navigate('/predict');

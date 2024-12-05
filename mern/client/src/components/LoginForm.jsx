@@ -22,7 +22,7 @@ const LoginForm = () => {
     try {
       const success = await login(email, password, rememberMe);
       if (success) {
-        navigate('/dashboard');
+        navigate('/predict');
       } else {
         setError('Invalid email or password');
       }
