@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Pollution Hotspot Challenge</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@google/generative-ai@0.1.3/dist/index.min.js"></script>
+    </head>
+    <body class="bg-gradient-to-br from-blue-50 to-green-50 min-h-screen p-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Pollution Hotspot Challenge</h1>
+                <p class="text-gray-600">Test your knowledge of air quality across different cities!</p>
+            </div>
+    
+            <div class="bg-white rounded-xl p-8 shadow-lg border border-gray-100">
+                <div id="gameArea" class="space-y-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <div id="location" class="text-xl font-semibold text-gray-700"></div>
+                        <div id="score" class="text-2xl font-bold text-green-600"></div>
+                    </div>
+    
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <canvas id="pollutionChart" class="w-full h-72"></canvas>
+                    </div>
+    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <h3 class="font-semibold mb-2">Safe Limits Reference</h3>
+                            <div id="safeLimits" class="text-sm space-y-1"></div>
+                        </div>
+                        <div id="comparison" class="bg-blue-50 p-4 rounded-lg">
+                            <h3 class="font-semibold mb-2">Current Status</h3>
+                            <div id="comparisonDetails" class="text-sm space-y-1"></div>
+                        </div>
+                    </div>
+    
+                    <div class="space-y-6">
+                        <div id="aiAnalysis" class="bg-blue-50 p-4 rounded-lg text-blue-800 hidden"></div>
+                        <p id="question" class="text-xl font-medium text-gray-800"></p>
+                        <div id="options" class="grid grid-cols-2 gap-4"></div>
+                    </div>
+    
+                    <div id="loading" class="hidden">
+                        <div class="animate-pulse flex space-x-4">
+                            <div class="flex-1 space-y-4 py-1">
+                                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                <div class="space-y-2">
+                                    <div class="h-4 bg-gray-200 rounded"></div>
+                                    <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <script>
+            class PollutionGame {
+                constructor() {
+                    this.score = 0;
+                    this.currentLocation = null;
+                    this.pollutionData = null;
+                    this.chart = null;
+                    this.locations = [
+                        { name: 'Mountain View', lat: 37.419734, lng: -122.0827784 },
+                        { name: 'New York', lat: 40.7128, lng: -74.0060 },
+                        { name: 'London', lat: 51.5074, lng: -0.1278 },
+                        { name: 'Tokyo', lat: 35.6762, lng: 139.6503 },
+                        { name: 'Sydney', lat: -33.8688, lng: 151.2093 }
+                    ];
+                    this.safeLimits = {
+                        pm25: { value: 10, unit: 'µg/m³', name: 'PM2.5' },
+                        pm10: { value: 20, unit: 'µg/m³', name: 'PM10' },
+                        no2: { value: 40, unit: 'µg/m³', name: 'NO₂' },
+                        o3: { value: 100, unit: 'µg/m³', name: 'O₃' },
+                        so2: { value: 20, unit: 'µg/m³', name: 'SO₂' },
+                        co: { value: 4, unit: 'mg/m³', name: 'CO' }
+                    };
+                    this.geminiAPI = '';
+                    this.airQualityAPI = '';
+                }
+    
+                setupChart() {
+                    const ctx = document.getElementById('pollutionChart').getContext('2d');
+                    this.chart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: [],
+                            datasets: [{
+                                label: 'Current Levels',
+                                data: [],
+                                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                borderWidth: 1
+                            }, {
+                                label: 'Safe Limits',
+                                data: [],
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 2,
+                                type: 'line'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            animation: { duration: 1000 },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: { display: true, text: 'Concentration' }
+                                }
+                            }
+                        }
+                    });
+                }
+    
+                displaySafeLimits() {
+                    const safeLimitsDiv = document.getElementById('safeLimits');
+                    safeLimitsDiv.innerHTML = Object.entries(this.safeLimits)
+                        .map(([code, info]) => 
+                            `<div class="flex justify-between">
+                                <span>${info.name}:</span>
+                                <span class="font-medium">${info.value} ${info.unit}</span>
+                            </div>`
+                        ).join('');
+                }
+    
+                displayComparison(pollutionData) {
+                    const comparisonDiv = document.getElementById('comparisonDetails');
+                    comparisonDiv.innerHTML = pollutionData.pollutants
+                        .map(pollutant => {
+                            const safeLimit = this.safeLimits[pollutant.code];
+                            const ratio = pollutant.concentration.value / safeLimit.value;
+                            const status = ratio <= 1 ? 'Safe' : ratio <= 2 ? 'Moderate' : 'High';
+                            const statusColor = ratio <= 1 ? 'text-green-600' : ratio <= 2 ? 'text-yellow-600' : 'text-red-600';
+                            
+                            return `<div class="flex justify-between">
+                                <span>${safeLimit.name}:</span>
+                                <span class="${statusColor} font-medium">${status} (${(ratio * 100).toFixed(1)}% of limit)</span>
+                            </div>`;
+                        }).join('');
+                }
+    
+                updateChart(data) {
+                    const labels = data.pollutants.map(p => this.safeLimits[p.code].name);
+                    const values = data.pollutants.map(p => p.concentration.value);
+                    const limits = data.pollutants.map(p => this.safeLimits[p.code].value);
+    
+                    this.chart.data.labels = labels;
+                    this.chart.data.datasets[0].data = values;
+                    this.chart.data.datasets[1].data = limits;
+                    this.chart.update();
+                }
+    
+                async init() {
+                    this.setupChart();
+                    this.displaySafeLimits();
+                    await this.nextRound();
+                    this.updateScore();
+                }
+
+            async fetchAirQualityData(location) {
+                try {
+                    const response = await fetch('https://airquality.googleapis.com/v1/currentConditions:lookup?key=' + this.airQualityAPI, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            location: {
+                                latitude: location.lat,
+                                longitude: location.lng
+                            },
+                            extraComputations: [
+                                "POLLUTANT_CONCENTRATION",
+                                "HEALTH_RECOMMENDATIONS"
+                            ],
+                            languageCode: "en"
+                        })
+                    });
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.error('Error fetching air quality data:', error);
+                    // Fallback to simulated data for demo/development
+                    return this.getSimulatedData();
+                }
+            }
+
+            getSimulatedData() {
+                const pollutants = ['pm25', 'pm10', 'no2', 'o3', 'so2', 'co'];
+                return {
+                    pollutants: pollutants.map(code => ({
+                        code,
+                        concentration: {
+                            value: Math.random() * 100
+                        }
+                    }))
+                };
+            }
+
+
+            // Gemini API interaction using REST endpoint
+            async getGeminiAnalysis(pollutionData, location) {
+                try {
+                    // Construct a detailed prompt for the AI
+                    const prompt = `As an environmental scientist, analyze this air quality data for ${location.name}:
+                        
+                        Pollutant Levels:
+                        ${pollutionData.pollutants.map(p => 
+                            `${p.code.toUpperCase()}: ${p.concentration.value.toFixed(2)}`
+                        ).join('\n')}
+                        
+                        Please provide:
+                        1. A brief insight about the most concerning pollutant
+                        2. One specific health impact of the highest concentration pollutant
+                        3. A general recommendation for sensitive groups
+                        
+                        Keep the response concise without using markdown symbols and informative without being alarming.`;
+
+                    // Make the REST API call to Gemini
+                    const response = await fetch(
+                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.geminiAPI}`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [{
+                                        text: prompt
+                                    }]
+                                }]
+                            })
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error(`Gemini API error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    // Extract the generated text from the response
+                    const generatedText = data.candidates[0].content.parts[0].text;
+                    console.log(generatedText)
+                    return generatedText;
+
+                } catch (error) {
+                    console.error('Error getting Gemini analysis:', error);
+                    // Provide an informative fallback message
+                    return this.generateFallbackAnalysis(pollutionData, location);
+                }
+            }
+
+            // Generate a fallback analysis when AI call fails
+            generateFallbackAnalysis(pollutionData, location) {
+                const highestPollutant = pollutionData.pollutants.reduce((prev, current) => 
+                    current.concentration.value > prev.concentration.value ? current : prev
+                );
+                
+                const pollutantInfo = {
+                    pm25: "fine particulate matter, which can affect respiratory health",
+                    pm10: "inhalable particles that can cause respiratory issues",
+                    no2: "nitrogen dioxide, which can irritate airways",
+                    o3: "ozone, which can cause breathing difficulties",
+                    so2: "sulfur dioxide, which can affect respiratory function",
+                    co: "carbon monoxide, which can reduce oxygen delivery in the body"
+                };
+
+                return `In ${location.name}, the highest recorded pollutant is ${highestPollutant.code.toUpperCase()} (${pollutantInfo[highestPollutant.code]}). Monitor local air quality reports for up-to-date information.`;
+            }
+
+
+            updateChart(data) {
+                const labels = data.pollutants.map(p => p.code.toUpperCase());
+                const values = data.pollutants.map(p => p.concentration.value);
+
+                this.chart.data.labels = labels;
+                this.chart.data.datasets[0].data = values;
+                this.chart.update();
+            }
+
+            updateScore() {
+                document.getElementById('score').textContent = `Score: ${this.score}`;
+            }
+
+            async nextRound() {
+                // Show loading state
+                document.getElementById('loading').classList.remove('hidden');
+                document.getElementById('gameArea').classList.add('opacity-50');
+
+                this.currentLocation = this.locations[Math.floor(Math.random() * this.locations.length)];
+                document.getElementById('location').textContent = `Location: ${this.currentLocation.name}`;
+
+                this.pollutionData = await this.fetchAirQualityData(this.currentLocation);
+                
+                // Get AI analysis
+                const analysis = await this.getGeminiAnalysis(this.pollutionData, this.currentLocation);
+                if (analysis) {
+                    const aiAnalysis = document.getElementById('aiAnalysis');
+                    aiAnalysis.textContent = analysis;
+                    aiAnalysis.classList.remove('hidden');
+                }
+
+                this.updateChart(this.pollutionData);
+                
+                const highestPollutant = this.pollutionData.pollutants.reduce((prev, current) => 
+                    current.concentration.value > prev.concentration.value ? current : prev
+                );
+
+                document.getElementById('question').textContent = 
+                    `Which pollutant has the highest concentration in ${this.currentLocation.name}?`;
+
+                const options = document.getElementById('options');
+                options.innerHTML = '';
+                
+                this.pollutionData.pollutants.forEach(pollutant => {
+                    const button = document.createElement('button');
+                    button.className = 'bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md';
+                    button.textContent = pollutant.code.toUpperCase();
+                    button.onclick = () => this.checkAnswer(pollutant.code, highestPollutant.code);
+                    options.appendChild(button);
+                });
+
+                // Hide loading state
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('gameArea').classList.remove('opacity-50');
+            }
+
+            async checkAnswer(selected, correct) {
+                const button = Array.from(document.getElementById('options').children)
+                    .find(btn => btn.textContent === selected.toUpperCase());
+
+                if (selected === correct) {
+                    this.score += 10;
+                    button.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                    button.classList.add('bg-green-500', 'hover:bg-green-600');
+                    
+                    // Create and show success message
+                    const message = document.createElement('div');
+                    message.className = 'fixed top-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg';
+                    message.textContent = 'Correct! +10 points';
+                    document.body.appendChild(message);
+                    
+                    setTimeout(() => message.remove(), 2000);
+                } else {
+                    button.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                    button.classList.add('bg-red-500', 'hover:bg-red-600');
+                    
+                    // Create and show error message
+                    const message = document.createElement('div');
+                    message.className = 'fixed top-4 right-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg';
+                    message.textContent = `Wrong! The correct answer was ${correct.toUpperCase()}`;
+                    document.body.appendChild(message);
+                    
+                    setTimeout(() => message.remove(), 2000);
+                }
+
+                this.updateScore();
+                
+                // Wait a moment before next round
+                setTimeout(() => this.nextRound(), 2000);
+            }
+        }
+
+        // Start the game when the page loads
+        window.addEventListener('load', () => {
+            const game = new PollutionGame();
+            game.init();
+        });
+    </script>
+</body>
+</html>

@@ -832,19 +832,7 @@
             }
         }
 
-        // Function to load and add a 3D model to the map at a given location
-async function add3DModelToMap(map, location, modelUrl) {
-  const { Model3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
 
-  const model = new Model3DElement({
-    position: location,
-    src: modelUrl,
-    altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
-    scale: 1 // Adjust scale as needed
-  });
-
-  map.append(model);
-}
 
 
         // Create global confetti instance
