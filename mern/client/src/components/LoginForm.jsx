@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Mail, Lock, ArrowRight, Github, Loader2 } from "lucide-react";
+import { Link } from 'react-router-dom';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -173,9 +174,9 @@ const LoginForm = () => {
         <CardFooter className="text-center">
           <p className="text-sm text-slate-500">
             Don&apos;t have an account?{' '}
-            <a href="/register" className="font-semibold text-purple-600 hover:text-purple-500">
+            <Link to="/register" className="font-semibold text-purple-600 hover:text-purple-500">
               Sign up
-            </a>
+            </Link>
           </p>
         </CardFooter>
       </Card>

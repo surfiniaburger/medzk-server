@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Mail, Lock, User, ArrowRight } from "lucide-react";
+import { Link } from 'react-router-dom';
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
@@ -153,9 +154,9 @@ const RegisterForm = () => {
         <CardFooter className="text-center">
           <p className="text-sm text-gray-500">
             Already have an account?{' '}
-            <a href="/login" className="font-semibold text-blue-600 hover:text-blue-500">
+            <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-500">
               Sign in
-            </a>
+            </Link>
           </p>
         </CardFooter>
       </Card>
