@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Mail, Lock, User, ArrowRight } from "lucide-react";
 import { Link } from 'react-router-dom';
-import { OTPVerification } from './OTPVerification';
+import OTPVerification  from './OTPVerification';
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({

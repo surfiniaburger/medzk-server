@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
-export const OTPVerification = ({ email, onVerify, resendOTP }) => {
+const OTPVerification = ({ email, onVerify, resendOTP }) => {
   const [otp, setOTP] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -82,3 +82,5 @@ export const OTPVerification = ({ email, onVerify, resendOTP }) => {
     </Card>
   );
 };
+
+export default OTPVerification;
