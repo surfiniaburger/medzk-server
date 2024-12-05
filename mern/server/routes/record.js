@@ -22,7 +22,10 @@ import { Grounding } from "../utils/grounding.js";
 import { fetchAirQuality } from "../utils/air-quality.js";
 import { getAddressFromCoordinates } from "../utils/address.js";
 import { GoogleAICacheManager } from '@google/generative-ai/server';
-
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { db } from '../db/connection.js';
 
 
 
@@ -183,6 +186,100 @@ router.get("/", async (req, res) => {
     logger.info("Fetched all records")
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Register route
+router.post("/register", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    // Check if user already exists
+    const existingUser = await db.collection("users").findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: "Email already registered" });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create new user
+    const newUser = {
+      name,
+      email,
+      password: hashedPassword,
+      createdAt: new Date(),
+    };
+
+    const result = await db.collection("users").insertOne(newUser);
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: result.insertedId, email },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Remove password from user object before sending
+    const userToReturn = {
+      id: result.insertedId,
+      name,
+      email,
+    };
+
+    res.status(201).json({
+      message: "Registration successful",
+      token,
+      user: userToReturn
+    });
+
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(500).json({ error: "Registration failed" });
+  }
+});
+
+// Login route
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find user
+    const user = await db.collection("users").findOne({ email });
+    if (!user) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user._id, email },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Remove password from user object before sending
+    const userToReturn = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+    };
+
+    res.json({
+      message: "Login successful",
+      token,
+      user: userToReturn
+    });
+
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ error: "Login failed" });
   }
 });
 
