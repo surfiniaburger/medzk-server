@@ -30,15 +30,13 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      
       
       if (!response.ok) {
         throw new Error('Login failed');
       }
 
-      if (data.requiresOTP) {
-        return { requiresOTP: true };
-      }
+      const data = await response.json();
       
       
       localStorage.setItem('token', data.token);
@@ -51,29 +49,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const verifyOTP = async (email, otp) => {
-    try {
-      const response = await fetch(`${API_BASE}/record/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp }),
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Verification failed');
-      }
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setUser(data.user);
-      return true;
-    } catch (error) {
-      console.error('OTP verification error:', error);
-      throw error;
-    }
-  };
+ 
 
   const register = async (name, email, password) => {
     try {
@@ -119,7 +95,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, register, verifyOTP, login, logout }}>
+    <AuthContext.Provider value={{ user, register, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
