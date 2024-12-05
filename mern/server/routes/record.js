@@ -24,8 +24,12 @@ import { getAddressFromCoordinates } from "../utils/address.js";
 import { GoogleAICacheManager } from '@google/generative-ai/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+const { sendOTP } = require('../utils/email');
 
-
+// Helper function to generate OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 
 
@@ -188,22 +192,18 @@ router.get("/", async (req, res) => {
   }
 });
 
+
+// Updated Register route
 router.post("/register", async (req, res) => {
   try {
     console.log('Received registration request:', {
-      body: { ...req.body, password: '[REDACTED]' }, // Log request data safely
-      headers: req.headers
+      body: { ...req.body, password: '[REDACTED]' }
     });
 
     const { name, email, password } = req.body;
 
-    // Validate required fields
+    // Existing validation checks...
     if (!name || !email || !password) {
-      console.log('Missing required fields:', {
-        hasName: !!name,
-        hasEmail: !!email,
-        hasPassword: !!password
-      });
       return res.status(400).json({
         error: "Missing required fields",
         details: {
@@ -214,25 +214,19 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Validate email format
+    // Email validation...
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      console.log('Invalid email format:', email);
-      return res.status(400).json({
-        error: "Invalid email format"
-      });
+      return res.status(400).json({ error: "Invalid email format" });
     }
 
-    // Check if user exists
+    // Check existing user...
     const existingUser = await db.collection("users").findOne({ email });
     if (existingUser) {
-      console.log('User already exists:', email);
-      return res.status(400).json({
-        error: "Email already registered"
-      });
+      return res.status(400).json({ error: "Email already registered" });
     }
 
-    // Validate password strength
+    // Password validation...
     if (password.length < 6) {
       return res.status(400).json({
         error: "Password must be at least 6 characters long"
@@ -243,44 +237,33 @@ router.post("/register", async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user
-    const newUser = {
-      name,
-      email,
-      password: hashedPassword,
-      createdAt: new Date(),
-    };
-
-    const result = await db.collection("users").insertOne(newUser);
-    console.log('User created:', result.insertedId);
-
-    // Generate token
-    const token = jwt.sign(
-      { id: result.insertedId.toString(), email },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    const userToReturn = {
-      id: result.insertedId,
-      name,
-      email,
-    };
-
-    console.log('Registration successful for:', email);
+    // Generate and save OTP
+    const otp = generateOTP();
+    const hashedOTP = await bcrypt.hash(otp, 10);
     
-    res.status(201).json({
-      message: "Registration successful",
-      token,
-      user: userToReturn
+    await db.collection("otps").insertOne({
+      email,
+      otp: hashedOTP,
+      createdAt: new Date(),
+      type: 'registration',
+      userData: {
+        name,
+        email,
+        password: hashedPassword
+      }
+    });
+
+    // Send OTP
+    await sendOTP(email, otp);
+
+    res.status(200).json({
+      message: "Verification code sent to email",
+      requiresOTP: true,
+      email
     });
 
   } catch (error) {
-    console.error('Registration error:', {
-      error: error.message,
-      stack: error.stack
-    });
-    
+    console.error('Registration error:', error);
     res.status(500).json({
       error: "Registration failed",
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -288,7 +271,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Login route
+// Updated Login route
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -305,24 +288,25 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user._id, email },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    // Generate and save OTP
+    const otp = generateOTP();
+    const hashedOTP = await bcrypt.hash(otp, 10);
+    
+    await db.collection("otps").insertOne({
+      email,
+      otp: hashedOTP,
+      createdAt: new Date(),
+      type: 'login',
+      userId: user._id
+    });
 
-    // Remove password from user object before sending
-    const userToReturn = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-    };
+    // Send OTP
+    await sendOTP(email, otp);
 
-    res.json({
-      message: "Login successful",
-      token,
-      user: userToReturn
+    res.status(200).json({
+      message: "Verification code sent to email",
+      requiresOTP: true,
+      email
     });
 
   } catch (error) {
@@ -331,6 +315,65 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// New Verify OTP route
+router.post("/verify-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    // Find the latest OTP for this email
+    const otpDoc = await db.collection("otps")
+      .findOne({ email }, { sort: { createdAt: -1 } });
+
+    if (!otpDoc) {
+      return res.status(400).json({ error: "Verification code expired or invalid" });
+    }
+
+    // Verify OTP
+    const isValidOTP = await bcrypt.compare(otp, otpDoc.otp);
+    if (!isValidOTP) {
+      return res.status(400).json({ error: "Invalid verification code" });
+    }
+
+    let user;
+    if (otpDoc.type === 'registration') {
+      // Complete registration
+      const result = await db.collection("users").insertOne(otpDoc.userData);
+      user = {
+        id: result.insertedId,
+        name: otpDoc.userData.name,
+        email: otpDoc.userData.email
+      };
+    } else {
+      // Login case
+      const existingUser = await db.collection("users").findOne({ _id: otpDoc.userId });
+      user = {
+        id: existingUser._id,
+        name: existingUser.name,
+        email: existingUser.email
+      };
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      { id: user.id.toString(), email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Delete used OTP
+    await db.collection("otps").deleteOne({ _id: otpDoc._id });
+
+    res.status(200).json({
+      message: otpDoc.type === 'registration' ? "Registration successful" : "Login successful",
+      token,
+      user
+    });
+
+  } catch (error) {
+    console.error("Verification error:", error);
+    res.status(500).json({ error: "Verification failed" });
+  }
+});
 
 router.get('/map', (req, res) => {
   try {
