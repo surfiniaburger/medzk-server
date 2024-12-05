@@ -3,7 +3,7 @@ import * as ReactDOM from "react-dom/client";
 import {
   createBrowserRouter,
   RouterProvider,
-  Outlet,
+  Outlet
 } from "react-router-dom";
 //import ProofVerification from "./components/ProofVerification";
 import Vision from "./components/vision";
@@ -18,6 +18,13 @@ import PredictForm from "./components/Predict";
 import EmbeddedHtml from "./components/EmbeddedHtml";
 import ChromeNano from "./components/ChromeNano";
 import Environment from "./components/environment";
+import { AuthProvider} from './context/AuthContext';
+import LoginForm from "./components/LoginForm";
+import { ProtectedRoute } from './components/ProtectedRoute';
+import RegisterForm from "./components/RegisterForm";
+// Optional: Create a ProtectedRoute component for routes that require authentication
+// eslint-disable-next-line react/prop-types
+
 
 
 // Define routes without authentication
@@ -32,7 +39,11 @@ const router = createBrowserRouter([
       },
       {
         path: "/predict", 
-        element: <PredictForm />, 
+        element: (
+          <ProtectedRoute>
+            <PredictForm />
+          </ProtectedRoute>
+        ), 
       },
       {
         path: "/vision",
@@ -61,7 +72,17 @@ const router = createBrowserRouter([
       },
       {
         path: "/environment",
-        element: <Environment />,
+        element: 
+         
+            <Environment />,
+      },
+      {
+        path: "/login",
+        element: <LoginForm />,
+      },
+      {
+        path: "/register",
+        element: <RegisterForm />,
       },
     ],
   },
@@ -70,6 +91,8 @@ const router = createBrowserRouter([
 // Render application
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </React.StrictMode>
 );

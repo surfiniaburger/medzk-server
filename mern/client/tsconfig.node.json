@@ -30,6 +30,6 @@
       "module": "CommonJS",
       "outDir": "./dist"
     },
-    "include": ["src/**/*.ts", "src/**/*.tsx"]
+    "include": ["src/**/*.ts", "src/**/*.tsx", "src/context/AuthContext.jsx", "src/components/ProtectedRoute.jsx"]
   }
   

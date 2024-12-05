@@ -20,6 +20,7 @@
     "@sentry/profiling-node": "^8.34.0",
     "@sentry/wizard": "^3.34.0",
     "axios": "^1.7.7",
+    "bcryptjs": "^2.4.3",
     "bullmq": "^5.17.1",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
