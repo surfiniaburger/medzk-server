@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Immersive Sustainability Game</title>
+<script src="https://maps.googleapis.com/maps/api/js?v=alpha&libraries=maps3d&callback=initMap" async defer></script>
+<style>
+body { margin: 0; padding: 0; overflow: hidden; }
+#map { height: 100vh; width: 100vw; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+async function initMap() {
+  const {Map3DElement, Marker3DInteractiveElement, Model3DElement} = await google.maps.importLibrary('maps3d');
+  const map = new Map3DElement(document.getElementById('map'), {
+    center: { lat: 37.7749, lng: -122.4194, altitude: 0 }, // San Francisco
+    defaultLabelsDisabled: true,
+    defaultUIDisabled: true,
+    tilt: 45,
+  });
+
+  const deforestationMarker = new Marker3DInteractiveElement({
+    map: map,
+    position: { lat: 37.77, lng: -122.42, altitude: 0 },
+    label: 'Deforestation',
+  });
+
+  deforestationMarker.addEventListener('gmp-click', () => {
+    alert('Deforestation information: This area has experienced significant tree loss.');
+  });
+
+  const pollutionMarker = new Marker3DInteractiveElement({
+    map: map,
+    position: { lat: 37.78, lng: -122.41, altitude: 0 },
+    label: 'Pollution',
+  });
+
+  pollutionMarker.addEventListener('gmp-click', () => {
+    alert('Pollution information: High levels of air and water pollution have been detected.');
+  });
+
+  const treeModel = new Model3DElement({
+    map: map,
+    position: { lat: 37.775, lng: -122.415, altitude: 0 },
+    src: 'https://models.example.com/tree.glb', // Placeholder URL
+    scale: 10,
+  });
+}
+</script>
+</body>
+</html>
