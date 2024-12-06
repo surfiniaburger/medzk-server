@@ -22,6 +22,7 @@ import { AuthProvider} from './context/AuthContext';
 import LoginForm from "./components/LoginForm";
 import { ProtectedRoute } from './components/ProtectedRoute';
 import RegisterForm from "./components/RegisterForm";
+import SocialHtml from "./components/Social";
 // Optional: Create a ProtectedRoute component for routes that require authentication
 // eslint-disable-next-line react/prop-types
 
@@ -83,6 +84,10 @@ const router = createBrowserRouter([
       {
         path: "/register",
         element: <RegisterForm />,
+      },
+      {
+        path: "/social",
+        element: <SocialHtml />,
       },
     ],
   },
