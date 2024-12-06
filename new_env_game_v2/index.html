@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sustainable Food Explorer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #FF9800;
+            --accent-color: #2196F3;
+            --text-color: #333;
+            --background-color: #f5f5f5;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Search Interface */
+        .search-card {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        #location-input {
+            width: 300px;
+            padding: 10px;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        /* Sustainability Dashboard */
+        .sustainability-dashboard {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            max-width: 300px;
+        }
+
+        .dashboard-stat {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .stat-title {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.2em;
+            color: var(--text-color);
+        }
+
+        /* Market Info Panel */
+        .market-info {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .visit-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .visit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        /* Social Share Panel */
+        .social-share {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .share-btn {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        /* Achievement Popup */
+        #achievement-popup {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100%);
+            background: rgba(255, 215, 0, 0.95);
+            padding: 15px 30px;
+            border-radius: 25px;
+            color: #333;
+            font-weight: bold;
+            z-index: 1001;
+            opacity: 0;
+            transition: all 0.5s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        #achievement-popup.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Mission Panel */
+        #mission-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            max-width: 80%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Search Interface -->
+        <div class="search-card">
+            <input type="text" id="location-input" placeholder="Enter a location to find farmers markets...">
+        </div>
+
+        <!-- Sustainability Dashboard -->
+        <div class="sustainability-dashboard">
+            <div class="dashboard-stat">
+                <div class="stat-title">Markets Found</div>
+                <div class="stat-value" id="markets-count">0</div>
+            </div>
+            <div class="dashboard-stat">
+                <div class="stat-title">Sustainability Score</div>
+                <div class="stat-value" id="sustainability-score">0</div>
+            </div>
+            <div class="dashboard-stat">
+                <div class="stat-title">Local Food Impact</div>
+                <div class="stat-value" id="food-impact">🌱</div>
+            </div>
+        </div>
+
+        <!-- Market Info Panel -->
+        <div class="market-info" id="market-info">
+            <h3>Farmers Market Found!</h3>
+            <p id="market-description">Loading market information...</p>
+            <button class="visit-btn" onclick="visitMarket()">Visit Market</button>
+        </div>
+
+        <!-- Social Share Panel -->
+        <div class="social-share">
+            <button class="share-btn" onclick="shareProgress()">
+                <i class="fas fa-share-alt"></i> Share Your Impact
+            </button>
+        </div>
+
+        <!-- Mission Panel -->
+        <div id="mission-panel">
+            Explore your area to find farmers markets! Support local food systems and sustainable agriculture.
+        </div>
+
+        <!-- Achievement Popup -->
+        <div id="achievement-popup">Achievement Unlocked! 🏆</div>
+    </div>
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+   
+<script async defer>
+    (g => { var h, a, k, p = "The Google Maps JavaScript API", c = "google", l = "importLibrary", q = "__ib__", m = document, b = window; b = b[c] || (b[c] = {}); var d = b.maps || (b.maps = {}), r = new Set, e = new URLSearchParams, u = () => h || (h = new Promise(async (f, n) => { await (a = m.createElement("script")); e.set("libraries", [...r] + ""); for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]); e.set("callback", c + ".maps." + q); a.src = `https://maps.${c}apis.com/maps/api/js?` + e; d[q] = f; a.onerror = () => h = n(Error(p + " could not load.")); a.nonce = m.querySelector("script[nonce]")?.nonce || ""; m.head.append(a) })); d[l] ? console.warn(p + " only loads once. Ignoring:", g) : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)) })({
+        key: "",
+        v: "alpha",
+    });
+</script>
+
+    <!-- Game Logic -->
+    <script>
+        // Game state
+let map3DElement;
+let environmentalScore = 0;
+let sustainabilityLevel = 1;
+let marketsFound = [];
+let currentMarket = null;
+
+// Initialize game
+async function initGame() {
+    const { Map3DElement, Marker3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
+    const { Autocomplete } = await google.maps.importLibrary("places");
+    
+    // Initialize 3D Map
+    map3DElement = new Map3DElement({
+        center: { lat: 40.7128, lng: -74.0060, altitude: 2000 },
+        tilt: 45,
+        heading: 0,
+        range: 3000
+    });
+    document.getElementById('game-container').appendChild(map3DElement);
+
+    // Initialize location search
+    initializeSearch(Autocomplete);
+
+    // Add event listeners
+    map3DElement.addEventListener('gmp-click', handleMapClick);
+}
+
+// Initialize location search with autocomplete
+function initializeSearch(Autocomplete) {
+    const autocomplete = new Autocomplete(
+        document.getElementById("location-input"),
+        {
+            fields: ["geometry", "name", "place_id"],
+        }
+    );
+
+    autocomplete.addListener("place_changed", async () => {
+        const place = autocomplete.getPlace();
+        console.log(place)
+        if (!place.geometry || !place.geometry.viewport) {
+            showAchievement("Please select a valid location!");
+            return;
+        }
+
+        // Extract Place ID
+        const placeId = place.place_id;
+        console.log("Selected Place ID:", placeId);  // Check the console
+
+
+        // Move map to selected location
+        await zoomToLocation(place.geometry);
+        
+        // Search for farmers markets
+        searchFarmersMarkets(placeId, place.geometry.location);
+    });
+}
+
+// Zoom to selected location
+async function zoomToLocation(geometry) {
+    const elevation = await getElevationForPoint(geometry.location);
+    
+    if (map3DElement) {
+        map3DElement.center = {
+            lat: geometry.location.lat(),
+            lng: geometry.location.lng(),
+            altitude: elevation + 500
+        };
+        map3DElement.heading = 0;
+        map3DElement.range = 2000;
+        map3DElement.tilt = 45;
+    }
+}
+
+// Get elevation for a point
+async function getElevationForPoint(location) {
+    const { ElevationService } = await google.maps.importLibrary("elevation");
+    const elevatorService = new google.maps.ElevationService();
+    
+    try {
+        const elevationResponse = await elevatorService.getElevationForLocations({
+            locations: [location],
+        });
+        
+        if (elevationResponse.results && elevationResponse.results.length) {
+            return elevationResponse.results[0].elevation || 10;
+        }
+        return 10;
+    } catch (error) {
+        console.error("Error getting elevation:", error);
+        return 10;
+    }
+}
+
+// Search for farmers markets using Places Insights API
+async function searchFarmersMarkets(placeId, location) {
+    console.log(placeId)
+    console.log(location)
+    const API_KEY = '';
+    
+    try {
+        const response = await fetch('https://areainsights.googleapis.com/v1:computeInsights', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Goog-Api-Key': API_KEY
+            },
+            body: JSON.stringify({
+                insights: ["INSIGHT_COUNT", "INSIGHT_PLACES"],
+                filter: {
+                    locationFilter: {
+                        region: {
+                            place: `places/${placeId}`
+                        }
+                    },
+                    typeFilter: {
+                        includedTypes: ["restaurant","farm"]
+                    },
+                    operatingStatus: ["OPERATING_STATUS_OPERATIONAL"]
+                }
+            })
+        });
+
+        const data = await response.json();
+        // Check if data.places exists before proceeding!
+        
+        console.log(data)
+        
+        // Update markets count
+        const marketsCount = document.getElementById('markets-count');
+        if (marketsCount) {
+            marketsCount.textContent = data.count || 0;
+        }
+
+        if (data.count > 0 && data.placeInsights) {
+            createMarketHotspots(data.placeInsights, location);
+            showAchievement(`Found ${data.count} restaurants and farms in your area! 🌾`);
+        } else {
+            showAchievement(`No restaurants and farms found in this area. Try another location!`);
+        }
+
+        return {
+            data: data,
+            count: data.count || 0,
+            places: data.placeInsights || []
+        };
+
+    } catch (error) {
+        console.error("Error searching places:", error);
+        showAchievement(`Error searching for ${type.replace('_', ' ')}s. Please try again.`);
+        throw error;
+    }
+}
+
+async function getPlaceDetails(placeIds) {  // New function to get details
+    const placesDetails = [];
+    for (const id of placeIds) { // Process each ID
+      try {
+        const details = await getPlaceDetailsById(id);
+        if(details)
+            placesDetails.push(details);
+      } catch (error) { // Handle individual errors
+        console.error(`Error getting details for placeId ${id}: `, error);
+      }
+    }
+    return placesDetails;
+}
+
+
+async function getPlaceDetailsById(placeId) {
+    const placesDetailsResponse = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry%2Cname%2Cplace_id&key=YOUR_API_KEY`);
+    const placesDetailsData = await placesDetailsResponse.json();
+    console.log("Places Details Data:", placesDetailsData);
+    return placesDetailsData.result;
+}
+
+
+// Create market hotspots on the map
+async function createMarketHotspots(places, centerLocation) {
+    const { Marker3DElement } = await google.maps.importLibrary("maps3d");
+    
+    // Clear existing markers
+    marketsFound.forEach(market => market.marker.remove());
+    marketsFound = [];
+
+    places.forEach(place => {
+        const randomOffset = {
+            lat: (Math.random() - 0.5) * 0.01,
+            lng: (Math.random() - 0.5) * 0.01
+        };
+
+        const marker = new Marker3DElement({
+            position: {
+                lat: centerLocation.lat() + randomOffset.lat,
+                lng: centerLocation.lng() + randomOffset.lng,
+                altitude: 0
+            },
+            label: "🌾",
+            sizePreserved: true
+        });
+
+        map3DElement.append(marker);
+        
+        marketsFound.push({
+            id: place.id,
+            marker: marker,
+            visited: false
+        });
+    });
+}
+
+// Handle map clicks
+function handleMapClick(event) {
+    if (!event.position) return;
+
+    const clickedMarket = findNearestMarket(event.position);
+    if (clickedMarket && !clickedMarket.visited) {
+        currentMarket = clickedMarket;
+        showMarketInfo(clickedMarket);
+    }
+}
+
+// Find nearest market to click position
+function findNearestMarket(position) {
+    return marketsFound.reduce((closest, market) => {
+        const markerPos = market.marker.position;
+        const dist = calculateDistance(
+            position.lat,
+            position.lng,
+            markerPos.lat,
+            markerPos.lng
+        );
+        const closestDist = closest ? calculateDistance(
+            position.lat,
+            position.lng,
+            closest.marker.position.lat,
+            closest.marker.position.lng
+        ) : Infinity;
+        
+        return dist < closestDist ? market : closest;
+    }, null);
+}
+
+// Calculate distance between two points
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    return Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lon2 - lon1, 2));
+}
+
+// Show market information
+function showMarketInfo(market) {
+    const infoPanel = document.getElementById('market-info');
+    document.getElementById('market-description').textContent = 
+        "Visit this farmers market to support local agriculture and sustainable food systems! Share your visit on social media to earn bonus points.";
+    infoPanel.style.display = 'block';
+}
+
+// Visit market action
+function visitMarket() {
+    if (!currentMarket || currentMarket.visited) return;
+    
+    environmentalScore += 10;
+    currentMarket.visited = true;
+    
+    // Update UI
+    document.getElementById('sustainability-score').textContent = environmentalScore;
+    document.getElementById('market-info').style.display = 'none';
+    
+    // Update food impact rating
+    updateFoodImpact();
+    
+    // Show achievement
+    showAchievement("Market Visited! +10 points 🌟");
+    
+    // Prompt for social sharing
+    setTimeout(() => {
+        if (confirm("Share your visit on social media to earn bonus points?")) {
+            shareProgress();
+        }
+    }, 1000);
+}
+
+// Update food impact rating
+function updateFoodImpact() {
+    let rating = '🌱';
+    if (environmentalScore >= 20) rating = '🌱🌱';
+    if (environmentalScore >= 40) rating = '🌱🌱🌱';
+    if (environmentalScore >= 60) rating = '🌱🌱🌱🌱';
+    
+    document.getElementById('food-impact').textContent = rating;
+}
+
+// Share progress on social media
+async function shareProgress() {
+    const message = `I'm supporting local food systems! Found ${marketsFound.length} farmers markets and earned ${environmentalScore} sustainability points in the Sustainable Food Explorer game! 🌾 #SustainableFood #LocalMarkets #FoodSustainability`;
+    
+    try {
+        await navigator.clipboard.writeText(message);
+        showAchievement("Message copied! Share it on your favorite social media! +5 points 🌟");
+        
+        // Award bonus points for sharing
+        environmentalScore += 5;
+        document.getElementById('sustainability-score').textContent = environmentalScore;
+        updateFoodImpact();
+    } catch (err) {
+        console.error("Failed to copy:", err);
+        // Fallback for clipboard access failure
+        const shareArea = document.createElement('textarea');
+        shareArea.value = message;
+        shareArea.style.position = 'fixed';
+        shareArea.style.top = '50%';
+        shareArea.style.left = '50%';
+        shareArea.style.transform = 'translate(-50%, -50%)';
+        shareArea.style.zIndex = '10000';
+        
+        document.body.appendChild(shareArea);
+        shareArea.focus();
+        shareArea.select();
+        
+        showAchievement("Select and copy the message to share!");
+        
+        setTimeout(() => shareArea.remove(), 10000);
+    }
+}
+
+// Show achievement popup
+function showAchievement(message) {
+    const popup = document.getElementById('achievement-popup');
+    popup.textContent = message;
+    popup.classList.add('show');
+    
+    setTimeout(() => {
+        popup.classList.remove('show');
+    }, 3000);
+}
+
+// Start the game when the page loads
+window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
