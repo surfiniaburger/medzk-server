@@ -24,6 +24,51 @@ import { getAddressFromCoordinates } from "../utils/address.js";
 import { GoogleAICacheManager } from '@google/generative-ai/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import axios from 'axios'
+// Token management
+let cachedToken = null;
+let tokenExpiry = null;
+
+const getAccessToken = async () => {
+  try {
+    if (cachedToken && tokenExpiry && Date.now() < tokenExpiry) {
+      return cachedToken;
+    }
+
+    const auth = Buffer.from(
+      `${OAUTH_CONFIG.consumerKey}:${OAUTH_CONFIG.consumerSecret}`
+    ).toString('base64');
+
+    const response = await axios({
+      method: 'post',
+      url: OAUTH_CONFIG.tokenUrl,
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      data: 'grant_type=client_credentials'
+    });
+
+    cachedToken = response.data.access_token;
+    tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
+
+    return cachedToken;
+  } catch (error) {
+    console.error('Error getting access token:', error);
+    throw error;
+  }
+};
+
+// Middleware to attach token
+const attachToken = async (req, res, next) => {
+  try {
+    const token = await getAccessToken();
+    req.accessToken = token;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
 
 
 
@@ -354,7 +399,45 @@ router.get('/map', (req, res) => {
     htmlContent = htmlContent
       .replace('{{GOOGLE_MAPS_API_KEY}}', process.env.GOOGLE_MAPS_API_KEY)
       .replace('{{OPENWEATHER_API_KEY}}', process.env.OPENWEATHER_API_KEY)
+      //.replace('{{OAUTH_TOKEN}}', req.accessToken) // Add token for client-side API calls
       .replace('<script src="/js/map-application.js"></script>', `<script>${jsContent}</script>`);
+      
+    
+    logger.info('info', 'Successfully injected API keys into HTML');
+    res.status(200).send(htmlContent);
+  } catch (error) {
+    logger.error('Error rendering the map page:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+router.get('/social', (req, res) => {
+  try {
+    // Log request details
+    logger.info('info', 'Request received for /social');
+    
+    // Log environment variables
+    logger.info('info', `GOOGLE_MAPS_API_KEY: ${process.env.GOOGLE_MAPS_API_KEY ? 'Loaded' : 'Not Loaded'}`);
+    logger.info('info', `OPENWEATHER_API_KEY: ${process.env.OPENWEATHER_API_KEY ? 'Loaded' : 'Not Loaded'}`);
+    
+    // Read both files
+    const htmlPath = path.join(__dirname, 'views/index.html');
+    const jsPath = path.join(__dirname, '../public/js/map-application.js');
+    
+    logger.info('info', `Reading HTML file from: ${htmlPath}`);
+    logger.info('info', `Reading JS file from: ${jsPath}`);
+    
+    let htmlContent = fs.readFileSync(htmlPath, 'utf-8');
+    const jsContent = fs.readFileSync(jsPath, 'utf-8');
+
+    // Inject the JavaScript content and API keys
+    htmlContent = htmlContent
+      .replace('{{GOOGLE_MAPS_API_KEY}}', process.env.GOOGLE_MAPS_API_KEY)
+      .replace('{{OPENWEATHER_API_KEY}}', process.env.OPENWEATHER_API_KEY)
+      //.replace('{{OAUTH_TOKEN}}', req.accessToken) // Add token for client-side API calls
+      .replace('<script src="/js/map-application.js"></script>', `<script>${jsContent}</script>`);
+      
     
     logger.info('info', 'Successfully injected API keys into HTML');
     res.status(200).send(htmlContent);
