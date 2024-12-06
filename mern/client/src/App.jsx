@@ -130,7 +130,7 @@ const App = () => {
       icon: MessageSquareLockIcon,
       title: "Support local farmers Challenge",
       description: "Virtually visit farmers Market and Share it Social Media",
-      to: "/map"
+      to: "/social"
     },
    
   ];
