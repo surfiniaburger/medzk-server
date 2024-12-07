@@ -237,7 +237,35 @@
   <script>
     window.GOOGLE_MAPS_API_KEY = '{{GOOGLE_MAPS_API_KEY}}';
     window.OPENWEATHER_API_KEY = '{{OPENWEATHER_API_KEY}}';
+    
   </script>
+
+<script>
+    // Initialize API keys with local storage support
+    const initializeApiKeys = () => {
+        const STORAGE_KEY = 'maps_api_key_secure';
+        
+        // Try to get from local storage first
+        const storedKey = localStorage.getItem(STORAGE_KEY);
+        if (storedKey) {
+            window.GOOGLE_MAPS_API_KEY = atob(storedKey); // Simple base64 decode
+        }
+        
+        // If no stored key, use the provided one and store it
+        if (window.GOOGLE_MAPS_API_KEY && !storedKey) {
+            localStorage.setItem(STORAGE_KEY, btoa(window.GOOGLE_MAPS_API_KEY)); // Simple base64 encode
+        }
+        
+        window.GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || '{{GOOGLE_MAPS_API_KEY}}';
+        window.OPENWEATHER_API_KEY = '{{OPENWEATHER_API_KEY}}';
+    };
+
+    initializeApiKeys();
+</script>
+
+
+
+  
 
    
 <script async defer>
@@ -351,12 +379,16 @@ async function searchFarmersMarkets(placeId, location) {
     console.log(placeId)
     console.log(location)
     try {
-        if (window.GOOGLE_MAPS_API_KEY = '{{GOOGLE_MAPS_API_KEY}}'){
+        const apiKey = apiKeyManager.getApiKey();
+            if (!apiKey) {
+                throw new Error('API key not found');
+            }
+        
         const response = await fetch('https://areainsights.googleapis.com/v1:computeInsights', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Goog-Api-Key': window.GOOGLE_MAPS_API_KEY
+                'X-Goog-Api-Key': apiKey
             },
             body: JSON.stringify({
                 insights: ["INSIGHT_COUNT", "INSIGHT_PLACES"],
@@ -372,7 +404,7 @@ async function searchFarmersMarkets(placeId, location) {
                     operatingStatus: ["OPERATING_STATUS_OPERATIONAL"]
                 }
             })
-        })} else {"Key not loaded"};
+        })
 
         const data = await response.json();
         // Check if data.places exists before proceeding!
