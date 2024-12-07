@@ -241,28 +241,44 @@
   </script>
 
 <script>
-    // Initialize API keys with local storage support
-    const initializeApiKeys = () => {
-        const STORAGE_KEY = 'maps_api_key_secure';
+    // Initialize API key management globally
+    window.apiKeyManager = {
+        STORAGE_KEY: 'maps_api_key_secure',
         
-        // Try to get from local storage first
-        const storedKey = localStorage.getItem(STORAGE_KEY);
-        if (storedKey) {
-            window.GOOGLE_MAPS_API_KEY = atob(storedKey); // Simple base64 decode
+        getStoredApiKey: function() {
+            try {
+                const storedKey = localStorage.getItem(this.STORAGE_KEY);
+                return storedKey ? atob(storedKey) : null;
+            } catch (error) {
+                console.error('Error retrieving stored API key:', error);
+                return null;
+            }
+        },
+        
+        storeApiKey: function(apiKey) {
+            try {
+                localStorage.setItem(this.STORAGE_KEY, btoa(apiKey));
+                return true;
+            } catch (error) {
+                console.error('Error storing API key:', error);
+                return false;
+            }
+        },
+        
+        getApiKey: function() {
+            return this.getStoredApiKey() || window.GOOGLE_MAPS_API_KEY;
         }
-        
-        // If no stored key, use the provided one and store it
-        if (window.GOOGLE_MAPS_API_KEY && !storedKey) {
-            localStorage.setItem(STORAGE_KEY, btoa(window.GOOGLE_MAPS_API_KEY)); // Simple base64 encode
-        }
-        
-        window.GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || '{{GOOGLE_MAPS_API_KEY}}';
-        window.OPENWEATHER_API_KEY = '{{OPENWEATHER_API_KEY}}';
     };
 
-    initializeApiKeys();
-</script>
+    // Initialize API keys
+    window.GOOGLE_MAPS_API_KEY = window.apiKeyManager.getStoredApiKey() || '{{GOOGLE_MAPS_API_KEY}}';
+    window.OPENWEATHER_API_KEY = '{{OPENWEATHER_API_KEY}}';
 
+    // Store the API key if it's not already stored
+    if (window.GOOGLE_MAPS_API_KEY && window.GOOGLE_MAPS_API_KEY !== '{{GOOGLE_MAPS_API_KEY}}') {
+        window.apiKeyManager.storeApiKey(window.GOOGLE_MAPS_API_KEY);
+    }
+</script>
 
 
   
@@ -379,7 +395,7 @@ async function searchFarmersMarkets(placeId, location) {
     console.log(placeId)
     console.log(location)
     try {
-        const apiKey = apiKeyManager.getApiKey();
+        const apiKey = window.apiKeyManager.getApiKey();
             if (!apiKey) {
                 throw new Error('API key not found');
             }
@@ -432,7 +448,7 @@ async function searchFarmersMarkets(placeId, location) {
 
     } catch (error) {
         console.error("Error searching places:", error);
-        showAchievement(`Error searching for ${type.replace('_', ' ')}s. Please try again.`);
+        showAchievement(`Error searching for restaurants and farms. Please try again.`);
         throw error;
     }
 }
