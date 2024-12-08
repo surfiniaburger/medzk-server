@@ -6,9 +6,16 @@ import path from 'path';
 import 'dotenv/config';
 import { fileURLToPath } from 'url';
 //import conversation from "./routes/conversation.js";
+import axios from 'axios'
+
+
 
 const PORT = process.env.PORT || 5050;
 const app = express();
+
+
+
+
 
 
 // Handle Google Credentials Setup conditionally based on environment
@@ -54,8 +61,64 @@ app.use(cors({
 // Body parser middleware
 app.use(express.json());
 
+// Environment variables - adjust these according to your setup
+const OAUTH_CONFIG = {
+  tokenUrl: 'https://34.49.13.123.nip.io/token',
+  proxyBaseUrl: 'https://34.49.13.123.nip.io/Zerok',
+  consumerKey: process.env.CONSUMER_KEY,
+  consumerSecret: process.env.CONSUMER_SECRET
+};
 
-app.use("/record", records);
+// Token management
+let cachedToken = null;
+let tokenExpiry = null;
+
+const getAccessToken = async () => {
+  try {
+    if (cachedToken && tokenExpiry && Date.now() < tokenExpiry) {
+      return cachedToken;
+    }
+
+    const auth = Buffer.from(
+      `${OAUTH_CONFIG.consumerKey}:${OAUTH_CONFIG.consumerSecret}`
+    ).toString('base64');
+
+    const response = await axios({
+      method: 'post',
+      url: OAUTH_CONFIG.tokenUrl,
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      data: 'grant_type=client_credentials'
+    });
+
+    cachedToken = response.data.access_token;
+    tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
+
+    return cachedToken;
+  } catch (error) {
+    console.error('Error getting access token:', error);
+    throw error;
+  }
+};
+
+
+
+app.use("/record", async (req, res, next) => {
+  try {
+    const token = await getAccessToken(); // Generate or retrieve the cached token
+    req.accessToken = token; // Attach the token to the request object
+    // Set up Axios interceptor for outgoing requests
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    next();
+  } catch (error) {
+    console.error("Failed to attach token:", error);
+    res.status(500).json({ error: "Failed to authenticate request" });
+  }
+}, records);
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

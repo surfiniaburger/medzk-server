@@ -24,51 +24,9 @@ import { getAddressFromCoordinates } from "../utils/address.js";
 import { GoogleAICacheManager } from '@google/generative-ai/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import axios from 'axios'
-// Token management
-let cachedToken = null;
-let tokenExpiry = null;
 
-const getAccessToken = async () => {
-  try {
-    if (cachedToken && tokenExpiry && Date.now() < tokenExpiry) {
-      return cachedToken;
-    }
 
-    const auth = Buffer.from(
-      `${OAUTH_CONFIG.consumerKey}:${OAUTH_CONFIG.consumerSecret}`
-    ).toString('base64');
 
-    const response = await axios({
-      method: 'post',
-      url: OAUTH_CONFIG.tokenUrl,
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      data: 'grant_type=client_credentials'
-    });
-
-    cachedToken = response.data.access_token;
-    tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
-
-    return cachedToken;
-  } catch (error) {
-    console.error('Error getting access token:', error);
-    throw error;
-  }
-};
-
-// Middleware to attach token
-const attachToken = async (req, res, next) => {
-  try {
-    const token = await getAccessToken();
-    req.accessToken = token;
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
 
 
 
@@ -2211,6 +2169,10 @@ router.post("/predict", async (req, res) => {
   try {
     const { patientId, uploadedImageUrls, uploadedVideoUrl, wellnessText, latitude, longitude,  sdohInsight, geminiInsights, geminiAnalysis, sdohVideoInsightsArray } = req.body;
     logger.info('Received request for patientId:', patientId);
+
+      // Step 1: Retrieve or generate the access token
+      const token = await getAccessToken(); // Implement caching in `getAccessToken` for efficiency
+
     
 
     // 1. Data Gathering & Enrichment:
