@@ -18,13 +18,31 @@ import PredictForm from "./components/Predict";
 import EmbeddedHtml from "./components/EmbeddedHtml";
 import ChromeNano from "./components/ChromeNano";
 import Environment from "./components/environment";
-import { AuthProvider} from './context/AuthContext';
 import LoginForm from "./components/LoginForm";
-import { ProtectedRoute } from './components/ProtectedRoute';
 import RegisterForm from "./components/RegisterForm";
 import SocialHtml from "./components/Social";
-// Optional: Create a ProtectedRoute component for routes that require authentication
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+
 // eslint-disable-next-line react/prop-types
+
+
+
+// Initialize Firebase at the app level
+const firebaseConfig = {
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+
+// Create a context to share Firebase throughout your app
+export const FirebaseContext = React.createContext(null);
 
 
 
@@ -41,9 +59,9 @@ const router = createBrowserRouter([
       {
         path: "/predict", 
         element: (
-          <ProtectedRoute>
+         
             <PredictForm />
-          </ProtectedRoute>
+        
         ), 
       },
       {
@@ -93,11 +111,11 @@ const router = createBrowserRouter([
   },
 ]);
 
-// Render application
+// Wrap your RouterProvider with FirebaseContext.Provider
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <AuthProvider>
+    <FirebaseContext.Provider value={{ app, auth }}>
       <RouterProvider router={router} />
-    </AuthProvider>
+    </FirebaseContext.Provider>
   </React.StrictMode>
 );
