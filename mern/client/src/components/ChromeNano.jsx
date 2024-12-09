@@ -2,7 +2,7 @@ import { useState } from "react";
 
 const ChromeNano = () => {
     const API_BASE = process.env.NODE_ENV === 'production' 
-        ? 'https://34.49.13.123.nip.io/Zerok'
+        ? 'https://34.49.13.123.nip.io/zerok'
         : 'http://localhost:5050';
 
     const htmlFileUrl = `${API_BASE}/record/chrome-canary`; // Path to your HTML file
