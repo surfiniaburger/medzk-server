@@ -23,7 +23,9 @@ export const authenticatedFetch = async (url, options = {}) => {
   }
 
   try {
+    console.log("I went for token")
     const token = await user.getIdToken();
+    console.log(token)
     
     const API_BASE = process.env.NODE_ENV === 'production' 
       ? 'https://zero-kare5-837262597425.us-central1.run.app'
