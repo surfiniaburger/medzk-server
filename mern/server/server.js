@@ -64,7 +64,7 @@ app.use(express.json());
 // Environment variables - adjust these according to your setup
 const OAUTH_CONFIG = {
   tokenUrl: 'https://34.49.13.123.nip.io/token',
-  proxyBaseUrl: 'https://34.49.13.123.nip.io/Zerok',
+  proxyBaseUrl: 'https://34.49.13.123.nip.io/zerok',
   consumerKey: process.env.CONSUMER_KEY,
   consumerSecret: process.env.CONSUMER_SECRET
 };
