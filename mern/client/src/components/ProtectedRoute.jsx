@@ -1,11 +1,32 @@
-import { Navigate } from "react-router-dom";
-import { useAuth } from '../context/AuthContext';
+import { useState, useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { auth } from '../firebase';
 
-// eslint-disable-next-line react/prop-types
-export const ProtectedRoute = ({ children }) => {
-    const { user } = useAuth();
-    if (!user) {
-        return <Navigate to="/login" />;
-    }
-    return children;
+const ProtectedRoute = ({ children }) => {
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    // Cleanup subscription
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    // Save the attempted URL
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
 };
+
+export default ProtectedRoute;

@@ -1,5 +1,5 @@
 import  { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   signInWithEmailAndPassword, 
   signInWithRedirect, 
@@ -19,14 +19,16 @@ const LoginForm = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const handleRedirectResult = async () => {
       try {
         const result = await getRedirectResult(auth);
         if (result) {
-          // Successfully signed in with Google
-          navigate('/');
+          // Get the redirect location or default to home
+          const destination = location.state?.from || '/';
+          navigate(destination, { replace: true });
         }
       } catch (err) {
         setError(err.message);
@@ -34,7 +36,7 @@ const LoginForm = () => {
     };
 
     handleRedirectResult();
-  }, [navigate]);
+  }, [navigate, location]);
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
@@ -43,7 +45,9 @@ const LoginForm = () => {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/');
+      // Get the redirect location or default to home
+      const destination = location.state?.from || '/';
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
