@@ -75,6 +75,7 @@ let tokenExpiry = null;
 
 const getAccessToken = async () => {
   try {
+
     if (cachedToken && tokenExpiry && Date.now() < tokenExpiry) {
       return cachedToken;
     }
@@ -94,6 +95,7 @@ const getAccessToken = async () => {
     });
 
     cachedToken = response.data.access_token;
+    console.log(cachedToken)
     tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
 
     return cachedToken;
