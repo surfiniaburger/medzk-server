@@ -1,61 +1,77 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { authenticatedFetch } from '../firebase';
 
 const Environment = () => {
     const API_BASE = process.env.NODE_ENV === 'production' 
-        ? 'https://34.49.13.123.nip.io/zerok'
+        ? 'https://zero-kare5-837262597425.us-central1.run.app'
         : 'http://localhost:5050';
 
-    const htmlFileUrl = `${API_BASE}/record/environment`; // Path to your HTML file
+    const htmlFileUrl = `${API_BASE}/record/environment`;
     const [isLoading, setIsLoading] = useState(true);
+    const [htmlContent, setHtmlContent] = useState('');
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchHtmlContent = async () => {
+            try {
+                const response = await authenticatedFetch(htmlFileUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const content = await response.text();
+                setHtmlContent(content);
+            } catch (err) {
+                console.error('Error fetching HTML:', err);
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchHtmlContent();
+    }, [htmlFileUrl]);
 
     const handleIframeLoad = () => {
         setIsLoading(false);
     };
 
-    return (
-        <>
-     
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <div className="text-red-500">Error loading content: {error}</div>
+            </div>
+        );
+    }
 
-      
-        <div style={{ position: "relative", width: "100%", height: "100vh" }}>
+    return (
+        <div className="relative w-full h-screen">
             {isLoading && (
-                <div
-                    style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        fontSize: "1.5rem",
-                        color: "#555",
-                        textAlign: "center",
-                    }}
-                >
-                    <div className="spinner" style={{ marginBottom: "1rem" }}>
-                        {/* Add a spinner or any custom animation */}
-                        <div
-                            style={{
-                                width: "40px",
-                                height: "40px",
-                                border: "4px solid #ccc",
-                                borderTop: "4px solid #007bff",
-                                borderRadius: "50%",
-                                animation: "spin 1s linear infinite",
-                            }}
-                        />
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xl text-gray-600 text-center">
+                    <div className="mb-4">
+                        <div className="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
                     </div>
                     Loading map...
                 </div>
             )}
-            <iframe
-                src={htmlFileUrl}
-                title="Embedded HTML"
-                style={{ width: "100%", height: "100vh", border: "none" }}
-                onLoad={handleIframeLoad}
-            />
+            {htmlContent ? (
+                <iframe
+                    srcDoc={htmlContent}
+                    title="Embedded HTML"
+                    className="w-full h-screen border-none"
+                    onLoad={handleIframeLoad}
+                    sandbox="allow-scripts allow-same-origin"
+                />
+            ) : (
+                <iframe
+                    src={htmlFileUrl}
+                    title="Embedded HTML"
+                    className="w-full h-screen border-none"
+                    onLoad={handleIframeLoad}
+                />
+            )}
         </div>
-        
-        </>
-        
     );
 };
 
