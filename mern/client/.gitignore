@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 fireConfig.js
+.firebaserc
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +24,6 @@ fireConfig.js
 *.njsproj
 *.sln
 *.sw?
+*.firebaserc
+*.firebase
+*apphosting.yaml
