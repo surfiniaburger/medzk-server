@@ -4,9 +4,6 @@ import { authenticatedFetch } from '../firebase';
 
 const Environment = () => {
     const navigate = useNavigate();
-    const API_BASE = process.env.NODE_ENV === 'production'
-        ? 'https://zero-kare5-837262597425.us-central1.run.app'
-        : 'http://localhost:5050';
     
     const htmlFileUrl = `/record/environment`; // Remove API_BASE as it's handled in authenticatedFetch
     const [isLoading, setIsLoading] = useState(true);
