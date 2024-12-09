@@ -56,7 +56,6 @@ app.use(cors({
 // Body parser middleware
 app.use(express.json());
 
-admin.initializeApp(); // Initialize Firebase Admin
 
 app.use("/record", records);
 
