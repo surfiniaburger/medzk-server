@@ -7,7 +7,7 @@ admin.initializeApp({
   credential: admin.credential.applicationDefault(), // Uses GOOGLE_APPLICATION_CREDENTIALS
 });
 
-const verifyFirebaseToken = async (req, res, next) => {
+export const verifyFirebaseToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     
@@ -27,4 +27,4 @@ const verifyFirebaseToken = async (req, res, next) => {
   }
 };
 
-export default verifyFirebaseToken;  
+ 
