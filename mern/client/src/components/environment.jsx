@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { authenticatedFetch } from '../firebase';
 
 const Environment = () => {
-    const API_BASE = process.env.NODE_ENV === 'production' 
+    const navigate = useNavigate();
+    const API_BASE = process.env.NODE_ENV === 'production'
         ? 'https://zero-kare5-837262597425.us-central1.run.app'
         : 'http://localhost:5050';
-
-    const htmlFileUrl = `${API_BASE}/record/environment`;
+    
+    const htmlFileUrl = `/record/environment`; // Remove API_BASE as it's handled in authenticatedFetch
     const [isLoading, setIsLoading] = useState(true);
     const [htmlContent, setHtmlContent] = useState('');
     const [error, setError] = useState(null);
@@ -15,15 +17,17 @@ const Environment = () => {
         const fetchHtmlContent = async () => {
             try {
                 const response = await authenticatedFetch(htmlFileUrl);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
                 const content = await response.text();
                 setHtmlContent(content);
             } catch (err) {
                 console.error('Error fetching HTML:', err);
+                if (err.message === 'UNAUTHORIZED') {
+                    // Use React Router navigation instead of window.location
+                    navigate('/login', { 
+                        state: { from: window.location.pathname }
+                    });
+                    return;
+                }
                 setError(err.message);
             } finally {
                 setIsLoading(false);
@@ -31,7 +35,7 @@ const Environment = () => {
         };
 
         fetchHtmlContent();
-    }, [htmlFileUrl]);
+    }, [htmlFileUrl, navigate]);
 
     const handleIframeLoad = () => {
         setIsLoading(false);
