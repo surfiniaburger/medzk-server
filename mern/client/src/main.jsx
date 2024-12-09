@@ -84,14 +84,12 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/", 
-        element:  <ProtectedRoute><App /></ProtectedRoute>, 
+        element:  <App />, 
       },
       {
         path: "/predict", 
         element: (
-         
-            <PredictForm />
-        
+            <ProtectedRoute><PredictForm /></ProtectedRoute>,
         ), 
       },
       {
