@@ -1,0 +1,8 @@
+{
+    "hosting": {
+      "site": "zero-kare",
+  
+      "public": "dist"
+    
+    }
+  }
