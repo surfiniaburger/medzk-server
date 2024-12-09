@@ -19,9 +19,11 @@ export const authenticatedFetch = async (url, options = {}) => {
   const user = auth.currentUser;
   
   if (!user) {
+    window.location.href = '/login';
     throw new Error('User not authenticated');
   }
 
+  try {
   const token = await user.getIdToken();
   
   const API_BASE = process.env.NODE_ENV === 'production' 
@@ -38,4 +40,8 @@ export const authenticatedFetch = async (url, options = {}) => {
     ...options,
     headers,
   });
+}  catch (error) {
+  console.error('Error getting auth token:', error);
+  throw error;
+}
 };

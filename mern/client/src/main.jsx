@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import {
@@ -23,6 +24,9 @@ import RegisterForm from "./components/RegisterForm";
 import SocialHtml from "./components/Social";
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+// Add this to your imports
+import { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 
 // eslint-disable-next-line react/prop-types
 
@@ -45,6 +49,32 @@ export const auth = getAuth(app);
 export const FirebaseContext = React.createContext(null);
 
 
+// Create a protected route wrapper
+const ProtectedRoute = ({ children }) => {
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  return children;
+};
+
+
 
 // Define routes without authentication
 const router = createBrowserRouter([
@@ -54,7 +84,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/", 
-        element: <App />, 
+        element:  <ProtectedRoute><App /></ProtectedRoute>, 
       },
       {
         path: "/predict", 
