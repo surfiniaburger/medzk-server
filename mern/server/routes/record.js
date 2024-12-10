@@ -606,7 +606,7 @@ router.get('/location/:latitude/:longitude', async (req, res) => {
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY; // Securely store API key
 
 
-app.get('/getRoute', async (req, res) => {
+router.get('/getRoute', async (req, res) => {
   const origin = req.query.origin;
   const destination = req.query.destination;
 
