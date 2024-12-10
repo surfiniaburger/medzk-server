@@ -820,10 +820,6 @@ body {
 .location-icon:hover {
     background: #f0f0f0; /* Slightly darker background on hover */
 }
-
-
-
-
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -839,6 +835,7 @@ body {
                 <span class="popup-close-btn" id="popupCloseBtn">&times;</span>
               <div id="title">Navigate to a place</div>
               <div id="pac-container">
+                <div class="location-icon" onclick="getUserLocationAndFly()">  </div> 
                 <input
                   class="pac-input"
                   type="text"
@@ -847,6 +844,7 @@ body {
                   placeholder="Enter a location..."
                 />
               </div>
+              
               <a href="https://www.zerokare.info/" class="home-icon" title="Go to Home">
                 <i class="fas fa-home"></i>
               </a>
@@ -1504,7 +1502,12 @@ document.addEventListener('keydown', (e) => {
     }
 
     const { Place, SearchNearbyRankPreference } = await google.maps.importLibrary("places");
-    let center = new google.maps.LatLng(location.lat, location.lng);
+    let center;
+        if (location instanceof google.maps.LatLng) {
+            center = location;
+        } else {
+            center = new google.maps.LatLng(location.lat, location.lng); // Create LatLng if needed
+        }
     const request = {
         fields: ["displayName", "location","formattedAddress", "photos", "reviews",  "editorialSummary", "businessStatus"],
         locationRestriction: {
@@ -1597,23 +1600,28 @@ async function getUserLocation() {
 }
 
 
-// Add a button to get user location
-const locationButton = document.createElement('button');
-locationButton.textContent = 'Use My Location';
-locationButton.className = 'location-icon';
-locationButton.innerHTML = `<i class="fas fa-map-marker-alt"></i>`;
-document.body.appendChild(locationButton);
 
-locationButton.addEventListener('click', async () => {
-  try {
-    const userLocation = await getUserLocation();
-    initNearbySearch(userLocation);
-    fetchEnvironmentalData(userLocation) 
-  } catch (error) {
-    console.error("Error getting user location:", error);
-    alert("Could not get your location. Please check your browser settings.");
-  }
-});
+async function getUserLocationAndFly() { // Combined function
+    try {
+        const userLocation = await getUserLocation();
+
+        if (map3DElement) { // Check if map3DElement is initialized
+            zoomToViewport(new google.maps.LatLng(userLocation));  // Use LatLng object here
+            initNearbySearch(userLocation); 
+            await fetchEnvironmentalData(new google.maps.LatLng(userLocation)); 
+
+        } else {
+            console.error("Map3DElement is not initialized yet. Cannot fly to location.");
+            // Consider displaying a message to the user or retrying later
+        }
+
+    } catch (error) {
+        console.error("Error getting user location:", error);
+        alert("Could not get your location. Please check your browser settings.");
+    }
+}
+
+
 
       async function fetchEnvironmentalData(location) {
     const googleAirQualityUrl = `https://airquality.googleapis.com/v1/currentConditions:lookup?key=${window.GOOGLE_MAPS_API_KEY}`;
@@ -1623,8 +1631,8 @@ locationButton.addEventListener('click', async () => {
     const googlePayload = {
         universalAqi: true,
         location: {
-            latitude: location.lat,
-            longitude: location.lng,
+            latitude: location.lat(),
+            longitude: location.lng(),
         },
         extraComputations: [
             "HEALTH_RECOMMENDATIONS",
