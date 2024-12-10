@@ -799,6 +799,30 @@ body {
             z-index: 1001;
         }
 
+        .location-icon {
+    background: #fff;  /* White background */
+    border: none;
+    padding: 10px;        /* Adjust padding as needed */
+    border-radius: 4px;   /* Slightly rounded corners */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Subtle shadow */
+    cursor: pointer;
+    margin: 10px;       /* Add margin for spacing */
+    display: flex;      /* Center the icon */
+    align-items: center;
+    z-index: 1000;       /* Ensure it's above other map elements */
+}
+
+.location-icon i {  /* Style for the Font Awesome icon */
+    font-size: 18px;  /* Adjust icon size */
+    color: #4d90fe;    /* Your preferred icon color */
+}
+
+.location-icon:hover {
+    background: #f0f0f0; /* Slightly darker background on hover */
+}
+
+
+
 
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -1050,6 +1074,8 @@ function completeTask(placeId) {
 
 const leaderboard = [];
 const maxLeaderboardSize = 10; // Limit the number of displayed players
+
+
 
 
 function upDashboard() {
@@ -1551,6 +1577,44 @@ document.addEventListener('keydown', (e) => {
         }
         return elevationResponse.results[0].elevation || 10;
       }
+
+      // Function to get user's location
+async function getUserLocation() {
+  return new Promise((resolve, reject) => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({ lat: position.coords.latitude, lng: position.coords.longitude });
+        },
+        (error) => {
+          reject(error);
+        }
+      );
+    } else {
+      reject(new Error("Geolocation is not supported by this browser."));
+    }
+  });
+}
+
+
+// Add a button to get user location
+const locationButton = document.createElement('button');
+locationButton.textContent = 'Use My Location';
+locationButton.className = 'location-icon';
+locationButton.innerHTML = `<i class="fas fa-map-marker-alt"></i>`;
+document.body.appendChild(locationButton);
+
+locationButton.addEventListener('click', async () => {
+  try {
+    const userLocation = await getUserLocation();
+    initNearbySearch(userLocation);
+    fetchEnvironmentalData(userLocation) 
+  } catch (error) {
+    console.error("Error getting user location:", error);
+    alert("Could not get your location. Please check your browser settings.");
+  }
+});
+
       async function fetchEnvironmentalData(location) {
     const googleAirQualityUrl = `https://airquality.googleapis.com/v1/currentConditions:lookup?key=${window.GOOGLE_MAPS_API_KEY}`;
     const openWeatherAirQualityUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${location.lat()}&lon=${location.lng()}&appid=${window.OPENWEATHER_API_KEY}`;
