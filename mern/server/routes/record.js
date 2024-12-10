@@ -24,7 +24,7 @@ import { getAddressFromCoordinates } from "../utils/address.js";
 import { GoogleAICacheManager } from '@google/generative-ai/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { verifyFirebaseToken } from '../middleware/auth.js';
+
 
 
 // Create __dirname equivalent
@@ -168,7 +168,7 @@ async function retryWithBackoff(fn, maxRetries = 3, backoffFactor = 2) {
   throw new Error("Max retries exceeded.");
 }
 
-router.use(verifyFirebaseToken);
+
 
 // Health check route
 router.get('/health', (req, res) => {
