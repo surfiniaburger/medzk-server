@@ -655,9 +655,9 @@ router.get('/routeApi/:originLat/:originLng/:destinationLat/:destinationLng', as
           routingPreference: 'TRAFFIC_AWARE',
           computeAlternativeRoutes: false,
           routeModifiers: {
-            avoidTolls: req.query.avoidTolls === 'true',
-            avoidHighways: req.query.avoidHighways === 'true',
-            avoidFerries: req.query.avoidFerries === 'true'
+            avoidTolls: false,
+            avoidHighways: false,
+            avoidFerries: false
           },
           languageCode: 'en-US',
           units: 'IMPERIAL',
