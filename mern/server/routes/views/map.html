@@ -1602,70 +1602,178 @@ document.addEventListener('keydown', (e) => {
       }
 
     
-// In your map.html JavaScript code
+// Traffic condition color mapping
+const TRAFFIC_COLORS = {
+    NORMAL: '#4CAF50',     // Green
+    SLOW: '#FFA726',       // Orange
+    TRAFFIC_JAM: '#E53935' // Red
+};
 
+const DEFAULT_POLYLINE_OPTIONS = {
+    geodesic: true,
+    strokeOpacity: 1.0,
+    strokeWeight: 3,
+    zIndex: 1
+};
+
+/**
+ * Displays a route on the map with traffic-aware styling
+ * @param {google.maps.LatLng} origin - Starting point
+ * @param {google.maps.LatLng} destination - Ending point
+ * @param {Object} markerInstance - Instance containing map references
+ * @returns {Promise<void>}
+ */
 async function displayRoute(origin, destination, markerInstance) {
+    try {
+        // Clear existing route if any
+        clearExistingRoute(markerInstance);
 
-try {
+        // Fetch and validate route data
+        const routeData = await fetchRoutes(origin, destination);
+        if (!isValidRouteData(routeData)) {
+            throw new Error('Invalid route data received');
+        }
 
-    //If directionsRenderer is defined, it's possible that we did not explicitly remove it from the map, and it was referencing the polyline object from a closed infoWindow, so now we're explicitly setting the map of the previous renderer to null.
+        const route = routeData.routes[0];
+        const polylines = await createTrafficAwarePolylines(route, markerInstance.map3DElement);
+        
+        // Store polylines for later cleanup
+        markerInstance.directionsRenderer = polylines;
+
+        // Optionally fit bounds to show entire route
+        fitMapToRoute(route, markerInstance.map3DElement);
+
+        // Display route information if needed
+        displayRouteInfo(route);
+
+    } catch (error) {
+        console.error('Error displaying route:', error);
+        handleRouteError(error);
+    }
+}
+
+/**
+ * Clears existing route from the map
+ * @param {Object} markerInstance 
+ */
+function clearExistingRoute(markerInstance) {
     if (markerInstance.directionsRenderer) {
+        if (Array.isArray(markerInstance.directionsRenderer)) {
+            markerInstance.directionsRenderer.forEach(polyline => polyline.setMap(null));
+        } else {
             markerInstance.directionsRenderer.setMap(null);
         }
-        markerInstance.directionsRenderer = new google.maps.DirectionsRenderer();
+    }
+}
 
+/**
+ * Creates traffic-aware polylines for the route
+ * @param {Object} route - Route data from API
+ * @param {google.maps.Map} map - Map instance
+ * @returns {Array<google.maps.Polyline>}
+ */
+function createTrafficAwarePolylines(route, map) {
+    const decodedPath = google.maps.geometry.encoding.decodePath(route.polyline.encodedPolyline);
+    const path = decodedPath.map(point => ({ lat: point.lat(), lng: point.lng() }));
+    
+    if (!route.travelAdvisory?.speedReadingIntervals?.length) {
+        // No traffic data - create single polyline
+        return [new google.maps.Polyline({
+            ...DEFAULT_POLYLINE_OPTIONS,
+            path: path,
+            strokeColor: TRAFFIC_COLORS.NORMAL,
+            map: map
+        })];
+    }
 
+    // Create separate polylines for each traffic segment
+    return route.travelAdvisory.speedReadingIntervals.map(interval => {
+        const segmentPath = path.slice(
+            interval.startPolylinePointIndex || 0,
+            interval.endPolylinePointIndex
+        );
 
+        return new google.maps.Polyline({
+            ...DEFAULT_POLYLINE_OPTIONS,
+            path: segmentPath,
+            strokeColor: TRAFFIC_COLORS[interval.speed] || TRAFFIC_COLORS.NORMAL,
+            map: map
+        });
+    });
+}
 
+/**
+ * Fetches route data from the API
+ * @param {google.maps.LatLng} origin 
+ * @param {google.maps.LatLng} destination 
+ * @returns {Promise<Object>}
+ */
+async function fetchRoutes(origin, destination) {
+    try {
+        const response = await fetch(
+            `https://medzk-server.onrender.com/record/getRoute?` +
+            `origin=${origin.lat()},${origin.lng()}&` +
+            `destination=${destination.lat()},${destination.lng()}`
+        );
 
-    const routes = await fetchRoutes(origin, destination);
-
-   if (routes && routes.routes && routes.routes.length > 0) { // Check if routes exist
-
-            const decodedPath = google.maps.geometry.encoding.decodePath(routes.routes[0].polyline.encodedPolyline);
-            const path = decodedPath.map(point => ({ lat: point.lat(), lng: point.lng() }));
-
-            const polyline = new google.maps.Polyline({ // Render polyline using decoded path
-                path: path,
-                geodesic: true,
-                strokeColor: "#FF0000", // Red color
-                strokeOpacity: 1.0,
-                strokeWeight: 2,
-            });
-
-
-            polyline.setMap(map3DElement);
-            markerInstance.directionsRenderer = polyline;
-           
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Routes API request failed: ${response.status} - ${errorText}`);
         }
 
+        return await response.json();
 
-} catch (error) {
-    // ... handle errors ...
-    console.log(error)
-}
-}
-
-
-async function fetchRoutes(origin, destination) {
-try {
-    const response = await fetch(`https://medzk-server.onrender.com/record/getRoute?origin=${origin.lat()},${origin.lng()}&destination=${destination.lat()},${destination.lng()}`);
-
-  if (!response.ok) {
-    throw new Error(`Routes API request failed: ${response.status} ${response.statusText}`);
-  }
-
-  return await response.json();
-
-} catch (error) {
-  console.error("Error fetching route:", error);
-   alert("Could not calculate route. Please try again.");//show alert to user
-
-  return null;
+    } catch (error) {
+        console.error("Error fetching route:", error);
+        throw new Error('Failed to fetch route data. Please try again.');
+    }
 }
 
+/**
+ * Validates route data structure
+ * @param {Object} routeData 
+ * @returns {boolean}
+ */
+function isValidRouteData(routeData) {
+    return routeData && 
+           routeData.routes && 
+           routeData.routes.length > 0 && 
+           routeData.routes[0].polyline?.encodedPolyline;
 }
 
+/**
+ * Fits the map bounds to show the entire route
+ * @param {Object} route 
+ * @param {google.maps.Map} map 
+ */
+function fitMapToRoute(route, map) {
+    const bounds = new google.maps.LatLngBounds();
+    const decodedPath = google.maps.geometry.encoding.decodePath(route.polyline.encodedPolyline);
+    decodedPath.forEach(point => bounds.extend(point));
+    map.fitBounds(bounds, { padding: 50 });
+}
+
+/**
+ * Displays route information to the user
+ * @param {Object} route 
+ */
+function displayRouteInfo(route) {
+    const distance = (route.distance?.miles || route.distanceMeters / 1609.34).toFixed(1);
+    const duration = Math.round((route.duration?.minutes || parseInt(route.duration.replace('s', '')) / 60));
+    
+    // You can customize how to display this information (e.g., in an InfoWindow, sidebar, etc.)
+    console.log(`Distance: ${distance} miles`);
+    console.log(`Estimated time: ${duration} minutes`);
+}
+
+/**
+ * Handles and displays route errors
+ * @param {Error} error 
+ */
+function handleRouteError(error) {
+    // You can customize error handling based on your needs
+    alert(`Could not calculate route: ${error.message}`);
+}
 
 
 

@@ -603,49 +603,117 @@ router.get('/location/:latitude/:longitude', async (req, res) => {
 });
 
 
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY; // Securely store API key
 
+// Input validation middleware
+const validateRouteInput = (req, res, next) => {
+  const { origin, destination } = req.query;
+  
+  if (!origin || !destination) {
+      return res.status(400).json({
+          error: 'Missing required parameters: origin and destination required as lat,lng'
+      });
+  }
 
-router.get('/getRoute', async (req, res) => {
-  const origin = req.query.origin;
-  const destination = req.query.destination;
+  // Validate coordinate format (simple check)
+  const coordRegex = /^-?\d+\.?\d*,-?\d+\.?\d*$/;
+  if (!coordRegex.test(origin) || !coordRegex.test(destination)) {
+      return res.status(400).json({
+          error: 'Invalid coordinate format. Use format: latitude,longitude'
+      });
+  }
 
+  next();
+};
 
+// Parse lat,lng string into Google Maps API format
+const parseLatLng = (latLngString) => {
+  const [lat, lng] = latLngString.split(',').map(Number);
+  return {
+      latLng: {
+          latitude: lat,
+          longitude: lng
+      }
+  };
+};
+
+// Route handler
+router.get('/getRoute', validateRouteInput, async (req, res) => {
   try {
-   const apiUrl = `https://routes.googleapis.com/directions/v2:computeRoutes`;
-   const response = await fetch(apiUrl, {
-       method: 'POST',
-       headers: {
-           'Content-Type': 'application/json',
-           'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-           'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline' // Other fields as needed
-       },
-       body: JSON.stringify({
-           origin: { location: parseLatLng(origin) }, // Helper to parse lat/lng strings
-           destination: { location: parseLatLng(destination) },
-           travelMode: 'DRIVING', // Other options as needed
-           routingPreference: 'TRAFFIC_AWARE' 
-       })
-   });
+      const { origin, destination, avoidTolls, avoidHighways, avoidFerries } = req.query;
+      
+      const requestBody = {
+          origin: { location: parseLatLng(origin) },
+          destination: { location: parseLatLng(destination) },
+          travelMode: 'DRIVE',
+          routingPreference: 'TRAFFIC_AWARE',
+          computeAlternativeRoutes: false,
+          routeModifiers: {
+              avoidTolls: avoidTolls === 'true',
+              avoidHighways: avoidHighways === 'true',
+              avoidFerries: avoidFerries === 'true'
+          },
+          languageCode: 'en-US',
+          units: 'IMPERIAL',
+          polylineQuality: 'HIGH_QUALITY',
+          polylineEncoding: 'ENCODED_POLYLINE',
+          extraComputations: ['TRAFFIC_ON_POLYLINE']
+      };
 
-   if (!response.ok) {
-     throw new Error(`Routes API request failed: ${response.status} ${response.statusText}`);
-   }
+      const response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY,
+              'X-Goog-FieldMask': [
+                  'routes.duration',
+                  'routes.distanceMeters',
+                  'routes.polyline',
+                  'routes.legs.polyline',
+                  'routes.travelAdvisory',
+                  'routes.legs.travelAdvisory'
+              ].join(',')
+          },
+          body: JSON.stringify(requestBody)
+      });
 
-   const data = await response.json();
-   res.json(data);  // Send route data to the frontend
+      if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Google Routes API error: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+
+      // Format the response
+      if (!data.routes || !data.routes[0]) {
+          throw new Error('No route found');
+      }
+
+      const route = data.routes[0];
+      const formattedResponse = {
+          distance: {
+              meters: route.distanceMeters,
+              miles: Number((route.distanceMeters / 1609.34).toFixed(2))
+          },
+          duration: {
+              seconds: parseInt(route.duration.replace('s', '')),
+              minutes: Math.round(parseInt(route.duration.replace('s', '')) / 60)
+          },
+          polyline: route.polyline.encodedPolyline,
+          trafficConditions: route.travelAdvisory?.speedReadingIntervals || [],
+          raw: data // Include raw response for debugging
+      };
+
+      res.json(formattedResponse);
 
   } catch (error) {
-    console.error("Error getting route:", error);
-    res.status(500).json({ error: "Could not calculate route." }); // Send error to frontend
+      console.error('Route calculation error:', error);
+      res.status(500).json({
+          error: 'Failed to calculate route',
+          details: error.message
+      });
   }
 });
 
-function parseLatLng(latLngString) {
-  // Parses "lat,lng" string into latLng object for API
-  const [lat, lng] = latLngString.split(',').map(Number);
-  return { latitude: lat, longitude: lng };
-}
 
 
 
