@@ -9,7 +9,7 @@ const MapComponent = () => {
 
   useEffect(() => {
     const API_BASE = process.env.NODE_ENV === 'production' 
-    ? 'https://34.49.13.123.nip.io/zerok'
+    ? 'https://medzk-server.onrender.com'
     : 'http://localhost:5050';
 
     const fetchMapHtml = async () => {
