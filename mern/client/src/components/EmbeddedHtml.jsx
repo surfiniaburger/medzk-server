@@ -49,6 +49,7 @@ const EmbeddedHtml = () => {
                 title="Embedded HTML"
                 style={{ width: "100%", height: "100vh", border: "none" }}
                 onLoad={handleIframeLoad}
+                allow="geolocation"
             />
         </div>
         
