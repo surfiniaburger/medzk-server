@@ -603,6 +603,52 @@ router.get('/location/:latitude/:longitude', async (req, res) => {
 });
 
 
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY; // Securely store API key
+
+
+app.get('/getRoute', async (req, res) => {
+  const origin = req.query.origin;
+  const destination = req.query.destination;
+
+
+  try {
+   const apiUrl = `https://routes.googleapis.com/directions/v2:computeRoutes`;
+   const response = await fetch(apiUrl, {
+       method: 'POST',
+       headers: {
+           'Content-Type': 'application/json',
+           'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+           'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline' // Other fields as needed
+       },
+       body: JSON.stringify({
+           origin: { location: parseLatLng(origin) }, // Helper to parse lat/lng strings
+           destination: { location: parseLatLng(destination) },
+           travelMode: 'DRIVING', // Other options as needed
+           routingPreference: 'TRAFFIC_AWARE' 
+       })
+   });
+
+   if (!response.ok) {
+     throw new Error(`Routes API request failed: ${response.status} ${response.statusText}`);
+   }
+
+   const data = await response.json();
+   res.json(data);  // Send route data to the frontend
+
+  } catch (error) {
+    console.error("Error getting route:", error);
+    res.status(500).json({ error: "Could not calculate route." }); // Send error to frontend
+  }
+});
+
+function parseLatLng(latLngString) {
+  // Parses "lat,lng" string into latLng object for API
+  const [lat, lng] = latLngString.split(',').map(Number);
+  return { latitude: lat, longitude: lng };
+}
+
+
+
 
 // Update a record by ID
 router.patch("/:id", 
