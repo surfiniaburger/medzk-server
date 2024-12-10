@@ -643,20 +643,21 @@ if (!GOOGLE_MAPS_API_KEY) {
 }
 
 // Route handler
-router.get('/getRoute', validateRouteInput, async (req, res) => {
+router.get('/routeApi/:originLat/:originLng/:destinationLat/:destinationLng', async (req, res) => {
   try {
-      const { origin, destination, avoidTolls, avoidHighways, avoidFerries } = req.query;
+    const { originLat, originLng, destinationLat, destinationLng } = req.params;
+
       
       const requestBody = {
-          origin: { location: parseLatLng(origin) },
-          destination: { location: parseLatLng(destination) },
+          origin: { location: parseLatLng(originLat, originLng) },
+          destination: { location: parseLatLng(destinationLat, destinationLng) },
           travelMode: 'DRIVE',
           routingPreference: 'TRAFFIC_AWARE',
           computeAlternativeRoutes: false,
           routeModifiers: {
-              avoidTolls: avoidTolls === 'true',
-              avoidHighways: avoidHighways === 'true',
-              avoidFerries: avoidFerries === 'true'
+            avoidTolls: req.query.avoidTolls === 'true',
+            avoidHighways: req.query.avoidHighways === 'true',
+            avoidFerries: req.query.avoidFerries === 'true'
           },
           languageCode: 'en-US',
           units: 'IMPERIAL',
