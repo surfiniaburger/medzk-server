@@ -820,6 +820,48 @@ body {
 .location-icon:hover {
     background: #f0f0f0; /* Slightly darker background on hover */
 }
+
+.location-icon {
+    background: #fff;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    cursor: pointer;
+    margin: 10px;  /* Adjust margin as needed */
+    display: flex;
+    align-items: center; /* Center the icon vertically */
+    justify-content: center; /* Center the icon horizontally */
+    z-index: 1001; /* Ensure it's above other elements */
+}
+
+.location-icon i {
+    font-size: 18px; /* Adjust icon size as needed */
+    color: #4d90fe;
+}
+
+.location-icon:hover {
+    background: #f0f0f0; /* Slightly darker background on hover */
+}
+
+/* Optional: Add styles for when the location icon is active (e.g., while getting location) */
+.location-icon.active i {
+    animation: spin 1s linear infinite; /* Add a spinning animation if you want */
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Media query for larger screens to place the location icon correctly */
+@media (min-width: 768px) {
+
+    .location-icon {
+        margin: 0 15px 0 auto; /* Right align with spacing on larger screens */
+    }
+}
+
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -1462,6 +1504,34 @@ document.addEventListener('keydown', (e) => {
     
       async function zoomToViewport(geometry) {
         const { AltitudeMode, Polyline3DElement } = await google.maps.importLibrary("maps3d");
+
+        // Check if viewport exists and is valid *before* using it
+    if (!geometry || !geometry.viewport || !geometry.viewport.getNorthEast || !geometry.viewport.getSouthWest) {
+        console.warn("Viewport data is missing or incomplete. Using default zoom.");
+
+
+        if (geometry && geometry.location) { // If location is available, use it for centering
+          let elevation = await getElevationForPoint(geometry.location);
+          map3DElement.center = { 
+              lat: geometry.location.lat(), 
+              lng: geometry.location.lng(), 
+              altitude: elevation + 50 
+          };
+          map3DElement.range = 3000;  // Wider default zoom since viewport is unavailable
+          map3DElement.tilt = 65;  // Adjust as needed
+           initNearbySearch(geometry.location); // Still initialize search
+            await fetchEnvironmentalData(geometry.location);
+
+        } else {
+            console.error("Both viewport and location are missing. Cannot zoom.");
+            return; // Or handle the error differently
+        }
+
+
+
+        return; // Exit early to prevent further errors
+    }
+    
         let viewport = geometry.viewport;
         let locationPoints = [
           { lat: viewport.getNorthEast().lat(), lng: viewport.getNorthEast().lng() },
