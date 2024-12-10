@@ -1504,7 +1504,7 @@ document.addEventListener('keydown', (e) => {
     }
 
     const { Place, SearchNearbyRankPreference } = await google.maps.importLibrary("places");
-    let center = new google.maps.LatLng(location.lat(), location.lng());
+    let center = new google.maps.LatLng(location.lat, location.lng);
     const request = {
         fields: ["displayName", "location","formattedAddress", "photos", "reviews",  "editorialSummary", "businessStatus"],
         locationRestriction: {
@@ -1623,8 +1623,8 @@ locationButton.addEventListener('click', async () => {
     const googlePayload = {
         universalAqi: true,
         location: {
-            latitude: location.lat(),
-            longitude: location.lng(),
+            latitude: location.lat,
+            longitude: location.lng,
         },
         extraComputations: [
             "HEALTH_RECOMMENDATIONS",
