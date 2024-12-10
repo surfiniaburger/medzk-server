@@ -977,6 +977,25 @@ body {
                lng: this.place.location.lng(),
             });
 
+            // Ask for confirmation to display route (new)
+            const showRoute = confirm(`Show route to ${this.place.displayName}?`); // Use place name
+            if (showRoute) {
+              navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const origin = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+                    displayRoute(origin, this.place.location);
+                },
+                (error) => {
+                    console.error("Error getting current location:", error);
+                    // Fallback to default location
+                    const defaultOrigin = new google.maps.LatLng(6.465422, 3.406448);
+                    displayRoute(defaultOrigin, this.place.location);
+                }
+
+              );
+
+            }
+
         // Show info window
         this.showInfoWindow();
     });
