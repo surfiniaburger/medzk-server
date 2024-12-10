@@ -689,6 +689,7 @@ router.get('/routeApi/:originLat/:originLng/:destinationLat/:destinationLng', as
       }
 
       const data = await response.json();
+      console.log(data)
 
       // Format the response
       if (!data.routes || !data.routes[0]) {
