@@ -1647,27 +1647,9 @@ try {
 }
 
 
-
-
-
 async function fetchRoutes(origin, destination) {
 try {
-  const response = await fetch(`https://routes.googleapis.com/directions/v2:computeRoutes`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': window.GOOGLE_MAPS_API_KEY, // Your API Key
-      'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline', // Request fields
-    },
-    body: JSON.stringify({
-      origin: { location: { latLng: { latitude: origin.lat(), longitude: origin.lng() } } },
-      destination: { location: { latLng: { latitude: destination.lat(), longitude: destination.lng() } } },
-      travelMode: 'DRIVING', // Set the travel mode
-      routingPreference: 'TRAFFIC_AWARE', // Include if you want traffic-aware routing
-
-    }),
-  });
-
+    const response = await fetch(`https://medzk-server.onrender.com/record/getRoute?origin=${origin.lat()},${origin.lng()}&destination=${destination.lat()},${destination.lng()}`);
 
   if (!response.ok) {
     throw new Error(`Routes API request failed: ${response.status} ${response.statusText}`);
