@@ -636,6 +636,12 @@ const parseLatLng = (latLngString) => {
   };
 };
 
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+
+if (!GOOGLE_MAPS_API_KEY) {
+    throw new Error('GOOGLE_MAPS_API_KEY is required in .env file');
+}
+
 // Route handler
 router.get('/getRoute', validateRouteInput, async (req, res) => {
   try {
@@ -663,7 +669,7 @@ router.get('/getRoute', validateRouteInput, async (req, res) => {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
-              'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY,
+              'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
               'X-Goog-FieldMask': [
                   'routes.duration',
                   'routes.distanceMeters',

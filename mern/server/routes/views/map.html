@@ -1709,6 +1709,8 @@ function createTrafficAwarePolylines(route, map) {
  * @returns {Promise<Object>}
  */
 async function fetchRoutes(origin, destination) {
+    console.log(origin)
+    console.log(destination)
     try {
         const response = await fetch(
             `https://medzk-server.onrender.com/record/getRoute?` +
