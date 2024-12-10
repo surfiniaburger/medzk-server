@@ -945,6 +945,7 @@ body {
       let map3DElement = null;
       let placesService = null;
       let advancedFeatures = null;
+      let directionsRenderer = null; 
 
 
       class InteractiveMarker {
@@ -952,6 +953,7 @@ body {
         this.map3DElement = map3DElement;
         this.place = place;
         this.marker = null;
+        this.directionsRenderer = null; 
     }
 
     async create() {
@@ -983,13 +985,13 @@ body {
               navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const origin = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-                    displayRoute(origin, this.place.location);
+                    displayRoute(origin, this.place.location, this);
                 },
                 (error) => {
                     console.error("Error getting current location:", error);
                     // Fallback to default location
                     const defaultOrigin = new google.maps.LatLng(6.465422, 3.406448);
-                    displayRoute(defaultOrigin, this.place.location);
+                    displayRoute(defaultOrigin, this.place.location, this);
                 }
 
               );
@@ -1602,14 +1604,17 @@ document.addEventListener('keydown', (e) => {
     
 // In your map.html JavaScript code
 
-async function displayRoute(origin, destination) {
+async function displayRoute(origin, destination, markerInstance) {
 
 try {
 
-     if (directionsRenderer) {
-            directionsRenderer.setMap(null); // Remove previous route
+    //If directionsRenderer is defined, it's possible that we did not explicitly remove it from the map, and it was referencing the polyline object from a closed infoWindow, so now we're explicitly setting the map of the previous renderer to null.
+    if (markerInstance.directionsRenderer) {
+            markerInstance.directionsRenderer.setMap(null);
         }
-         directionsRenderer = new google.maps.DirectionsRenderer();
+        markerInstance.directionsRenderer = new google.maps.DirectionsRenderer();
+
+
 
 
 
@@ -1630,6 +1635,7 @@ try {
 
 
             polyline.setMap(map3DElement);
+            markerInstance.directionsRenderer = polyline;
            
         }
 
