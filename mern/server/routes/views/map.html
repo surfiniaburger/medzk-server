@@ -1646,7 +1646,14 @@ async function displayRoute(originPlaceId, destinationPlaceId, markerInstance) {
         const routeData = await fetchRoutes(originPlaceId, destinationPlaceId);
         console.log(routeData)
         if (!isValidRouteData(routeData)) {
-            throw new Error('Invalid route data received');
+            if (!routeData) return false; // Check for null/undefined
+            if (!routeData.success) return false; // Check server response status
+            if (!(routeData.routes && routeData.routes.length > 0)) return false; // Check for presence of routes
+            if (!(routeData.routes[0].legs && routeData.routes[0].legs.length > 0)) {
+            console.error('Route is missing legs array:', routeData); // Log error for debugging
+               return false; // No legs data means invalid, but warn about it
+          }
+          return true;
         }
 
         const route = routeData.routes[0];
