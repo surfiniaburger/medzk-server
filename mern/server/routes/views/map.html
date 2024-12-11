@@ -1644,6 +1644,7 @@ async function displayRoute(originPlaceId, destinationPlaceId, markerInstance) {
 
         // Fetch and validate route data
         const routeData = await fetchRoutes(originPlaceId, destinationPlaceId);
+        console.log(routeData)
         if (!isValidRouteData(routeData)) {
             throw new Error('Invalid route data received');
         }
