@@ -26,8 +26,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
 dotenv.config();
-
-
+import { verifyFirebaseToken } from '../middleware/auth.js';
 
 // Create __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -170,7 +169,7 @@ async function retryWithBackoff(fn, maxRetries = 3, backoffFactor = 2) {
   throw new Error("Max retries exceeded.");
 }
 
-
+router.use(verifyFirebaseToken);
 
 // Health check route
 router.get('/health', (req, res) => {
