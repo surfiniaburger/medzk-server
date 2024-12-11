@@ -24,6 +24,8 @@ import { getAddressFromCoordinates } from "../utils/address.js";
 import { GoogleAICacheManager } from '@google/generative-ai/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 
 
@@ -646,6 +648,7 @@ if (!GOOGLE_MAPS_API_KEY) {
 router.get('/routeApi/:originLat/:originLng/:destinationLat/:destinationLng', async (req, res) => {
   try {
     const { originLat, originLng, destinationLat, destinationLng } = req.params;
+    console.log(req.params)
 
       
       const requestBody = {
@@ -719,6 +722,74 @@ router.get('/routeApi/:originLat/:originLng/:destinationLat/:destinationLng', as
           error: 'Failed to calculate route',
           details: error.message
       });
+  }
+});
+
+
+router.get('/route/:origin/:destination', async (req, res) => {
+  const { origin, destination } = req.params;
+
+  try {
+      const apiUrl = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+
+      const requestBody = {
+          origin: { location: parseLatLng(origin) },
+          destination: { location: parseLatLng(destination) },
+          travelMode: 'DRIVE',
+          routingPreference: 'TRAFFIC_AWARE',
+          computeAlternativeRoutes: false,
+          routeModifiers: {
+              avoidTolls: false,
+              avoidHighways: false,
+              avoidFerries: false
+          },
+          languageCode: 'en-US',
+          units: 'IMPERIAL',
+          polylineQuality: 'HIGH_QUALITY',
+          polylineEncoding: 'ENCODED_POLYLINE',
+          extraComputations: ['TRAFFIC_ON_POLYLINE']
+      };
+
+      const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+              'X-Goog-FieldMask': [
+                  'routes.duration',
+                  'routes.distanceMeters',
+                  'routes.polyline',
+                  'routes.legs.polyline',
+                  'routes.travelAdvisory',
+                  'routes.legs.travelAdvisory'
+              ].join(',')
+          },
+          body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Routes API request failed: ${response.status} ${response.statusText}\n${errorText}`);
+      }
+
+      const data = await response.json();
+
+      // Extract and send route summary
+      if (data.routes && data.routes[0]) {
+          const route = data.routes[0];
+          const summary = {
+              distance: `${(route.distanceMeters / 1609.34).toFixed(2)} miles`,
+              duration: `${Math.round(parseInt(route.duration.replace('s', '')) / 60)} minutes`,
+              traffic: route.travelAdvisory?.speedReadingIntervals || []
+          };
+
+          res.json({ success: true, summary, fullResponse: data });
+      } else {
+          res.status(404).json({ success: false, message: 'No routes found' });
+      }
+  } catch (error) {
+      console.error('Error getting route:', error.message);
+      res.status(500).json({ success: false, error: error.message });
   }
 });
 
