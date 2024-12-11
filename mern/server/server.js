@@ -40,7 +40,7 @@ app.use(cors({
       'https://medzk-server.vercel.app',
       'https://medzk-server.onrender.com',
       'https://www.zerokare.info',
-      
+      'https://zerok.web.app',
     ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
