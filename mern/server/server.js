@@ -41,6 +41,7 @@ app.use(cors({
       'https://medzk-server.onrender.com',
       'https://www.zerokare.info',
       'https://zerok.web.app',
+      'https://zero-kare5-837262597425.us-central1.run.app',
     ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
