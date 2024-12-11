@@ -954,7 +954,7 @@ body {
         this.place = place;
         this.marker = null;
         this.directionsRenderer = null; 
-        this.placeId = placeId; 
+        
     }
 
     async create() {
@@ -993,11 +993,11 @@ body {
                     geocoder.geocode({ location: originLatLng }, async (results, status) => {
                         if (status === 'OK' && results[0]) {
                             const originPlaceId = results[0].place_id;
-                            displayRoute(originPlaceId, this.placeId, this); // Use Place IDs here
+                            displayRoute(originPlaceId, this.place.id, this); // Use Place IDs here
                         } else {
                             console.error('Geocoding failed:', status);
                             // Handle error, maybe use LatLng as fallback?
-                            displayRoute(originLatLng, this.place.location, this); // Fallback to LatLng
+                            displayRoute(originLatLng, this.place.id, this); // Fallback to LatLng
 
                         }
                     });
@@ -1538,7 +1538,7 @@ document.addEventListener('keydown', (e) => {
             center = new google.maps.LatLng(location.lat, location.lng); // Create LatLng if needed
         }
     const request = {
-        fields: ["place_id", "displayName", "location","formattedAddress", "photos", "reviews",  "editorialSummary", "businessStatus"],
+        fields: ["id", "displayName", "location","formattedAddress", "photos", "reviews",  "editorialSummary", "businessStatus"],
         locationRestriction: {
             center: center,
             radius: 1000, // Search within 1km
@@ -1573,7 +1573,7 @@ document.addEventListener('keydown', (e) => {
                 }
 
                     // Create an interactive marker for each place
-                    const marker = new InteractiveMarker(map3DElement, place,  place.place_id);
+                    const marker = new InteractiveMarker(map3DElement, place);
                     marker.create();
                 } else {
                     console.error(`Place ${index + 1} location data is missing.`);
