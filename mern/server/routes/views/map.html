@@ -1718,9 +1718,11 @@ function createTrafficAwarePolylines(route, map) {
  */
  
 async function fetchRoutes(originPlaceId, destinationPlaceId) {
+    console.log(originPlaceId + " origin")
+    console.log(destinationPlaceId + " destination")
     try {
         const response = await fetch(
-            `https://medzk-server.onrender.com/record/route/placeId:${originPlaceId}/placeId:${destinationPlaceId}` 
+            `https://medzk-server.onrender.com/record/route/${originPlaceId}/${destinationPlaceId}` 
         );
 
         if (!response.ok) {
