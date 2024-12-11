@@ -954,7 +954,7 @@ body {
         this.place = place;
         this.marker = null;
         this.directionsRenderer = null; 
-        this.id = id;
+        this.placeId = placeId; 
     }
 
     async create() {
@@ -1538,7 +1538,7 @@ document.addEventListener('keydown', (e) => {
             center = new google.maps.LatLng(location.lat, location.lng); // Create LatLng if needed
         }
     const request = {
-        fields: ["id", "displayName", "location","formattedAddress", "photos", "reviews",  "editorialSummary", "businessStatus"],
+        fields: ["place_id", "displayName", "location","formattedAddress", "photos", "reviews",  "editorialSummary", "businessStatus"],
         locationRestriction: {
             center: center,
             radius: 1000, // Search within 1km
@@ -1573,7 +1573,7 @@ document.addEventListener('keydown', (e) => {
                 }
 
                     // Create an interactive marker for each place
-                    const marker = new InteractiveMarker(map3DElement, place,  place.id);
+                    const marker = new InteractiveMarker(map3DElement, place,  place.place_id);
                     marker.create();
                 } else {
                     console.error(`Place ${index + 1} location data is missing.`);
