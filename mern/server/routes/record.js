@@ -726,15 +726,15 @@ router.get('/routeApi/:originLat/:originLng/:destinationLat/:destinationLng', as
 });
 
 
-router.get('/route/:origin/:destination', async (req, res) => {
-  const { origin, destination } = req.params;
+router.get('/route/:originPlaceId/:destinationPlaceId', async (req, res) => {
+  const { originPlaceId, destinationPlaceId } = req.params;
 
   try {
       const apiUrl = 'https://routes.googleapis.com/directions/v2:computeRoutes';
 
       const requestBody = {
-          origin: { location: parseLatLng(origin) },
-          destination: { location: parseLatLng(destination) },
+         origin: { placeId: originPlaceId },
+         destination: { placeId: destinationPlaceId },
           travelMode: 'DRIVE',
           routingPreference: 'TRAFFIC_AWARE',
           computeAlternativeRoutes: false,

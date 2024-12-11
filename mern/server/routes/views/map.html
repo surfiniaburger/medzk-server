@@ -981,21 +981,29 @@ body {
 
             // Ask for confirmation to display route (new)
             const showRoute = confirm(`Show route to ${this.place.displayName}?`); // Use place name
+            
             if (showRoute) {
               navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const origin = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-                    displayRoute(origin, this.place.location, this);
+                async (position) => {
+                    const originLatLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+
+                    // Reverse geocode current location to get Place ID (important!)
+                    const geocoder = new google.maps.Geocoder();
+                    geocoder.geocode({ location: originLatLng }, async (results, status) => {
+                        if (status === 'OK' && results[0]) {
+                            const originPlaceId = results[0].place_id;
+                            displayRoute(originPlaceId, this.placeId, this); // Use Place IDs here
+                        } else {
+                            console.error('Geocoding failed:', status);
+                            // Handle error, maybe use LatLng as fallback?
+                            displayRoute(originLatLng, this.place.location, this); // Fallback to LatLng
+
+                        }
+                    });
                 },
-                (error) => {
-                    console.error("Error getting current location:", error);
-                    // Fallback to default location
-                    const defaultOrigin = new google.maps.LatLng(6.465422, 3.406448);
-                    displayRoute(defaultOrigin, this.place.location, this);
+                (error) => { // ... (error handling, potentially also reverse geocode fallback location)
                 }
-
               );
-
             }
 
         // Show info window
@@ -1559,7 +1567,7 @@ document.addEventListener('keydown', (e) => {
                     });
 
                     // Create an interactive marker for each place
-                    const marker = new InteractiveMarker(map3DElement, place);
+                    const marker = new InteractiveMarker(map3DElement, place,  place.placeId);
                     marker.create();
                 } else {
                     console.error(`Place ${index + 1} location data is missing.`);
@@ -1623,13 +1631,13 @@ const DEFAULT_POLYLINE_OPTIONS = {
  * @param {Object} markerInstance - Instance containing map references
  * @returns {Promise<void>}
  */
-async function displayRoute(origin, destination, markerInstance) {
+async function displayRoute(originPlaceId, destinationPlaceId, markerInstance) {
     try {
         // Clear existing route if any
         clearExistingRoute(markerInstance);
 
         // Fetch and validate route data
-        const routeData = await fetchRoutes(origin, destination);
+        const routeData = await fetchRoutes(originPlaceId, destinationPlaceId);
         if (!isValidRouteData(routeData)) {
             throw new Error('Invalid route data received');
         }
@@ -1709,10 +1717,10 @@ function createTrafficAwarePolylines(route, map) {
  * @returns {Promise<Object>}
  */
  
-async function fetchRoutes(origin, destination) {
+async function fetchRoutes(originPlaceId, destinationPlaceId) {
     try {
         const response = await fetch(
-            `https://medzk-server.onrender.com/record/route/${origin.lat},${origin.lng}/${destination.lat},${destination.lng}`
+            `https://medzk-server.onrender.com/record/route/placeId:${originPlaceId}/placeId:${destinationPlaceId}` 
         );
 
         if (!response.ok) {
