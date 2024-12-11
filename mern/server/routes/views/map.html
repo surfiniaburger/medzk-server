@@ -1657,10 +1657,15 @@ async function displayRoute(originPlaceId, destinationPlaceId, markerInstance) {
         }
 
         const route = routeData.routes[0];
+        // Clear any existing route (Important!)
+        if (markerInstance.polyline) {  // Update to polyline!
+            markerInstance.polyline.setMap(null);
+        }
+        console.log(route + " route")
         const polylines = await createTrafficAwarePolylines(route, markerInstance.map3DElement);
         
         // Store polylines for later cleanup
-        markerInstance.directionsRenderer = polylines;
+        markerInstance.polyline = polylines;
 
         // Optionally fit bounds to show entire route
         fitMapToRoute(route, markerInstance.map3DElement);
@@ -1695,20 +1700,23 @@ function clearExistingRoute(markerInstance) {
  * @returns {Array<google.maps.Polyline>}
  */
 async function createTrafficAwarePolylines(route, map) {
-    const { Polyline3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
-    const decodedPath = google.maps.geometry.encoding.decodePath(route.polyline.encodedPolyline);
-    const path = decodedPath.map(point => ({ lat: point.lat(), lng: point.lng() }));
+    const { Polyline3DElement, AltitudeMode, LatLngAltitude } = await google.maps.importLibrary("maps3d");
     
-    if (!route.travelAdvisory?.speedReadingIntervals?.length) {
-        // No traffic data - create single polyline
-        return [new Polyline3DElement({ // Use Polyline3DElement!
-            path,
-            strokeColor: TRAFFIC_COLORS.NORMAL,
-            strokeWidth: 8,
-            altitudeMode: AltitudeMode.CLAMP_TO_GROUND,  // Important for 3D
-            map
-        })];
-    }
+    
+    
+    // Decode polyline into LatLngAltitude array
+    const path = google.maps.geometry.encoding.decodePath(route.polyline.encodedPolyline).map(
+        (latLng) => new LatLngAltitude({ lat: latLng.lat(), lng: latLng.lng() }) // Convert to LatLngAltitude
+    );
+    // Return a single polyline for the entire route
+    const polyline = new Polyline3DElement({ 
+        path,
+        strokeColor: '#0000ff', // Example color, use what makes sense
+        strokeWidth: 8,
+        altitudeMode: AltitudeMode.CLAMP_TO_GROUND,
+        map // Add polyline to map directly
+    });
+    return polyline; // Return the Polyline3DElement
 
     // Create separate polylines for each traffic segment
     return route.travelAdvisory.speedReadingIntervals.map(interval => {
@@ -1717,12 +1725,13 @@ async function createTrafficAwarePolylines(route, map) {
             interval.endPolylinePointIndex
         );
 
-        return new google.maps.Polyline({
+        return new Polyline3DElement({
             ...DEFAULT_POLYLINE_OPTIONS,
             path: segmentPath,
             strokeColor: TRAFFIC_COLORS[interval.speed] || TRAFFIC_COLORS.NORMAL,
             map: map
         });
+        map.append(polyline);
     });
 }
 

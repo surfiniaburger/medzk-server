@@ -1,9 +1,21 @@
-1. **Add the integration script:** Add the following line before the closing </body> tag in your `map.html` file:
+To integrate the updated route display functionality, follow these steps:
+
+1. **Add the script tag:** Open the `map.html` file.  At the end of the `<body>` section, just before the closing `</body>` tag, add the following line:
 
    ```html
-   <script src="integration_script.js"></script>
+   <script src="updated_map.js"></script>
    ```
 
-2. **Ensure API keys are set:** Make sure that your `GOOGLE_MAPS_API_KEY` is correctly set in your HTML file.
+2. **Call initRouteDisplay:** Find the `init()` function in `map.html`.  After the line where the map is initialized (where `map3DElement` is created), add a call to the `initRouteDisplay` function, passing in your map object:
 
-3. **Test the integration:** Open `map.html` in your browser. You should now see a "Use My Location" button. Click it to search for nearby hospitals using your current location.  The existing Places API search should still function as before.
+   ```javascript
+   initRouteDisplay(map3DElement); 
+   ```
+
+3. **Replace placeholders:** In `updated_map.js`, replace `"ChIJR0-w_B1Rj4AR_wK-o-oW_w0"` and `"ChIJ-c-o-B1Rj4AR-o-oW_w0"` with the actual place IDs of your origin and destination locations.  You can obtain these place IDs using the Google Places API.  These are example place IDs; you'll need to get your own.
+
+4. **Ensure API Key:** Make sure you have correctly set your Google Maps API key in `map.html` within the `<script>` tags that set `window.GOOGLE_MAPS_API_KEY`.
+
+5. **Check Server Endpoint:** Verify that the API endpoint in `updated_map.js` (`/record/route/${origin}/${destination}`) is correct and points to your server's route calculation endpoint.  The server should return a JSON response with the expected structure (including `routes`, `polyline`, and `encodedPolyline`).
+
+After making these changes, reload `map.html` in your browser. The route should now be displayed as a 3D polyline on the map. If the route is not displayed, carefully check the browser's developer console for any JavaScript errors.  Ensure that the Google Maps 3D library is correctly loaded and that the API request is successful.  Also, double-check that the place IDs are valid and that your server is responding correctly.
