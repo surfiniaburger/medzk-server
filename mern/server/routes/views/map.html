@@ -1694,17 +1694,19 @@ function clearExistingRoute(markerInstance) {
  * @param {google.maps.Map} map - Map instance
  * @returns {Array<google.maps.Polyline>}
  */
-function createTrafficAwarePolylines(route, map) {
+async function createTrafficAwarePolylines(route, map) {
+    const { Polyline3DElement, AltitudeMode } = await google.maps.importLibrary("maps3d");
     const decodedPath = google.maps.geometry.encoding.decodePath(route.polyline.encodedPolyline);
     const path = decodedPath.map(point => ({ lat: point.lat(), lng: point.lng() }));
     
     if (!route.travelAdvisory?.speedReadingIntervals?.length) {
         // No traffic data - create single polyline
-        return [new google.maps.Polyline({
-            ...DEFAULT_POLYLINE_OPTIONS,
-            path: path,
+        return [new Polyline3DElement({ // Use Polyline3DElement!
+            path,
             strokeColor: TRAFFIC_COLORS.NORMAL,
-            map: map
+            strokeWidth: 8,
+            altitudeMode: AltitudeMode.CLAMP_TO_GROUND,  // Important for 3D
+            map
         })];
     }
 
