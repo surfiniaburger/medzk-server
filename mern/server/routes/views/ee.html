@@ -29,23 +29,26 @@
             height: 100%;
         }
 
-       
+        /* Environmental Dashboard */
+        .env-dashboard {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            max-width: 300px;
+            transition: all 0.3s ease;
+        }
 
         .env-dashboard:hover {
             transform: scale(1.02);
         }
 
-        /* Base styles for dashboard */
-.env-dashboard {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 15px;
-    padding: 15px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
+   
 
 /* Mobile dashboard collapsed state */
 .dashboard-toggle {
@@ -131,6 +134,39 @@
     font-size: 18px;
     color: #666;
 }
+
+
+        .env-stat {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .env-stat-title {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .env-stat-value {
+            font-size: 1.2em;
+            color: var(--text-color);
+        }
+
+        /* Score Panel */
+        #score-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
 
         #score {
             font-size: 28px;
@@ -284,7 +320,6 @@
     <div class="dashboard-toggle">
         <i class="fas fa-cloud"></i>
     </div>
-
     <div id="game-container">
         <div class="env-dashboard">
             <span class="dashboard-close">&times;</span>
@@ -465,60 +500,6 @@
                 console.error("Failed to initialize environmental features:", error);
             }
         }
-
-        // Add this to your existing script section
-document.addEventListener('DOMContentLoaded', function() {
-    const dashboard = document.querySelector('.env-dashboard');
-    const dashboardToggle = document.querySelector('.dashboard-toggle');
-    const closeButton = document.querySelector('.dashboard-close');
-    
-    // Handle dashboard toggle
-    dashboardToggle.addEventListener('click', () => {
-        dashboard.style.display = 'block';
-        dashboardToggle.style.display = 'none';
-        
-        // Add animation effect
-        dashboard.animate([
-            { opacity: 0, transform: 'scale(0.8)' },
-            { opacity: 1, transform: 'scale(1)' }
-        ], {
-            duration: 300,
-            easing: 'ease-out'
-        });
-    });
-    
-    // Handle close button
-    closeButton.addEventListener('click', () => {
-        dashboard.style.display = 'none';
-        dashboardToggle.style.display = 'flex';
-        
-        // Add bounce animation to cloud icon
-        dashboardToggle.animate([
-            { transform: 'scale(0.8)' },
-            { transform: 'scale(1.1)' },
-            { transform: 'scale(1)' }
-        ], {
-            duration: 500,
-            easing: 'ease-out'
-        });
-    });
-    
-    // Check screen size on load and resize
-    function checkScreenSize() {
-        if (window.innerWidth <= 768) {
-            dashboard.classList.add('mobile-view');
-        } else {
-            dashboard.classList.remove('mobile-view');
-            dashboard.style.display = 'block';
-            dashboardToggle.style.display = 'none';
-        }
-    }
-    
-    // Listen for window resize
-    window.addEventListener('resize', checkScreenSize);
-    checkScreenSize(); // Check on initial load
-});
-
 
 
         // Fetch environmental data from APIs
@@ -766,6 +747,60 @@ document.addEventListener('DOMContentLoaded', function() {
             const location = map3DElement.center;
             await fetchEnvironmentalData(location);
         }
+
+        // Add this to your existing script section
+document.addEventListener('DOMContentLoaded', function() {
+    const dashboard = document.querySelector('.env-dashboard');
+    const dashboardToggle = document.querySelector('.dashboard-toggle');
+    const closeButton = document.querySelector('.dashboard-close');
+    
+    // Handle dashboard toggle
+    dashboardToggle.addEventListener('click', () => {
+        dashboard.style.display = 'block';
+        dashboardToggle.style.display = 'none';
+        
+        // Add animation effect
+        dashboard.animate([
+            { opacity: 0, transform: 'scale(0.8)' },
+            { opacity: 1, transform: 'scale(1)' }
+        ], {
+            duration: 300,
+            easing: 'ease-out'
+        });
+    });
+    
+    // Handle close button
+    closeButton.addEventListener('click', () => {
+        dashboard.style.display = 'none';
+        dashboardToggle.style.display = 'flex';
+        
+        // Add bounce animation to cloud icon
+        dashboardToggle.animate([
+            { transform: 'scale(0.8)' },
+            { transform: 'scale(1.1)' },
+            { transform: 'scale(1)' }
+        ], {
+            duration: 500,
+            easing: 'ease-out'
+        });
+    });
+    
+    // Check screen size on load and resize
+    function checkScreenSize() {
+        if (window.innerWidth <= 768) {
+            dashboard.classList.add('mobile-view');
+        } else {
+            dashboard.classList.remove('mobile-view');
+            dashboard.style.display = 'block';
+            dashboardToggle.style.display = 'none';
+        }
+    }
+    
+    // Listen for window resize
+    window.addEventListener('resize', checkScreenSize);
+    checkScreenSize(); // Check on initial load
+});
+
 
         // Game completion
         function gameComplete() {
