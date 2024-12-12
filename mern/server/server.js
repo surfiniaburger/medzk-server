@@ -6,8 +6,7 @@ import 'dotenv/config';
 const PORT = process.env.PORT || 5050;
 const app = express();
 
-// Configure CORS
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = [
       'http://localhost:3000',
@@ -25,10 +24,13 @@ app.use(cors({
   },
   methods: 'GET,POST,PUT,DELETE, OPTIONS',
   credentials: true
-}));
+}
+
+// Configure CORS
+app.use(cors(corsOptions));
 
 // Handle preflight requests
-app.options('*', cors()); // Respond to OPTIONS for all routes
+app.options('*', cors(corsOptions)); // Respond to OPTIONS for all routes
 
 // Body parser middleware
 app.use(express.json());
