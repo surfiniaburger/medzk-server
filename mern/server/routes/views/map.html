@@ -1640,7 +1640,9 @@ const DEFAULT_POLYLINE_OPTIONS = {
 async function displayRoute(originPlaceId, destinationPlaceId, markerInstance) {
     try {
         // Clear existing route if any
-        clearExistingRoute(markerInstance);
+        if (markerInstance.polyline) {
+            markerInstance.map3DElement.removeChild(markerInstance.polyline);
+        }
 
         // Fetch and validate route data
         const routeData = await fetchRoutes(originPlaceId, destinationPlaceId);
@@ -1706,7 +1708,7 @@ async function createTrafficAwarePolylines(route, map) {
     
     // Decode polyline into LatLngAltitude array
     const path = google.maps.geometry.encoding.decodePath(route.polyline.encodedPolyline).map(
-        (latLng) => new LatLngAltitude({ lat: latLng.lat(), lng: latLng.lng() }) // Convert to LatLngAltitude
+        (latLng) => new LatLngAltitude({ lat: latLng.lat(), lng: latLng.lng(), altitude: 0 }) // Convert to LatLngAltitude
     );
     // Return a single polyline for the entire route
     const polyline = new Polyline3DElement({ 
@@ -1714,8 +1716,10 @@ async function createTrafficAwarePolylines(route, map) {
         strokeColor: '#0000ff', // Example color, use what makes sense
         strokeWidth: 8,
         altitudeMode: AltitudeMode.CLAMP_TO_GROUND,
-        map // Add polyline to map directly
+        
     });
+    // Properly append the polyline to the map
+    map.append(polyline);
     return polyline; // Return the Polyline3DElement
 
     // Create separate polylines for each traffic segment
@@ -1782,8 +1786,14 @@ function isValidRouteData(routeData) {
 function fitMapToRoute(route, map) {
     const bounds = new google.maps.LatLngBounds();
     const decodedPath = google.maps.geometry.encoding.decodePath(route.polyline.encodedPolyline);
-    decodedPath.forEach(point => bounds.extend(point));
-    map.fitBounds(bounds, { padding: 50 });
+    if (decodedPath && decodedPath.length > 0) {
+        decodedPath.forEach(point => bounds.extend(point));
+        // Add some padding to ensure the entire route is visible
+        map.fitBounds(bounds, { 
+            padding: { top: 50, right: 50, bottom: 50, left: 50 },
+            animate: true
+        });
+    }
 }
 
 /**
