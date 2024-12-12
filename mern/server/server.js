@@ -29,8 +29,6 @@ const corsOptions = {
 // Configure CORS
 app.use(cors(corsOptions));
 
-// Handle preflight requests
-app.options('*', cors(corsOptions)); // Respond to OPTIONS for all routes
 
 // Body parser middleware
 app.use(express.json());
