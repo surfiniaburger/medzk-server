@@ -1,60 +1,129 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
-import Navbar from './Navbar';
+import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Loader2 } from 'lucide-react';
+//import { auth } from '../firebase';
+import { getAuth, onAuthStateChanged } from 'firebase/auth'; // Import onAuthStateChanged
 
-const MapComponent = () => {
-  const [mapHtml, setMapHtml] = useState('');
-  const [loading, setLoading] = useState(true);
+const EmbeddedMap = () => {
+  const auth = getAuth(); // Get the auth instance
+  const [isLoading, setIsLoading] = useState(true);
+  const [mapUrl, setMapUrl] = useState(null);
   const [error, setError] = useState(null);
+  const { user } = useSelector((state) => state.auth);
 
-  useEffect(() => {
-    const API_BASE = process.env.NODE_ENV === 'production' 
-    ? 'https://medzk-server.onrender.com'
+  const API_BASE = process.env.NODE_ENV === 'production'
+    ? 'https://zero-kare5-837262597425.us-central1.run.app'
     : 'http://localhost:5050';
 
-    const fetchMapHtml = async () => {
-      try {
-        // Send GET request to your /map endpoint
-        const response = await fetch(`${API_BASE}/record/map`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch map data');
+    useEffect(() => {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => { // Use async here
+        if (user) {
+          try {
+            const token = await user.getIdToken(true);
+            console.log("ID Token:", token);
+  
+            const response = await fetch(`${API_BASE}/record/map`, {
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': `Bearer ${token}`
+              }
+            });
+  
+            if (!response.ok) {
+              throw new Error('Failed to fetch map data');
+            }
+  
+            const data = await response.text();
+            setMapUrl(data);
+          } catch (err) {
+            setError(err.message);
+            console.error('Error fetching map:', err);
+          } finally {
+            setIsLoading(false); // Set loading to false after fetching, regardless of success or failure
+          }
+        } else {
+            setMapUrl(null); // Clear mapUrl if user is not logged in
+            setIsLoading(false); // Set loading to false if not logged in
         }
-        
-        // Get HTML response from server
-        const html = await response.text();
-        
-        // Set the HTML response to state
-        setMapHtml(html);
-        console.log(html)
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-      }
-    };
+      });
+  
+      return () => unsubscribe(); // Unsubscribe from onAuthStateChanged when component unmounts
+    }, [API_BASE, auth]); // API_BASE should be in the dependency array
 
-    // Fetch the map HTML when the component is mounted
-    fetchMapHtml();
-  }, []);
+  const handleIframeLoad = () => {
+    setIsLoading(false);
+  };
 
-  if (loading) {
-    return <div>Loading map...</div>;
-  }
-
-  if (error) {
-    return <div>There was an Error: {error}</div>;
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+        <Card className="w-full max-w-md p-6">
+          <CardContent>
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-center text-gray-900">
+                Authentication Required
+              </h2>
+              <p className="text-gray-600 text-center">
+                Please log in or register to view the map
+              </p>
+              <div className="flex flex-col gap-4">
+                <Link to="/login">
+                  <Button className="w-full">
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button variant="outline" className="w-full">
+                    Register
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div>
-        <Navbar/>
-      <h1>Map View</h1>
-      <div
-        dangerouslySetInnerHTML={{ __html: mapHtml }}
-      />
+    <div className="relative w-full h-screen">
+      {isLoading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-90">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mb-2" />
+          <p className="text-lg font-medium text-gray-700">Loading map...</p>
+        </div>
+      )}
+      
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6">
+              <p className="text-red-600 text-center">{error}</p>
+              <Button 
+                className="mt-4 w-full"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {mapUrl && (
+        <iframe
+          src={mapUrl}
+          title="Interactive Map"
+          className="w-full h-full border-none"
+          onLoad={handleIframeLoad}
+          allow="geolocation"
+        />
+      )}
     </div>
   );
 };
 
-export default MapComponent;
+export default EmbeddedMap;
