@@ -11,11 +11,11 @@ export const verifyFirebaseToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader) {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const token = authHeader.split('Bearer ')[1];
+    const token = authHeader.split(' ')[1];
     const decodedToken = await admin.auth().verifyIdToken(token);
     
     // Add user info to request object
