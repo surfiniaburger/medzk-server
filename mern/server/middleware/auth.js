@@ -9,13 +9,12 @@ admin.initializeApp({
 
 export const verifyFirebaseToken = async (req, res, next) => {
   try {
+    console.log('Verifying token...')
     const authHeader = req.headers.authorization;
-    
-    if (!authHeader) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
+    console.log('Authorization header:', authHeader);
 
     const token = authHeader.split(' ')[1];
+    console.log('Token:', token);
     const decodedToken = await admin.auth().verifyIdToken(token);
     
     // Add user info to request object
