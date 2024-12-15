@@ -31,18 +31,13 @@ const EmbeddedMap = () => {
                 'Authorization': `Bearer ${token}`
               }
             });
-            // Add debug logging for response
-            console.log("Response status:", response.status);
   
             if (!response.ok) {
-              const errorData = await response.json();
-              const errorText = await response.text();
-              console.error('Server response:', errorText);
-              throw new Error(errorData.error || 'Failed to fetch map data');
+              throw new Error('Failed to fetch map data');
             }
   
             const data = await response.text();
-            setMapUrl(data); 
+            setMapUrl(data);
           } catch (err) {
             setError(err.message);
             console.error('Error fetching map:', err);
