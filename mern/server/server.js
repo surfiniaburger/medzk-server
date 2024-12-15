@@ -23,8 +23,17 @@ const corsOptions = {
     }
   },
   methods: 'GET,POST,PUT,DELETE, OPTIONS',
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Amz-Date',
+    'X-Api-Key',
+    'X-Amz-Security-Token'
+  ],
   credentials: true,
-  maxAge: 86400 // 24 hours
+  maxAge: 86400 ,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }
 
 // Configure CORS
