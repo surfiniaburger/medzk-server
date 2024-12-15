@@ -362,6 +362,11 @@ router.get('/map', verifyFirebaseToken, async  (req, res) => {
       
     
     logger.info('info', 'Successfully injected API keys into HTML');
+    // Make sure to set proper headers
+    res.header('Access-Control-Allow-Origin', 'https://www.zerokare.info');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
     res.status(200).send(htmlContent);
   } catch (error) {
     logger.error('Error rendering the map page:', error);

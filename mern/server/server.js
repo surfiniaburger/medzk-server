@@ -23,7 +23,8 @@ const corsOptions = {
     }
   },
   methods: 'GET,POST,PUT,DELETE, OPTIONS',
-  credentials: false
+  credentials: true,
+  maxAge: 86400 // 24 hours
 }
 
 // Configure CORS
@@ -32,6 +33,7 @@ app.use(cors(corsOptions));
 
 // Body parser middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use("/record", records);
 
