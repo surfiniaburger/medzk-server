@@ -169,7 +169,7 @@ async function retryWithBackoff(fn, maxRetries = 3, backoffFactor = 2) {
   throw new Error("Max retries exceeded.");
 }
 
-router.use(verifyFirebaseToken);
+
 
 // Health check route
 router.get('/health', (req, res) => {
@@ -334,7 +334,7 @@ router.post("/login", async (req, res) => {
 
 
 
-router.get('/map', (req, res) => {
+router.get('/map', verifyFirebaseToken, async  (req, res) => {
   try {
     // Log request details
     logger.info('info', 'Request received for /map');
