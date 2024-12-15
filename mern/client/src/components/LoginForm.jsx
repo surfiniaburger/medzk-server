@@ -1,139 +1,63 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  signInWithEmailAndPassword,
-  signInWithRedirect,
-  getRedirectResult,
-  GoogleAuthProvider,
-} from 'firebase/auth';
-import { auth } from '../firebase';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
+import { useState } from "react";
+import { login } from "../firebase";
+import { useNavigate } from "react-router-dom";
 
-const LoginForm = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const location = useLocation();
 
-  useEffect(() => {
-    const handleRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          console.log('Redirect successful:', result);
-          const destination = location.state?.from || '/';
-          console.log('Navigating to:', destination);
-          navigate(destination, { replace: true });
-        }
-      } catch (err) {
-        console.error('Error in redirect result:', err.message);
-        setError(err.message);
-      }
-    };
-
-    handleRedirectResult();
-  }, [navigate, location]);
-
-  const handleEmailSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      console.log('Attempting email sign-in for:', email);
-      await signInWithEmailAndPassword(auth, email, password);
-      const destination = location.state?.from || '/';
-      console.log('Navigating to:', destination);
-      navigate(destination, { replace: true });
-    } catch (err) {
-      console.error('Email sign-in error:', err.message);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    const user = await login(email, password);
+    if (user) {
+      navigate("/", { replace: true });
     }
   };
-
-
-  
-  const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      console.log('Starting Google sign-in redirect...');
-      await signInWithRedirect(auth, provider);
-    } catch (err) {
-      console.error('Google sign-in error:', err.message);
-      setError(err.message);
-    }
-  };
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-center text-2xl font-bold">Sign In</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          <Button
-            onClick={handleGoogleSignIn}
-            type="button"
-            className="w-full mb-4"
-            variant="outline"
-          >
-            Continue with Google
-          </Button>
-
-          <div className="relative my-4">
-            <Separator />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="bg-gray-50 px-2 text-gray-500 text-sm">Or continue with email</span>
-            </div>
-          </div>
-
-          <form onSubmit={handleEmailSubmit} className="space-y-6">
-            <div>
-              <Input
-                type="email"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full"
-              />
-            </div>
-            <div>
-              <Input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full"
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full"
-            >
-              {loading ? 'Signing in...' : 'Sign In with Email'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <form
+      className="max-w-xl mx-auto grid gap-y-4 py-4"
+      onSubmit={handleSubmit}
+    >
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Email
+        </label>
+        <div className="mt-1">
+          <input
+            type="text"
+            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-900 rounded-md"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Password
+        </label>
+        <div className="mt-1 rounded-md">
+          <input
+            type="password"
+            className="shadow-sm focus:ring-indigo-500 border focus:border-indigo-500 block w-full sm:text-sm border-gray-900 h-10 rounded-md"
+            placeholder="*******"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+      </div>
+      <div>
+        <button
+          disabled={!email || !password}
+          type="submit"
+          className="inline-flex disabled:opacity-40 items-center justify-center px-4 py-2 border border-transparent bg-indigo-600 hover:bg-indigo-700 rounded-md focus:outline-none focus:ring-2 cursor-pointer focus:ring-offset-2 focus:ring-indigo-500 text-white font-medium"
+        >
+          Login
+        </button>
+      </div>
+    </form>
   );
 };
 
-export default LoginForm;
+export default Login;
