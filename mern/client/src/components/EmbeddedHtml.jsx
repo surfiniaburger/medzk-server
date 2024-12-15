@@ -26,14 +26,18 @@ const EmbeddedMap = () => {
             console.log("ID Token:", token);
   
             const response = await fetch(`${API_BASE}/record/map`, {
+              method: 'GET',
               headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
-              }
+              },
+                credentials: 'include'
             });
   
             if (!response.ok) {
-              throw new Error('Failed to fetch map data');
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Failed to fetch map data');
             }
   
             const data = await response.text();
