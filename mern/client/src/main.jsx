@@ -20,7 +20,8 @@ import RegisterForm from "./components/RegisterForm";
 import SocialHtml from "./components/Social";
 import ProtectedRoute from './components/ProtectedRoute';
 // Import auth from firebase.js instead of initializing here
-import { auth } from './firebase';
+import { Provider } from "react-redux";
+import store from "./redux/store";
 
 // Create a context to share Firebase throughout your app
 export const FirebaseContext = React.createContext(null);
@@ -83,11 +84,10 @@ const router = createBrowserRouter([
   },
 ]);
 
-// Wrap your RouterProvider with FirebaseContext.Provider
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <FirebaseContext.Provider value={{ auth }}>
+    <Provider store={store}>
       <RouterProvider router={router} />
-    </FirebaseContext.Provider>
+    </Provider>
   </React.StrictMode>
 );
