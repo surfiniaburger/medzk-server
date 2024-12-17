@@ -18,7 +18,6 @@ import Environment from "./components/environment";
 import LoginForm from "./components/LoginForm";
 import RegisterForm from "./components/RegisterForm";
 import SocialHtml from "./components/Social";
-import ProtectedRoute from './components/ProtectedRoute';
 // Import auth from firebase.js instead of initializing here
 import { Provider } from "react-redux";
 import store from "./redux/store";
@@ -38,7 +37,7 @@ const router = createBrowserRouter([
       },
       {
         path: "/predict", 
-        element: <ProtectedRoute><PredictForm /></ProtectedRoute>, 
+        element: <PredictForm />, 
       },
       {
         path: "/vision",
