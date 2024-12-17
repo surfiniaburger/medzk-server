@@ -11,8 +11,9 @@ const EmbeddedMap = () => {
   const [error, setError] = useState(null);
 
   const API_BASE = process.env.NODE_ENV === 'production'
-    ? 'https://zero-kare5-837262597425.us-central1.run.app'
-    : 'http://localhost:5050';
+  ? 'http://PORT.eba-uphrziri.us-west-2.elasticbeanstalk.com'
+  : 'http://localhost:5050';
+
 
   const signOutRedirect = () => {
     const clientId = "63a66bgm7grnairaa8mkc9ji7k";
