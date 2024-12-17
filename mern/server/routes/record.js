@@ -26,7 +26,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { verifyFirebaseToken } from '../middleware/auth.js';
+
 
 // Create __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -334,7 +334,7 @@ router.post("/login", async (req, res) => {
 
 
 
-router.get('/map', verifyFirebaseToken, async  (req, res) => {
+router.get('/map', async  (req, res) => {
   try {
     // Log request details
     logger.info('info', 'Request received for /map');

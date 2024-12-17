@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import records from "./routes/record.js";
 import 'dotenv/config';
+import { CognitoJwtVerifier } from "aws-jwt-verify";
 
 const PORT = process.env.PORT || 5050;
 const app = express();
@@ -45,7 +46,35 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/record", records);
+
+
+// Add this to your server.js
+const verifier = CognitoJwtVerifier.create({
+  userPoolId: process.env.COGNITO_USER_POOL_ID,
+  tokenUse: "access",
+  clientId: process.env.COGNITO_CLIENT_ID,
+});
+
+// Middleware to verify JWT tokens
+const authenticateToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.sendStatus(401);
+    
+    const token = authHeader.split(' ')[1];
+    const payload = await verifier.verify(token);
+    req.user = payload;
+    next();
+  } catch (err) {
+    return res.sendStatus(403);
+  }
+};
+
+// Use the middleware on protected routes
+app.use("/record", authenticateToken, records);
+
+
+
 
 
 // Start the Express server
