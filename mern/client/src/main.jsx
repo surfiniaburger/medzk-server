@@ -1,4 +1,3 @@
-import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import {
   createBrowserRouter,
@@ -18,14 +17,8 @@ import Environment from "./components/environment";
 import LoginForm from "./components/LoginForm";
 import RegisterForm from "./components/RegisterForm";
 import SocialHtml from "./components/Social";
-// Import auth from firebase.js instead of initializing here
-import { Provider } from "react-redux";
-import store from "./redux/store";
+import { AppWrapper } from './Appwrapper';
 
-// Create a context to share Firebase throughout your app
-export const FirebaseContext = React.createContext(null);
-
-// Define routes without authentication
 const router = createBrowserRouter([
   {
     path: "/",
@@ -84,9 +77,7 @@ const router = createBrowserRouter([
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <Provider store={store}>
-      <RouterProvider router={router} />
-    </Provider>
-  </React.StrictMode>
+  <AppWrapper>
+    <RouterProvider router={router} />
+  </AppWrapper>
 );
