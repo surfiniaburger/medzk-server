@@ -30,6 +30,7 @@ const EmbeddedMap = () => {
       }
 
       try {
+        console.log('Fetching map data...');
         const response = await fetch(`${API_BASE}/record/map`, {
           method: 'GET',
           headers: {
