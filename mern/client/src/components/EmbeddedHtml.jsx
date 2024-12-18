@@ -14,6 +14,7 @@ const EmbeddedMap = () => {
   ? 'http://PORT.eba-uphrziri.us-west-2.elasticbeanstalk.com'
   : 'http://localhost:5050';
 
+  
 
   const signOutRedirect = () => {
     const clientId = "63a66bgm7grnairaa8mkc9ji7k";
