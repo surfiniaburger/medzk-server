@@ -15,7 +15,6 @@ import EmbeddedHtml from "./components/EmbeddedHtml";
 import ChromeNano from "./components/ChromeNano";
 import Environment from "./components/environment";
 import LoginForm from "./components/LoginForm";
-import RegisterForm from "./components/RegisterForm";
 import SocialHtml from "./components/Social";
 import { AppWrapper } from './Appwrapper';
 
@@ -63,10 +62,6 @@ const router = createBrowserRouter([
       {
         path: "/login",
         element: <LoginForm />,
-      },
-      {
-        path: "/register",
-        element: <RegisterForm />,
       },
       {
         path: "/social",
