@@ -12,9 +12,7 @@ const EmbeddedMap = () => {
 
   const API_BASE = process.env.NODE_ENV === 'production'
   ? 'https://www.server.zerokare.info'
-  : 'http://localhost:5050';
-
-
+  : 'http://localhost:5050'
 
   const signOutRedirect = () => {
     const clientId = "63a66bgm7grnairaa8mkc9ji7k";
