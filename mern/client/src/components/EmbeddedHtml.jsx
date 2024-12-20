@@ -30,6 +30,8 @@ const EmbeddedMap = () => {
 
       try {
         console.log('Fetching map data...');
+        console.log('Access token:', auth.user?.access_token);
+
         const response = await fetch(`${API_BASE}/record/map`, {
           method: 'GET',
           headers: {
@@ -45,9 +47,7 @@ const EmbeddedMap = () => {
           throw new Error(errorData.error || 'Failed to fetch map data');
         }
 
-        const data = await response.text();
-        console.log('Map data fetched successfully:', data);
-        setMapUrl(data);
+        setMapUrl(response);
       } catch (err) {
         setError(err.message);
         console.error('Error fetching map:', err);
@@ -154,7 +154,7 @@ const EmbeddedMap = () => {
         <iframe
           src={mapUrl}
           title="Interactive Map"
-          className="w-full h-full border-none"
+          style={{ width: "100%", height: "100vh", border: "none" }}
           onLoad={handleIframeLoad}
           allow="geolocation"
         />
