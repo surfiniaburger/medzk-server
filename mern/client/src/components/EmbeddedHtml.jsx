@@ -30,7 +30,6 @@ const EmbeddedMap = () => {
 
       try {
         console.log('Fetching map data...');
-        console.log('Access token:', auth.user?.access_token);
 
         const response = await fetch(`${API_BASE}/record/map`, {
           method: 'GET',
@@ -47,7 +46,14 @@ const EmbeddedMap = () => {
           throw new Error(errorData.error || 'Failed to fetch map data');
         }
 
-        setMapUrl(response);
+        
+        // Assuming the response contains the map HTML content
+        const mapContent = await response.text();
+        
+        // Create a blob URL from the HTML content
+        const blob = new Blob([mapContent], { type: 'text/html' });
+        const mapUrl = URL.createObjectURL(blob);
+        setMapUrl(mapUrl);
       } catch (err) {
         setError(err.message);
         console.error('Error fetching map:', err);
@@ -57,7 +63,13 @@ const EmbeddedMap = () => {
     };
 
     fetchMapData();
-  }, [API_BASE, auth.isAuthenticated, auth.user?.access_token]);
+     // Cleanup function to revoke the blob URL
+     return () => {
+      if (mapUrl) {
+        URL.revokeObjectURL(mapUrl);
+      }
+    };
+  }, [API_BASE, auth.isAuthenticated, auth.user?.access_token, mapUrl]);
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -157,6 +169,7 @@ const EmbeddedMap = () => {
           style={{ width: "100%", height: "100vh", border: "none" }}
           onLoad={handleIframeLoad}
           allow="geolocation"
+          sandbox="allow-scripts allow-same-origin allow-forms"
         />
       )}
     </div>
