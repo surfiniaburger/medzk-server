@@ -169,7 +169,6 @@ const EmbeddedMap = () => {
           style={{ width: "100%", height: "100vh", border: "none" }}
           onLoad={handleIframeLoad}
           allow="geolocation"
-          sandbox="allow-scripts allow-same-origin allow-forms"
         />
       )}
     </div>
