@@ -69,7 +69,8 @@ const EmbeddedMap = () => {
         URL.revokeObjectURL(mapUrl);
       }
     };
-  }, [API_BASE, auth.isAuthenticated, auth.user?.access_token, mapUrl]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [API_BASE, auth.isAuthenticated, auth.user?.access_token]);
 
   const handleIframeLoad = () => {
     setIsLoading(false);
