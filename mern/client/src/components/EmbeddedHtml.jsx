@@ -46,6 +46,7 @@ const EmbeddedMap = () => {
         }
 
         const data = await response.text();
+        console.log('Map data fetched successfully:', data);
         setMapUrl(data);
       } catch (err) {
         setError(err.message);
